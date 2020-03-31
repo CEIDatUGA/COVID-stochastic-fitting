@@ -175,6 +175,32 @@ covid_step_C <- Csnippet(
 )
 
 
+# C snipped for initial condition specification -------------------------------------
+
+rinit <- Csnippet(
+  "
+  S = S_0; 
+  E1 = E1_0;
+  E2 = E2_0;
+  E3 = E3_0;
+  E4 = E4_0; 
+  E5 = E5_0; 
+  E6 = E6_0; 
+  I1 = I1_0;
+  I2 = I2_0; 
+  I3 = I3_0; 
+  I4 = I4_0; 
+  Iu1 = Iu1_0;
+  Iu2 = Iu2_0;
+  Iu3 = Iu3_0; 
+  Iu4 = Iu4_0;
+  C = C_0;
+  Ru = Ru_0;
+  "
+)
+
+
+
 # Parameter transforms for estimation -------------------------------------
 
 param_transforms <- parameter_trans(
@@ -206,9 +232,10 @@ parnames1 <- c("beta_d", "beta_u", "beta_e", "beta_red_factor",
                "theta")
 
 # Initial conditions of state variables are also parameters
-parnames2 <- c("E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
+parnames2 <- c("S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
                "I1_0", "I2_0", "I3_0", "I4_0", 
-               "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0")
+               "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0", 
+               "C_0","Ru_0")
 
 parnames <- c(parnames1,parnames2)
 
@@ -218,7 +245,7 @@ parnames <- c(parnames1,parnames2)
 inivals <- c(S_0 = 10600000, 
              E1_0 = 35, E2_0 = 35, E3_0 = 35, E4_0 = 35, E5_0 =35, E6_0 =35,
              I1_0 = 14, I2_0 = 14, I3_0 = 14, I4_0 = 14, 
-             Iu1_0 = 111, Iu2_0= 111, Iu3_0= 111, Iu4_0= 111, 
+             Iu1_0 = 111, Iu2_0 = 111, Iu3_0 = 111, Iu4_0 = 111, 
              C_0 = 1,
              Ru_0 = 1)
 
@@ -239,27 +266,6 @@ parvals <- c(beta_d = 5e-7,
              rho = 0.5, 
              theta = 100)
 
-rinit <- Csnippet(
-  "
-  S = 10600000; 
-  E1 = 35;
-  E2 = 35;
-  E3 = 35;
-  E4 = 35; 
-  E5 = 35; 
-  E6 = 35; 
-  I1 = 14;
-  I2 = 14; 
-  I3 = 14; 
-  I4 = 14; 
-  Iu1 = 111;
-  Iu2 = 111;
-  Iu3 = 111; 
-  Iu4 = 111;
-  C = 1;
-  Ru = 1;
-  "
-)
 
 
 # Define the pomp model object --------------------------------------------
@@ -274,11 +280,13 @@ covid_ga_pomp <- pomp(
   rprocess = euler(step.fun = covid_step_C, delta.t = 1/20),
   partrans = param_transforms,
   statenames = varnames,
-  obsnames = c("cases"),
   paramnames = parnames, 
+  obsnames = c("cases"),
   accumvars = c("C"),
   params = c(parvals, inivals)
 )
+
+
 
 
 # Save the pomp object ----------------------------------------------------
