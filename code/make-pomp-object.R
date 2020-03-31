@@ -60,7 +60,7 @@ rmeas <- Csnippet(
 
 covid_step_C <- Csnippet(
   "
-  // C indexes at 0, JMD dislikes, so making things 1 bigger and start 
+  // C indexes at 0, for R users making things 1 bigger and start 
   // with index 1, i.e. leave trans[0] empty, same for rate[0]
   double trans[17];
   double rate[17];
@@ -87,7 +87,7 @@ covid_step_C <- Csnippet(
   if (t<=t_int1)
     foi = beta_d*Idetected + beta_u*Iundetected + beta_e*Epresymptom;
   else
-    foi = (beta_red_factor+1)*(beta_d*Idetected + beta_u*Iundetected + beta_e*Epresymptom);
+    foi = (1/(beta_red_factor+1))*(beta_d*Idetected + beta_u*Iundetected + beta_e*Epresymptom);
 
 
   // Time-dependent rate of movement through infected and detected classes:
