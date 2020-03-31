@@ -27,7 +27,7 @@ estpars <- c("beta_d", "beta_u",  "beta_e", "beta_red_factor", "gamma_u", "gamma
 
 # Question: Are there rules of thumb for specifying Nmif, Np, coooling.fraction and rw.sd? Or ways to diagnose if one is choosing them right?
 # Other question: Is this only estimating those parameters that are specified in rw.sd and all others are assumed fixed?
-test <- mif2(covid_ga_pomp, Nmif = 50, params = theta.guess, 
+test <- mif2(covid_ga_pomp, Nmif = 500, params = theta.guess, 
              Np = 2000, cooling.fraction = 0.5,
              rw.sd = rw.sd(beta_d = 0.02, beta_u = 0.02, beta_e = 0.02, 
                            beta_red_factor = 0.02, gamma_u = 0.02,
@@ -40,7 +40,6 @@ mifs <- foreach (i = 1:10, .combine = c) %dopar% {   #Inspect from multiple, ran
                                  meanlog = log(theta.guess[estpars]), sdlog = 1)
         } 
 
-browser()
 
 
 # Use particle filter to get the likelihood at the end of MIF run
