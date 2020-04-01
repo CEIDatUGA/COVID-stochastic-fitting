@@ -175,7 +175,7 @@ covid_step_C <- Csnippet(
 )
 
 
-# C snipped for initial condition specification -------------------------------------
+# C snippet for initial condition specification ---------------------------
 
 rinit <- Csnippet(
   "
@@ -299,14 +299,14 @@ saveRDS(covid_ga_pomp, "../output/covid-ga-pomp-object.RDS")
 
 # Test to make sure we can simulate ---------------------------------------
 
-res <- simulate(covid_ga_pomp)
-simcases <- as.data.frame(t(res@states))$C
-outdf <- covid_ga_data[1:25, ] %>%
-  mutate(pred_cases = simcases)
-
-ggplot(outdf, aes(x = days)) +
-  geom_point(aes(y = cases)) +
-  geom_line(aes(y = pred_cases))
+# res <- simulate(covid_ga_pomp)
+# simcases <- as.data.frame(t(res@states))$C
+# outdf <- covid_ga_data[1:25, ] %>%
+#   mutate(pred_cases = simcases)
+# 
+# ggplot(outdf, aes(x = days)) +
+#   geom_point(aes(y = cases)) +
+#   geom_line(aes(y = pred_cases))
 
 
 # Cache -------------------------------------------------------------------
