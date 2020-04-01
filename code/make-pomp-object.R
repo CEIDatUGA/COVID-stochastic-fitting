@@ -85,9 +85,9 @@ covid_step_C <- Csnippet(
   //    the same as t_int2.
 
   if (t<=t_int1)
-    foi = beta_d*Idetected + beta_u*Iundetected + beta_e*Epresymptom;
+    foi = exp(beta_d)*Idetected + exp(beta_u)*Iundetected + exp(beta_e)*Epresymptom;
   else
-    foi = (1/(beta_red_factor+1))*(beta_d*Idetected + beta_u*Iundetected + beta_e*Epresymptom);
+    foi = (1/(beta_red_factor+1))*(exp(beta_d)*Idetected + exp(beta_u)*Iundetected + exp(beta_e)*Epresymptom);
 
 
   // Time-dependent rate of movement through infected and detected classes:
@@ -178,9 +178,12 @@ covid_step_C <- Csnippet(
 # Parameter transforms for estimation -------------------------------------
 
 param_transforms <- parameter_trans(
-  log = c("beta_d", "beta_u", "beta_e", "beta_red_factor", "t_int1", 
-          "t_int2", "t_int3", "gamma_u", "gamma_d"),
-  logit = c("detect_frac_0", "detect_frac_1")
+  log = c("beta_red_factor", "t_int1", 
+          "t_int2", "t_int3", "gamma_u", "gamma_d", "theta"),
+  logit = c("detect_frac_0", "detect_frac_1"),
+  barycentric =  c("E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
+                   "I1_0", "I2_0", "I3_0", "I4_0", 
+                   "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0")
 )
 
 
@@ -226,9 +229,9 @@ Ntot <- sum(inivals)  # total population size
 
 # Values for parameters
 # beta is scaled by population size here instead of inside the process model
-parvals <- c(beta_d = 5e-7, 
-             beta_u = 0.25/Ntot, 
-             beta_e = 0.1/Ntot, 
+parvals <- c(beta_d = log(2/Ntot), 
+             beta_u = log(0.25/Ntot), 
+             beta_e = log(0.1/Ntot), 
              beta_red_factor = 0.5, 
              t_int1 = 12, t_int2 = 12, t_int3 = 12, 
              gamma_u = 4*0.1,
@@ -288,14 +291,14 @@ saveRDS(covid_ga_pomp, "../output/covid-ga-pomp-object.RDS")
 
 # Test to make sure we can simulate ---------------------------------------
 
-# res <- simulate(covid_ga_pomp)
-# simcases <- as.data.frame(t(res@states))$C
-# outdf <- covid_ga_data[1:25, ] %>%
-#   mutate(pred_cases = simcases)
-# 
-# ggplot(outdf, aes(x = days)) +
-#   geom_point(aes(y = cases)) +
-#   geom_line(aes(y = pred_cases))
+res <- simulate(covid_ga_pomp)
+simcases <- as.data.frame(t(res@states))$C
+outdf <- covid_ga_data[1:25, ] %>%
+  mutate(pred_cases = simcases)
+
+ggplot(outdf, aes(x = days)) +
+  geom_point(aes(y = cases)) +
+  geom_line(aes(y = pred_cases))
 
 
 # Cache -------------------------------------------------------------------
