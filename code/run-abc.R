@@ -103,7 +103,7 @@ out_abc <- abc(
     paramnames = c("beta_d", "beta_u", "beta_e", "beta_red_factor", 
                    "gamma_u", "gamma_d", "detect_frac_0", "theta")
   ),
-  Nabc = 100000,
+  Nabc = 200000,
   epsilon = 5,
   scale = scale.dat,
   proposal = mvn.diag.rw(rw.sd),
