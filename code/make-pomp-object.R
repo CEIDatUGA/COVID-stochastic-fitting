@@ -179,38 +179,58 @@ covid_step_C <- Csnippet(
 
 rinit <- Csnippet(
   "
-  S = S_0; 
-  E1 = E1_0;
-  E2 = E2_0;
-  E3 = E3_0;
-  E4 = E4_0; 
-  E5 = E5_0; 
-  E6 = E6_0; 
-  I1 = I1_0;
-  I2 = I2_0; 
-  I3 = I3_0; 
-  I4 = I4_0; 
-  Iu1 = Iu1_0;
-  Iu2 = Iu2_0;
-  Iu3 = Iu3_0; 
-  Iu4 = Iu4_0;
-  C = C_0;
-  Ru = Ru_0;
+  S = nearbyint(S_0);
+  E1 = nearbyint(E1_0);
+  E2 = nearbyint(E2_0);
+  E3 = nearbyint(E3_0);
+  E4 = nearbyint(E4_0);
+  E5 = nearbyint(E5_0);
+  E6 = nearbyint(E6_0);
+  I1 = nearbyint(I1_0);
+  I2 = nearbyint(I2_0);
+  I3 = nearbyint(I3_0);
+  I4 = nearbyint(I4_0);
+  Iu1 = nearbyint(Iu1_0);
+  Iu2 = nearbyint(Iu2_0);
+  Iu3 = nearbyint(Iu3_0);
+  Iu4 = nearbyint(Iu4_0);
+  C = nearbyint(C_0);
+  Ru = nearbyint(Ru_0);
   "
 )
-
+# rinit <- Csnippet(
+#   "
+#   S = 10600000; 
+#   E1 = 35;
+#   E2 = 35;
+#   E3 = 35;
+#   E4 = 35; 
+#   E5 = 35; 
+#   E6 = 35; 
+#   I1 = 14;
+#   I2 = 14; 
+#   I3 = 14; 
+#   I4 = 14; 
+#   Iu1 = 111;
+#   Iu2 = 111;
+#   Iu3 = 111; 
+#   Iu4 = 111;
+#   C = 1;
+#   Ru = 1;
+#   "
+# )
 
 
 # Parameter transforms for estimation -------------------------------------
 
 param_transforms <- parameter_trans(
   log = c("beta_red_factor", "t_int1", 
-          "t_int2", "t_int3", "gamma_u", "gamma_d", "theta"),
-  logit = c("detect_frac_0", "detect_frac_1"),
-  barycentric =  c("E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
-                   "I1_0", "I2_0", "I3_0", "I4_0", 
-                   "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0")
-)
+          "t_int2", "t_int3", "gamma_u", "gamma_d", "theta",
+          "S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
+          "I1_0", "I2_0", "I3_0", "I4_0", 
+          "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0", 
+          "C_0","Ru_0"),
+  logit = c("detect_frac_0", "detect_frac_1"))
 
 
 # State variables to track ------------------------------------------------
