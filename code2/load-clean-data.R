@@ -1,7 +1,6 @@
 # load-clean-data.R
 # load and clean/process data so it is ready for fitting
 
-
 # Load libraries ----------------------------------------------------------
 
 library(dplyr)
@@ -21,9 +20,10 @@ covid_ga_data <- data %>% dplyr::select(date, cases_cumulative, fatalities_cumul
 
 # Extend data frame holding data by a month so that pomp runs 
 # simulations for that long
+# not used right now
 future <- data.frame(time = max(covid_ga_data$time):(max(covid_ga_data$time)+31),
                      cases = NA )
-covid_ga_data <- rbind(covid_ga_data,future)
+#covid_ga_data <- rbind(covid_ga_data,future)
 covid_ga_data$cases <- covid_ga_data$cases + 1 # Add one to avoid 0s for fits
 
 # Save cleaned data

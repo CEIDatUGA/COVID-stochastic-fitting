@@ -1,11 +1,10 @@
 # make-pomp-model.R
 #
-# This script generates the model part of a pomp object for an SEIR model of COVID 19 
-# this model can be used for simulation. By adding data and measurement part to pomp object, one can do inference
+# This script generates a pomp object for an SEIR model of COVID 19 
 # The stochastic process model was developed by
 # John Drake and Pej Rohani; the pomp snippet code was written by 
 # John Drake and Andreas Handel, with minor edits by Andrew Tredennick.
-# Running this script saves an RDS object: covid-pomp-model.RDS. This object
+# Running this script saves an RDS object: pomp-model.RDS. This object
 # can then be loaded to perform model simulations as needed.
 # for fitting, the pomp object needs to be augmented with data and measurement functions
 
@@ -20,7 +19,7 @@ library(here) #to simplify loading/saving into different folders
 
 # Define COVID-19 process model -------------------------------------------
 
-covid_step_C <- Csnippet(
+pomp_step <- Csnippet(
   "
   // C indexes at 0, for R users making things 1 bigger and start 
   // with index 1, i.e. leave trans[0] empty, same for rate[0]
@@ -139,27 +138,45 @@ covid_step_C <- Csnippet(
 
 # C snipped for initial condition specification -------------------------------------
 
-rinit <- Csnippet(
+pomp_init <- Csnippet(
   "
-  S = S_0; 
-  E1 = E1_0;
-  E2 = E2_0;
-  E3 = E3_0;
-  E4 = E4_0; 
-  E5 = E5_0; 
-  E6 = E6_0; 
-  I1 = I1_0;
-  I2 = I2_0; 
-  I3 = I3_0; 
-  I4 = I4_0; 
-  Iu1 = Iu1_0;
-  Iu2 = Iu2_0;
-  Iu3 = Iu3_0; 
-  Iu4 = Iu4_0;
-  C = C_0;
-  Ru = Ru_0;
+  S = nearbyint(S_0);
+  E1 = nearbyint(E1_0);
+  E2 = nearbyint(E2_0);
+  E3 = nearbyint(E3_0);
+  E4 = nearbyint(E4_0);
+  E5 = nearbyint(E5_0);
+  E6 = nearbyint(E6_0);
+  I1 = nearbyint(I1_0);
+  I2 = nearbyint(I2_0);
+  I3 = nearbyint(I3_0);
+  I4 = nearbyint(I4_0);
+  Iu1 = nearbyint(Iu1_0);
+  Iu2 = nearbyint(Iu2_0);
+  Iu3 = nearbyint(Iu3_0);
+  Iu4 = nearbyint(Iu4_0);
+  C = nearbyint(C_0);
+  Ru = nearbyint(Ru_0);
   "
 )
+
+
+# Define likelihood function ----------------------------------------------
+
+dmeas <- Csnippet(
+  "
+  lik = dnbinom_mu(cases, theta, rho * C, give_log);
+  "
+)
+
+# Define process simulator for observations  ------------------------------
+
+rmeas <- Csnippet(
+  "
+  cases = rnbinom_mu(theta, rho * C);
+  "
+)
+
 
 # Parameter transforms for estimation -------------------------------------
 
@@ -179,48 +196,42 @@ varnames <- c("S",
 
 # Parameters --------------------------------------------------------------
 # Parameter and variable names
-parnames1 <- c("beta_d", "beta_u", "beta_e", "beta_red_factor", 
+model_pars <- c("beta_d", "beta_u", "beta_e", "beta_red_factor", 
                "t_int1", "t_int2", "t_int3", 
                "gamma_u", "gamma_d",
                "detect_frac_0","detect_frac_1",
-               "sigma", 
-               "rho", 
-               "theta")
+               "sigma")
+
+measure_pars <- c("theta","rho")
 
 # Initial conditions of state variables are also parameters
-parnames2 <- c("S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
+ini_pars <- c("S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
                "I1_0", "I2_0", "I3_0", "I4_0", 
                "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0", 
                "C_0","Ru_0")
 
-parnames <- c(parnames1,parnames2)
+parnames <- c(model_pars,measure_pars,ini_pars)
 
 
-#######################################################################
-#create fake data to make pomp happy
-#######################################################################
-tmax = 100
-fake_data = data.frame(time = 0:tmax, cases = rep(0,length(0:tmax)))
 
 #######################################################################
-#not used here, but added as dummy 
-#to make pomp stop produce warning messages
-#real rmeas should be specified separately and added to pomp object, 
-#together with data
+# Load cleaned data ---------------------------------------------------------
 #######################################################################
-rmeas <- pomp::Csnippet("
-      cases = C;
-    ")  
+filename = here('output2/clean-data.RDS')
+pomp_data <- readRDS(filename)
+
+
 
 # Define the pomp model object --------------------------------------------
 
 covid_pomp_model <- pomp(
-  data = fake_data,
+  data = pomp_data[1:25, ],  # currently removes NAs
   times = "time",
   t0 = 0,
+  rinit = pomp_init,
+  rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
   rmeasure = rmeas,
-  rinit = rinit,
-  rprocess = euler(step.fun = covid_step_C, delta.t = 1/20),
+  dmeasure = dmeas,
   partrans = param_transforms,
   statenames = varnames,
   paramnames = parnames, 
@@ -230,6 +241,6 @@ covid_pomp_model <- pomp(
 
 
 # Save the pomp object ----------------------------------------------------
-filename = here('output2/covid-pomp-simulator.RDS')
+filename = here('output2/complete-pomp-model.RDS')
 
 saveRDS(covid_pomp_model, filename)
