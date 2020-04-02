@@ -200,7 +200,7 @@ parnames <- c(parnames1,parnames2)
 #create fake data to make pomp happy
 #######################################################################
 tmax = 100
-fake_data = data.frame(days = 0:tmax, cases = rep(0,length(0:tmax)))
+fake_data = data.frame(time = 0:tmax, cases = rep(0,length(0:tmax)))
 
 #######################################################################
 #not used here, but added as dummy 
@@ -216,7 +216,7 @@ rmeas <- pomp::Csnippet("
 
 covid_pomp_model <- pomp(
   data = fake_data,
-  times = "days",
+  times = "time",
   t0 = 0,
   rmeasure = rmeas,
   rinit = rinit,
@@ -230,6 +230,6 @@ covid_pomp_model <- pomp(
 
 
 # Save the pomp object ----------------------------------------------------
-filename = here('output/covid-pomp-model.RDS')
+filename = here('output2/covid-pomp-simulator.RDS')
 
 saveRDS(covid_pomp_model, filename)

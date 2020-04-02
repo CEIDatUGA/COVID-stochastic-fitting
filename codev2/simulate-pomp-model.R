@@ -10,7 +10,7 @@ library(pomp)
 library(here) #to simplify loading/saving into different folders
 
 # Load pomp simulator object ---------------------------------------------------------
-filename = here('output/covid-pomp-model.RDS')
+filename = here('output2/covid-pomp-simulator.RDS')
 covid_pomp_model <- readRDS(filename)
 
 
@@ -43,10 +43,21 @@ parvals <- c(beta_d = 5e-7,
              theta = 100)
 
 #run simulation a number of times
-simp <- pomp::simulate(covid_pomp_model, 
+sims <- pomp::simulate(covid_pomp_model, 
                        params=c(parvals,inivals), 
-                       nsim=1, format="data.frame", 
+                       nsim=10, format="data.frame", 
                        include.data=FALSE)
 
+p <- ggplot(aes(x=time,y=S)) +
+  ggplot(data=gather(
+    as.data.frame(sims),
+    variable,value,Y,N
+  ),
+  aes(x=time,y=value,color=variable,
+      group=interaction(.id,variable)))+
+  geom_line()+
+  facet_grid(variable~.,scales="free_y")+
+  labs(y="",color="")
+  
 
   
