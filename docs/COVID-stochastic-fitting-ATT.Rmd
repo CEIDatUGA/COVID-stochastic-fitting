@@ -3,6 +3,8 @@ title: "Fitting stochastic COVID model: the inference trio"
 author: "Andrew Tredennick"
 date: "4/02/2020"
 output: pdf_document
+header-includes:
+  - \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 ---
 
 ```{r setup, include=FALSE}
@@ -385,3 +387,58 @@ lines(x = seq(0, 1, by = 0.01), dunif(x = seq(0, 1, by = 0.01), 0.01, 0.6),
       col = "red", lty = 2)
 plot(density(chain$theta), bty = "n", xlab = expression(theta), main= "")
 ```
+
+## Some notes on ABC
+
+The `pomp::abc` routine follows the MCMC-ABC algorithm presented in Marin et al. (2012; Algorithm 3).
+The algorithm is also presented in King and Ionides (2012; Algorithm 6, see figure below).
+
+![MCMC-ABC algorithm used in pomp. Copied from King et al. JSS updated paper.](pomp-abc.png)
+
+A couple things of note.
+First, the likelihood-free evaluation is
+
+$$P_{\text{ABC}} = \sum^d_{i=1}\left( \frac{s_i - s_i^*}{\tau_i} \right)^2 < \epsilon^2,$$
+
+where $s_i$ is the $i^{\text{th}}$ summary statistic applied to the observed data trajectory, $s_i^*$ is the same statistic applied to a simulated trajectory, $\tau_i$ is the associated "scale" of the summary statistic, and $\epsilon$ is the "tolerance" of the ABC algorithm for acceptance.
+Note that the second have of the acceptance criterion is a typical Metropolis Hastings acceptance probability.
+In the application above, $\tau_{1:d}$ was set as the standard deviation of $s^*_{1:d}$ across replicate simulations from the process model.
+Thus, in the ABC algorithm, we are standardizing the summary statistics relative the "true" statistic values and their simulated standard deviations.
+This should result in a normal distribution with mean zero and unit variance, assuming the chosen statistics are sufficient in their description of the true process (that is, that $s^*_i$ varies around $s_i$ with normally distributed errors).
+Once summed over $s_{1:d}$, the mean will be centered on $d$.
+Therefore, $\epsilon$ can be viewed in units of standard deviations from the mean, where the mean = $d$.
+Perhaps this is why King et al. use $\epsilon = 2$ in their example; -2 SDs from the "mean deviation" is acceptable to approximate a 2.5% acceptance ratio and thus sufficient to approximate the posterior distribution (???).
+
+Here's a quick simulation exercise.
+```{r eps}
+n_stats <- 15
+n_sims <- 500
+S <- matrix(nrow = n_sims, ncol = n_stats)
+mu <- numeric(n_stats)
+sigma <- numeric(n_stats)
+for(i in 1:n_stats) {
+  mu[i] <- runif(1, 1, 1000000)
+  sigma[i] <- runif(1, mu/10, mu/2)
+  S[ , i] <- rnorm(n_sims, mu[i], sigma[i])
+}
+tau <- apply(S, 2, sd)
+
+n_abc <- 10000
+true_S <- apply(S, 2, mean)
+abc_S <- matrix(nrow = n_abc, ncol = n_stats)
+for(i in 1:n_stats) {
+  abc_S[ , i] <- ((rnorm(n_abc, mu[i], sigma[i]) - true_S[i]) /  tau[i])^2
+}
+
+abc_p <- rowSums(abc_S)
+hist(abc_p, breaks = 30, xlab = bquote(P[ABC]), main = "")
+
+eps <- quantile(rnorm(100000, 15, sqrt(15)), 0.025)
+abline(v = 2^2, col = "red")
+legend(x = eps-5, y = 1500, legend = expression(epsilon^2 == ~ "7.3"), bty = "n", text.col = "red")
+
+```
+
+This also follows the advice of Marin et al. (2012), who write:
+
+> As noted above, the choice of the tolerance level $\epsilon$ is mostly a matter of computational power: smaller $\epsilon$’s are associated with higher computational costs and the standard practice (Beaumont et al, 2002) is to select $\epsilon$ as a small percentile of the simulated distances...
