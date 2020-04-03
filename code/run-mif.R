@@ -56,7 +56,7 @@ prop_func <- function(theta) {
 # Run MIF from different starting points ----------------------------------
 
 num_particles <- 2000
-num_mif_iterations <- 50
+num_mif_iterations <- 5
 num_cores <- parallel::detectCores() - 1  # alter as needed
 foreach (i = 1:num_cores, 
          .combine = c, 
@@ -82,7 +82,7 @@ mifs %>%
 # Use particle filter to get the likelihood at the end of MIF run ---------
 
 pf1 <- foreach(mf = mifs, .combine = c) %dopar% {
-  pf <- replicate(n = 10, logLik(pfilter(mf, Np = 10000)))
+  pf <- replicate(n = 10, logLik(pfilter(mf, Np = 2000)))
   logmeanexp(pf)
 }
 
