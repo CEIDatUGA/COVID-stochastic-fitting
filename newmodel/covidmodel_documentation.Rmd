@@ -1,0 +1,114 @@
+---
+title: COVID Model
+output:
+  html_document:
+    theme: null
+    highlight: null
+    fig_retina: null
+    fig_caption: true
+    mathjax: default 
+    keep_md: false
+---
+
+
+
+```{r, echo = FALSE}
+#this code loads the settings file for the current app so we can automatically 
+#list the functions in the further information section
+#currentrmdfile = knitr::current_input() 
+#currentappinfo = gsub("_documentation.Rmd" ,"_settings.R",currentrmdfile)
+#source(currentappinfo)
+```
+
+
+## Overview {#shinytab1}
+This app implements a COVID model. Read about the model in the "Model" tab. Then do the tasks described in the "What to do" tab.
+
+### Learning Objectives
+* TBD
+
+## The Model {#shinytab2}
+
+### Model Overview
+
+This model tracks susceptibles, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered hosts. 
+The following compartments are included:  
+
+* **S** - uninfected and susceptible individuals 
+* **E** - individuals who are infected and do not yet show symptoms. Those individuals can be infectious.
+* **I~a~** - individuals who are infected and do not show symptoms. Those individuals are likely infectious, but the model allows to adjust this.
+* **I~s~** - individuals who are infected and show symptoms. Those individuals are likely infectious, but the model allows to adjust this.
+* **I~d~** - individuals who have been diagnosed. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
+* **H** - individuals who have been hospitalized. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
+* **R** - recovered/removed individuals. Those individuals have recovered and are immune. 
+* **D** - individuals who died from the infection. 
+
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into dummy stages. Dummy stages are currently:
+
+* **E** - 6 compartments
+* **I~a~** - 4 compartments 
+* **I~s~** - 4 compartments
+* **I~d~** - 4 compartments
+* **H** - 6 compartments
+
+
+The included processes/mechanisms are the following:
+
+* Susceptible individuals ($S$`) can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* All infected hosts first enter the presymptomatic stage and move through the $E$ dummy compartments. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, the remainder into the $I_s$ stage.
+* Individuals in the $I_a$ stage are assumed to never be diagnosed and eventually recover.
+* Some individuals in the $I_s$ will never be diagnosed and eventually recover. The remaining fraction moves into the $I_d$ stage.
+* A fraction of individuals in the $I_d$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* A fraction of individuals in the $H$ stage will recover, the remainder dies.
+
+### Interventions
+
+The following interventions are implemented:
+
+* Social distancing, which is assumed to reduce all transmission rates by some factor.
+* Increased level of detection, which is assumed to increase the fraction of individuals in the $I_s$ compartment that move into the $I_d$ compartment.
+* Increased speed of detection, which is assumed to increase the rate at which $I_s$ individuals move into $I_d$. THIS DOESN"T MAKE SENSE IN THIS MODEL SINCE IT WOULD ALSO SPEED UP MOVEMENT THROUGH $I_s$ INTO R.
+
+
+### Model Implementation
+The flow diagram for the model implemented in this app is:
+
+
+```{r stochasticseirmodel,  fig.cap='Flow diagram for this model. ',  echo=FALSE}
+library(DiagrammeR)
+DiagrammeR("digraph SEIR {
+  graph [rankdir=TD, overlap=false, fontsize = 10]
+    rank=same;
+    node[shape=oval, label='S'] S;
+    node[shape=oval, label='E'] E;
+    node[shape=oval, label='Ia'] Ia;
+    node[shape=oval, label='Is'] Is;
+    node[shape=oval, label='Id'] Id;
+    node[shape=oval, label='H'] H;
+    node[shape=oval, label='R'] R;
+    node[shape=oval, label='D'] D;
+    S->E E->Ia E->Is Ia->R Is->R Is->Id Id-> R Id->H H->R H->D
+  {S E Is Id H D}
+   }",type="grViz",engine="dot",height=300,width=800)
+#knitr::include_graphics("../media/stochasticSEIRmodel.png")
+```
+
+
+
+
+
+
+## What to do {#shinytab3}
+
+**The tasks below are described in a way that assumes everything is in units of MONTHS (rate parameters, therefore, have units of inverse months). If any quantity is not given in those units, you need to convert it first (e.g. if it says a year, you need to convert it to 12 months).**
+
+_Some of the simulations might take a few seconds to run. Be patient._
+
+### Task 1: 
+  
+
+## Further Information {#shinytab4}
+
+
+### References
+
