@@ -30,16 +30,16 @@ Ntot <- sum(inivals)  # total population size
 
 # Values for parameters
 # beta is scaled by population size here instead of inside the process model
-parvals <- c(beta_d = 5e-7, 
-             beta_u = 0.25/Ntot, 
-             beta_e = 0.1/Ntot, 
-             beta_red_factor = 0.5, 
+parvals <- c(log_beta_d = log(0.75/Ntot), 
+             log_beta_u = log(0.5/Ntot), 
+             log_beta_e = log(0.1/Ntot), 
+             beta_reduce = 0.1, 
              t_int1 = 12, t_int2 = 12, t_int3 = 12, 
-             gamma_u = 4*0.1,
-             gamma_d = 4*0.5, 
-             detect_frac_0 = 0.1, 
-             detect_frac_1 = 0.5,
-             sigma = 6*0.18, 
+             log_gamma_u = log(4*0.2),
+             log_gamma_d = log(4*0.3), 
+             detect_0 = 1, 
+             detect_1 = 1.5,
+             log_sigma = log(6*0.18), 
              rho = 0.5, 
              theta = 100)
 

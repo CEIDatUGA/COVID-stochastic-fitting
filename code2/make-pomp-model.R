@@ -48,9 +48,9 @@ pomp_step <- Csnippet(
   
   // transmission rates beta are defined for fitting on the real line, to make sure they are positive we exponentiate here
   if (t<=t_int1)
-    foi = exp(beta_d)*Idetected + exp(beta_u)*Iundetected + exp(beta_e)*Epresymptom;
+    foi = exp(log_beta_d)*Idetected + exp(log_beta_u)*Iundetected + exp(log_beta_e)*Epresymptom;
   else
-    foi = (1/(beta_red_factor+1))*(exp(beta_d)*Idetected + exp(beta_u)*Iundetected + exp(beta_e)*Epresymptom);
+    foi = 1/(1+exp(beta_reduce))*(exp(log_beta_d)*Idetected + exp(log_beta_u)*Iundetected + exp(log_beta_e)*Epresymptom);
 
 
   // Time-dependent rate of movement through infected and detected classes:
@@ -62,9 +62,9 @@ pomp_step <- Csnippet(
   // IF time (t) is less then intervention time (t_int2), duration spent in I 
   //    is given by 1/gamma_u, otherwise 1/gamma_d
   if (t<t_int2) 
-      gamma = gamma_u;
+      gamma = exp(log_gamma_u);
   else
-      gamma = gamma_d;
+      gamma = exp(log_gamma_d);
 
   // Time dependent fraction of those that move into detected category at 
   //    the end of the E phase.
@@ -76,17 +76,17 @@ pomp_step <- Csnippet(
   //    the original code
 
   if (t<t_int3)
-    detect_frac = detect_frac_0;
+    detect_frac = 1/(1+exp(detect_0));
   else
-    detect_frac = detect_frac_1;
+    detect_frac = 1/(1+exp(detect_1));
   
   // Compute the transition rates
   rate[1] = foi;
-  rate[2] = sigma;
-  rate[3] = sigma * detect_frac;
-  rate[4] = sigma * (1 - detect_frac);
+  rate[2] = exp(log_sigma);
+  rate[3] = exp(log_sigma) * detect_frac;
+  rate[4] = exp(log_sigma) * (1 - detect_frac);
   rate[5] = gamma;
-  rate[6] = gamma_u;
+  rate[6] = exp(log_gamma_u);
   
   // Compute the state transitions
   reulermultinom(1, S, &rate[1], dt, &trans[1]);
@@ -200,11 +200,11 @@ varnames <- c("S",
 
 # Parameters --------------------------------------------------------------
 # Parameter and variable names
-model_pars <- c("beta_d", "beta_u", "beta_e", "beta_red_factor", 
+model_pars <- c("log_beta_d", "log_beta_u", "log_beta_e", "beta_reduce", 
                "t_int1", "t_int2", "t_int3", 
-               "gamma_u", "gamma_d",
-               "detect_frac_0","detect_frac_1",
-               "sigma")
+               "log_gamma_u", "log_gamma_d",
+               "detect_0","detect_1",
+               "log_sigma")
 
 measure_pars <- c("rho","theta")
 
@@ -216,16 +216,6 @@ ini_pars <- c("S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0",
 
 parnames <- c(model_pars,measure_pars,ini_pars)
 
-# Parameter transforms for estimation -------------------------------------
-param_transforms <- parameter_trans(
-  log = c("beta_red_factor", "t_int1", 
-          "t_int2", "t_int3", "gamma_u", "gamma_d", "theta",
-          "S_0", "E1_0", "E2_0", "E3_0", "E4_0", "E5_0", "E6_0", 
-          "I1_0", "I2_0", "I3_0", "I4_0", 
-          "Iu1_0", "Iu2_0", "Iu3_0", "Iu4_0", 
-          "C_0","Ru_0"),
-  logit = c("detect_frac_0", "detect_frac_1"))
-
 
 #######################################################################
 # Load cleaned data ---------------------------------------------------------
@@ -236,7 +226,7 @@ pomp_data <- readRDS(filename)
 
 # Define the pomp model object --------------------------------------------
 pomp_model <- pomp(
-  data = pomp_data[1:25, ],  # currently removes NAs
+  data = pomp_data, 
   times = "time",
   t0 = 0,
   dmeasure = dmeas,
