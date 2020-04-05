@@ -155,8 +155,6 @@ pomp_step <- Csnippet(
 
   R += trans[11] + trans[15] + trans[24] + trans[29];
   D += trans[23] + trans[28]; 
-   
-   
   "
 )
 
@@ -210,7 +208,27 @@ rinit <- Csnippet(
 
 dmeas <- Csnippet(
   "
-  lik = dnbinom_mu(cases, theta, rho * C1, give_log);
+  double d1, d2, d3;
+  
+  if(ISNA(cases)) {
+    d1 = (give_log) ? 0 : 1;
+  } else {
+    d1 = dnbinom_mu(cases, theta, rho * C1, give_log);
+  }
+  
+  if(ISNA(hosps)) {
+    d2 = (give_log) ? 0 : 1;
+  } else {
+    d2 = dnbinom_mu(hosps, theta_hosp, H1, give_log);
+  }
+  
+  if(ISNA(deaths)) {
+    d3 = (give_log) ? 0 : 1;
+  } else {
+    d3 = dnbinom_mu(deaths, theta_death, D, give_log);
+  }
+  
+  lik = d1 + d2 + d3;
   "
 )
 
@@ -219,7 +237,9 @@ dmeas <- Csnippet(
 
 rmeas <- Csnippet(
   "
-  cases = rnbinom_mu(theta, rho * C1);
+  cases = rnbinom_mu(theta, rho * C1);  // for forecasting
+  hosps = rnbinom_mu(theta_hosp, H1);  // for forecasting
+  deaths = rnbinom_mu(theta_death, D);  // for forecasting
   "
 )
 
@@ -255,7 +275,7 @@ model_pars <- c("log_beta_s", #rate of infection of symptomatic
                 "frac_dead" #fraction hospitalized that die
 )
 
-measure_pars <- c("rho","theta")
+measure_pars <- c("rho","theta","theta_hosp","theta_death")
 
 # Initial conditions of state variables are also parameters
 ini_pars <- c("S_0", 
@@ -288,7 +308,7 @@ pomp_model <- pomp(
   rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
   statenames = varnames,
   paramnames = parnames, 
-  obsnames = c("cases"),
+  obsnames = c("cases", "hosps", "deaths"),
   accumvars = c("C1","H1","R","D") 
 )
 

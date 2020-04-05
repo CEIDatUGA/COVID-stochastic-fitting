@@ -4,10 +4,11 @@
 # it does not do fitting, but can be used for exploration 
 # and to generate generate synthetic data
 
+rm(list = ls(all.names = TRUE))
 
 # Load libraries ----------------------------------------------------------
 library(pomp)
-library(ggplot2)
+library(tidyverse)
 library(here) #to simplify loading/saving into different folders
 
 # Load pomp simulator object ---------------------------------------------------------
@@ -54,7 +55,9 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
              frac_hosp = 0.05, 
              frac_dead = 0.1, #fraction hospitalized that die
              rho = 0.5, 
-             theta = 100
+             theta = 100,
+             theta_hosp = 100,
+             theta_death = 100
   )
   
 
@@ -65,8 +68,16 @@ sims <- pomp::simulate(pomp_model,
                        include.data=TRUE)
 
 
-p <- sims %>% ggplot(aes(x=time,y=cases,group=.id,color=.id=="data"))+
+sims %>%
+  dplyr::select(time, .id, cases, hosps, deaths) %>%
+  gather(key = "variable", value = "value", -time, -.id) %>%
+  ggplot(aes(x = time, y = value, group = .id, color=.id=="data")) +
   geom_line() +
-  guides(color=FALSE)
-plot(p)
+  facet_wrap(~variable, scales = "free_y") +
+  guides(color = FALSE)
+
+# p <- sims %>% ggplot(aes(x=time,y=cases,group=.id,color=.id=="data"))+
+#   geom_line() +
+#   guides(color=FALSE)
+# plot(p)
   

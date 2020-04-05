@@ -29,7 +29,9 @@ covid_ga_data$cases <- covid_ga_data$cases + 1 # Add one to avoid 0s for fits
 # Turn data into new case reports each day, to match the simulation model
 # and to follow the advice of King et al. 2015 PRSB (fit to incidence reports
 # not cumulative case reports).
-# covid_ga_data$cases <- c(1, diff(covid_ga_data$cases))
+covid_ga_data$cases <- c(1, diff(covid_ga_data$cases))
+covid_ga_data$hosps <- NA  # placeholder until data stream set up
+covid_ga_data$deaths <- NA  # placeholder until data stream set up
 
 # Save cleaned data
 filename = here('outputnew/clean-data.RDS')
