@@ -60,6 +60,9 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
              theta_death = 100
   )
   
+pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
+logLik(pf)
+
 
 #run simulation a number of times
 sims <- pomp::simulate(pomp_model, 

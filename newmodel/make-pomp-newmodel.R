@@ -211,24 +211,25 @@ dmeas <- Csnippet(
   double d1, d2, d3;
   
   if(ISNA(cases)) {
-    d1 = (give_log) ? 0 : 1;
+    d1 = 0;
   } else {
-    d1 = dnbinom_mu(cases, theta, rho * C1, give_log);
+    d1 = dnbinom_mu(cases, theta, rho * C1, 1);
   }
   
   if(ISNA(hosps)) {
-    d2 = (give_log) ? 0 : 1;
+    d2 = 0;
   } else {
-    d2 = dnbinom_mu(hosps, theta_hosp, H1, give_log);
+    d2 = dnbinom_mu(hosps, theta_hosp, H1, 1);
   }
   
   if(ISNA(deaths)) {
-    d3 = (give_log) ? 0 : 1;
+    d3 = 0;
   } else {
-    d3 = dnbinom_mu(deaths, theta_death, D, give_log);
+    d3 = dnbinom_mu(deaths, theta_death, D, 1);
   }
   
-  lik = d1 + d2 + d3;
+  //lik = d1 + d2 + d3;
+  lik = (give_log) ? (d1 + d2 + d3) : exp(d1 + d2 + d3);
   "
 )
 
