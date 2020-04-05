@@ -61,6 +61,8 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
   )
   
 pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
+plot(pf@cond.loglik, type = "l", xlab = "time", ylab = "Cond. log likelihood")
+sum(pf@cond.loglik)
 logLik(pf)
 
 

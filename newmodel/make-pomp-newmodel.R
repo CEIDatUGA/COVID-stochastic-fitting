@@ -211,25 +211,25 @@ dmeas <- Csnippet(
   double d1, d2, d3;
   
   if(ISNA(cases)) {
-    d1 = 0;
+    d1 = 0;  // loglik is 0 if no observations
   } else {
     d1 = dnbinom_mu(cases, theta, rho * C1, 1);
   }
   
   if(ISNA(hosps)) {
-    d2 = 0;
+    d2 = 0;  // loglik is 0 if no observations
   } else {
     d2 = dnbinom_mu(hosps, theta_hosp, H1, 1);
   }
   
   if(ISNA(deaths)) {
-    d3 = 0;
+    d3 = 0;  // loglik is 0 if no observations
   } else {
     d3 = dnbinom_mu(deaths, theta_death, D, 1);
   }
   
-  //lik = d1 + d2 + d3;
-  lik = (give_log) ? (d1 + d2 + d3) : exp(d1 + d2 + d3);
+  lik = d1 + d2 + d3;  // sum the individual likelihoods
+  lik = (give_log) ? lik : exp(lik);  // return loglik or exp(lik)
   "
 )
 
