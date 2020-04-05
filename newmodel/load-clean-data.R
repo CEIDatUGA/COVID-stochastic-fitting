@@ -26,6 +26,11 @@ future <- data.frame(time = max(covid_ga_data$time):(max(covid_ga_data$time)+31)
 #covid_ga_data <- rbind(covid_ga_data,future)
 covid_ga_data$cases <- covid_ga_data$cases + 1 # Add one to avoid 0s for fits
 
+# Turn data into new case reports each day, to match the simulation model
+# and to follow the advice of King et al. 2015 PRSB (fit to incidence reports
+# not cumulative case reports).
+# covid_ga_data$cases <- c(1, diff(covid_ga_data$cases))
+
 # Save cleaned data
 filename = here('outputnew/clean-data.RDS')
 

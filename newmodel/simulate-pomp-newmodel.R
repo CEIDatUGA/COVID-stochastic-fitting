@@ -66,7 +66,7 @@ sims <- pomp::simulate(pomp_model,
 
 
 p <- sims %>% ggplot(aes(x=time,y=cases,group=.id,color=.id=="data"))+
-  geom_line()+ scale_y_log10()
+  geom_line() +
   guides(color=FALSE)
 plot(p)
   
