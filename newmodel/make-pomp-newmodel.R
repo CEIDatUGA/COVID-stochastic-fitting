@@ -1,10 +1,9 @@
-# make-pomp-model.R
+# make-pomp-newmodel.R
 #
 # This script generates a pomp object for an SEIR model of COVID 19 
-# The stochastic process model was developed by
-# John Drake and Pej Rohani; the pomp snippet code was written by 
-# John Drake and Andreas Handel, with minor edits by Andrew Tredennick.
-# Running this script saves an RDS object: pomp-model.RDS.
+# This is the new version of the model
+# Running this script saves an RDS object: pomp-newmodel.RDS.
+# The pomp object can be used for simulating trajectories and fitting
 
 # Clear the decks ---------------------------------------------------------
 
@@ -24,89 +23,101 @@ pomp_step <- Csnippet(
     "
   // C indexes at 0, for R users making things 1 bigger and start 
   // with index 1, i.e. leave trans[0] empty, same for rate[0]
+  double E_tot, Ia_tot, Isu_tot, Isd_tot, C_tot; H_tot;
+  
   double trans[17];
   double rate[17];
-  double Epresymptom;
-  double Idetected;
-  double Iundetected;
   double foi;  // force of infection
-  double gamma;  // rate of transition through I compartments
+  double g_sd;  // rate of transition through I compartments
   double detect_frac; // fraction of those that get eventually diagnosed
 
-  Epresymptom = E1+E2+E3+E4+E5+E6;  // all pre-symptomatic
-  Idetected = I1+I2+I3+I4;          // all symptomatic that will be detected
-  Iundetected = Iu1+Iu2+Iu3+Iu4;    // all symptomatic/asymptomatic that 
-                                    // won't be detected
+  E_tot = E1+E2+E3+E4;  // all pre-symptomatic
+  Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
+  Isu_tot = Isu1+Isu2+Isu3+Isu4;  // all symptomatic who will remain undiagnosed
+  Isd_tot = Isd1+Isd2+Isd3+Isd4;  // all symptomatic who will become diagnosed
+  C_tot = C1+C2+C3+C4;  // all diagnosed/cases
+  H_tot = H1+H2+H3+H4;  // all hospitalized
+  
 
   // Force of Infection (foi):
-  // Time dependent transmission, multiplied by different groups.
   // Each group can have its own transmission rate.
-  // t_int1 days after simulation start, an intervention reduces 
-  //    transmission rate by some factor.
-  // t_int1 is new, not in original code. There it was assumed to be 
-  //    the same as t_int2.
-  
-  // transmission rates beta are defined for fitting on the real line, to make sure they are positive we exponentiate here
-  if (t<=t_int1)
-    foi = exp(log_beta_d)*Idetected + exp(log_beta_u)*Iundetected + exp(log_beta_e)*Epresymptom;
-  else
-    foi = 1/(1+exp(beta_reduce))*(exp(log_beta_d)*Idetected + exp(log_beta_u)*Iundetected + exp(log_beta_e)*Epresymptom);
+  // symptomatic are assumed to transmit the most, other groups have reduced transmission by some factor
+  // all parameters are used in the model such that they can take on any numeric value (useful for fitting)
+  foi = exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*Ic_tot)
+
+  // t_int1 days after simulation start, social distancing intervention reduces transmission rate
+  if (t>t_int1)
+      foi = 1/(1+exp(beta_reduce))*foi;
 
 
-  // Time-dependent rate of movement through infected and detected classes:
-  // t_int2 days after simulation start, the time at which individuals are 
-  //    diagnosed and thus the time spent in the I categories before ending 
-  //    up in H decreases
-  //t_int2 is caled z in original code
-  
-  // IF time (t) is less then intervention time (t_int2), duration spent in I 
-  //    is given by 1/gamma_u, otherwise 1/gamma_d
+  // Time-dependent rate of movement through Isd dummy compartments
+  // t_int2 days after simulation start, the time it takes for individuals to get diagnosed decreases
   if (t<t_int2) 
-      gamma = exp(log_gamma_u);
+      g_sd = g_su;  //regular time in sympomatic stage, without diagnosis
   else
-      gamma = exp(log_gamma_d);
+      g_sd = exp(diag_speedup)*g_su; //shortened time in symptomatic stage, due to diagnosis
 
-  // Time dependent fraction of those that move into detected category at 
-  //    the end of the E phase.
-  // t_int3 days after simulation start, the fraction detected (those that 
-  //    move into I instead of Iu after exiting E) increases
-  // Note that both higher fraction detected and faster rate of detection 
-  //    speed up arrival of individuals in H and subsequently C
-  // t_int3 is called w in original code, detect_frac is called q/q0/q1 in
-  //    the original code
-
+  // Time dependent fraction of those that move into detected category at the end of the E phase.
+  // t_int3 days after simulation start, the fraction that move into Isd increases
   if (t<t_int3)
     detect_frac = 1/(1+exp(detect_0));
   else
     detect_frac = 1/(1+exp(detect_1));
   
   // Compute the transition rates
-  rate[1] = foi;
-  rate[2] = exp(log_sigma);
-  rate[3] = exp(log_sigma) * detect_frac;
-  rate[4] = exp(log_sigma) * (1 - detect_frac);
-  rate[5] = gamma;
-  rate[6] = exp(log_gamma_u);
+  rate[1] = foi;                                                //infection, movement from S to E
+  rate[2] = exp(log_ge);                                        //movement through E compartments
+  rate[3] = exp(log_ge) * frac_asym                             //from E to Ia
+  rate[4] = exp(log_ge) * (1 - frac_asym) * (1 - detect_frac);  //from E to Isu
+  rate[5] = exp(log_ge) * (1 - frac_asym) * detect_frac;        //from E to Isd
+
+  rate[6] = g_a;                                                //movement through Ia stages
+  rate[7] = g_su;                                               //movement through Isu stages
+  rate[8] = g_sd;                                               //movement through Isd stages
+  rate[9] = g_c;                                                //movement through C stages
+  
+  rate[10] = g_c * frac_hosp;                                   //movement from C to H  
+  rate[11] = g_c * (1 - frac_hosp);                             //movement from C to R  
+
+  rate[12] = g_h;                                               //movement through H stages  
+  rate[13] = g_h * (1 - frac_dead);                             //movement from H to R  
+  rate[14] = g_h *  frac_dead;                                  //movement from H to D  
+  
   
   // Compute the state transitions
-  reulermultinom(1, S, &rate[1], dt, &trans[1]);
+  reulermultinom(1, S, &rate[1], dt, &trans[1]); //infection
   
-  reulermultinom(1, E1, &rate[2], dt, &trans[2]);
+  reulermultinom(1, E1, &rate[2], dt, &trans[2]); //move through E stages
   reulermultinom(1, E2, &rate[2], dt, &trans[3]);
   reulermultinom(1, E3, &rate[2], dt, &trans[4]);
-  reulermultinom(1, E4, &rate[2], dt, &trans[5]);
-  reulermultinom(1, E5, &rate[2], dt, &trans[6]);
-  reulermultinom(2, E6, &rate[3], dt, &trans[7]);  // goes through trans[8]
+  reulermultinom(3, E4, &rate[3], dt, &trans[5]); // move from E to Ia or Isu or Isd, goes through rates 3-5 and trans 5-7
   
-  reulermultinom(1, I1, &rate[5], dt, &trans[9]);
-  reulermultinom(1, I2, &rate[5], dt, &trans[10]);
-  reulermultinom(1, I3, &rate[5], dt, &trans[11]);
-  reulermultinom(1, I4, &rate[5], dt, &trans[12]);
+  reulermultinom(1, Ia1, &rate[6], dt, &trans[8]); //move through Ia stages
+  reulermultinom(1, Ia2, &rate[6], dt, &trans[9]);
+  reulermultinom(1, Ia3, &rate[6], dt, &trans[10]);
+  reulermultinom(1, Ia4, &rate[6], dt, &trans[11]);
+
+  reulermultinom(1, Isu1, &rate[7], dt, &trans[12]); //move through Isu stages
+  reulermultinom(1, Isu2, &rate[7], dt, &trans[13]);
+  reulermultinom(1, Isu3, &rate[7], dt, &trans[14]);
+  reulermultinom(1, Isu4, &rate[7], dt, &trans[15]);
+
+  reulermultinom(1, Isd1, &rate[8], dt, &trans[16]); //move through Isd stages
+  reulermultinom(1, Isd2, &rate[8], dt, &trans[17]);
+  reulermultinom(1, Isd3, &rate[8], dt, &trans[18]);
+  reulermultinom(1, Isd4, &rate[8], dt, &trans[19]);
   
-  reulermultinom(1, Iu1, &rate[6], dt, &trans[13]);
-  reulermultinom(1, Iu2, &rate[6], dt, &trans[14]);
-  reulermultinom(1, Iu3, &rate[6], dt, &trans[15]);
-  reulermultinom(1, Iu4, &rate[6], dt, &trans[16]);
+  reulermultinom(1, C1, &rate[9], dt, &trans[8]); //move through C stages
+  reulermultinom(1, C2, &rate[9], dt, &trans[9]);
+  reulermultinom(1, C3, &rate[9], dt, &trans[10]);
+  reulermultinom(2, C4, &rate[9], dt, &trans[11]); //move from C to H or R
+
+
+
+  reulermultinom(1, H1, &rate[6], dt, &trans[8]); //move through H stages
+  reulermultinom(1, H2, &rate[6], dt, &trans[9]);
+  reulermultinom(1, H3, &rate[6], dt, &trans[10]);
+  reulermultinom(1, H4, &rate[6], dt, &trans[11]);
 
 
   // Apply transitions to state variables
@@ -115,14 +126,12 @@ pomp_step <- Csnippet(
   E1 += trans[1] - trans[2];
   E2 += trans[2] - trans[3];
   E3 += trans[3] - trans[4];
-  E4 += trans[4] - trans[5];
-  E5 += trans[5] - trans[6];
-  E6 += trans[6] - trans[7] - trans[8];
+  E4 += trans[4] - trans[5] - trans[6] - trans[7];
 
-  I1 += trans[7] - trans[9];
-  I2 += trans[9] - trans[10];
-  I3 += trans[10] - trans[11];
-  I4 += trans[11] - trans[12];
+  Ia1 += trans[5] - trans[8];
+  Ia2 += trans[8] - trans[9];
+  Ia3 += trans[9] - trans[10];
+  Ia4 += trans[10] - trans[11];
 
   Iu1 += trans[8] - trans[13];
   Iu2 += trans[13] - trans[14];

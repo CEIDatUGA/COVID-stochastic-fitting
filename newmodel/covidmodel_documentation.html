@@ -1269,27 +1269,30 @@ color: #333333;
 <li><strong>S</strong> - uninfected and susceptible individuals</li>
 <li><strong>E</strong> - individuals who are infected and do not yet show symptoms. Those individuals can be infectious.</li>
 <li><strong>I<sub>a</sub></strong> - individuals who are infected and do not show symptoms. Those individuals are likely infectious, but the model allows to adjust this.</li>
-<li><strong>I<sub>s</sub></strong> - individuals who are infected and show symptoms. Those individuals are likely infectious, but the model allows to adjust this.</li>
-<li><strong>I<sub>d</sub></strong> - individuals who have been diagnosed. Those individuals are likely isolated and not infectious, but the model allows to adjust this.</li>
+<li><strong>I<sub>su</sub></strong> - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment never get diagnosed and recover.</li>
+<li><strong>I<sub>sd</sub></strong> - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to <strong>C</strong>.</li>
+<li><strong>C</strong> - individuals who have been diagnosed as cases. Those individuals are likely isolated and not infectious, but the model allows to adjust this.</li>
 <li><strong>H</strong> - individuals who have been hospitalized. Those individuals are likely isolated and not infectious, but the model allows to adjust this.</li>
 <li><strong>R</strong> - recovered/removed individuals. Those individuals have recovered and are immune.</li>
 <li><strong>D</strong> - individuals who died from the infection.</li>
 </ul>
 <p>To allow more realistic distributions of movement through compartments, several of these compartments are internally split into dummy stages. Dummy stages are currently:</p>
 <ul>
-<li><strong>E</strong> - 6 compartments</li>
+<li><strong>E</strong> - 4 compartments</li>
 <li><strong>I<sub>a</sub></strong> - 4 compartments</li>
-<li><strong>I<sub>s</sub></strong> - 4 compartments</li>
-<li><strong>I<sub>d</sub></strong> - 4 compartments</li>
-<li><strong>H</strong> - 6 compartments</li>
+<li><strong>I<sub>su</sub></strong> - 4 compartments</li>
+<li><strong>I<sub>sd</sub></strong> - 4 compartments</li>
+<li><strong>C</strong> - 4 compartments</li>
+<li><strong>H</strong> - 4 compartments</li>
 </ul>
 <p>The included processes/mechanisms are the following:</p>
 <ul>
 <li>Susceptible individuals (<span class="math inline">\(S\)</span>`) can become infected by individuals in the <span class="math inline">\(E\)</span>, <span class="math inline">\(I_a\)</span>, <span class="math inline">\(I_s\)</span>, <span class="math inline">\(I_d\)</span>, and <span class="math inline">\(H\)</span> stages. Rates of transmission from these stages can be adjusted individually.</li>
-<li>All infected hosts first enter the presymptomatic stage and move through the <span class="math inline">\(E\)</span> dummy compartments. At the end of the <span class="math inline">\(E\)</span> stage, a fraction moves into the <span class="math inline">\(I_a\)</span> stage, the remainder into the <span class="math inline">\(I_s\)</span> stage.</li>
-<li>Individuals in the <span class="math inline">\(I_a\)</span> stage are assumed to never be diagnosed and eventually recover.</li>
-<li>Some individuals in the <span class="math inline">\(I_s\)</span> will never be diagnosed and eventually recover. The remaining fraction moves into the <span class="math inline">\(I_d\)</span> stage.</li>
-<li>A fraction of individuals in the <span class="math inline">\(I_d\)</span> stage will naturally recover, without the need for hospitalization. The remainder moves into the <span class="math inline">\(H\)</span> stage.</li>
+<li>All infected hosts first enter the presymptomatic stage and move through the <span class="math inline">\(E\)</span> dummy compartments. At the end of the <span class="math inline">\(E\)</span> stage, a fraction moves into the <span class="math inline">\(I_a\)</span> stage, another fraction moves into the <span class="math inline">\(I_{su}\)</span> stage, the remainder into the <span class="math inline">\(I_{sd}\)</span> stage.</li>
+<li>Individuals in the asymptomatic <span class="math inline">\(I_a\)</span> stage are assumed to never be diagnosed and eventually recover.</li>
+<li>Individuals in the symptomatic <span class="math inline">\(I_{su}\)</span> stage are assumed to remain undiagnosed and eventually recover.</li>
+<li>Individuals in the symptomatic <span class="math inline">\(I_{sd}\)</span> stage are assumed to be diagnosed after some time and move into the <span class="math inline">\(C\)</span> stage.</li>
+<li>A fraction of individuals in the <span class="math inline">\(C\)</span> stage will naturally recover, without the need for hospitalization. The remainder moves into the <span class="math inline">\(H\)</span> stage.</li>
 <li>A fraction of individuals in the <span class="math inline">\(H\)</span> stage will recover, the remainder dies.</li>
 </ul>
 </div>
@@ -1298,16 +1301,16 @@ color: #333333;
 <p>The following interventions are implemented:</p>
 <ul>
 <li>Social distancing, which is assumed to reduce all transmission rates by some factor.</li>
-<li>Increased level of detection, which is assumed to increase the fraction of individuals in the <span class="math inline">\(I_s\)</span> compartment that move into the <span class="math inline">\(I_d\)</span> compartment.</li>
-<li>Increased speed of detection, which is assumed to increase the rate at which <span class="math inline">\(I_s\)</span> individuals move into <span class="math inline">\(I_d\)</span>. THIS DOESN&quot;T MAKE SENSE IN THIS MODEL SINCE IT WOULD ALSO SPEED UP MOVEMENT THROUGH <span class="math inline">\(I_s\)</span> INTO R.</li>
+<li>Increased level of detection, which is assumed to increase the fraction of symptomatic individuals that move into the <span class="math inline">\(I_{sd}\)</span> compartment and will eventually be diagnosed.</li>
+<li>Increased speed of detection, which is assumed to increase the rate at which <span class="math inline">\(I_{sd}\)</span> individuals move into <span class="math inline">\(C\)</span>.</li>
 </ul>
 </div>
 <div id="model-implementation" class="section level3">
 <h3>Model Implementation</h3>
 <p>The flow diagram for the model implemented in this app is:</p>
 <div class="figure">
-<div id="htmlwidget-b6c85a92a656c6f2cb26" style="width:800px;height:300px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-b6c85a92a656c6f2cb26">{"x":{"diagram":"digraph SEIR {\n  graph [rankdir=TD, overlap=false, fontsize = 10]\n    rank=same;\n    node[shape=oval, label=\"S\"] S;\n    node[shape=oval, label=\"E\"] E;\n    node[shape=oval, label=\"Ia\"] Ia;\n    node[shape=oval, label=\"Is\"] Is;\n    node[shape=oval, label=\"Id\"] Id;\n    node[shape=oval, label=\"H\"] H;\n    node[shape=oval, label=\"R\"] R;\n    node[shape=oval, label=\"D\"] D;\n    S->E E->Ia E->Is Ia->R Is->R Is->Id Id-> R Id->H H->R H->D\n  {S E Is Id H D}\n   }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-d86de1d54e2d72ab8d2e" style="width:800px;height:300px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-d86de1d54e2d72ab8d2e">{"x":{"diagram":"digraph SEIR {\n  graph [rankdir=TD, overlap=false, fontsize = 10]\n    rank=same;\n    node[shape=oval, label=\"S\"] S;\n    node[shape=oval, label=\"E\"] E;\n    node[shape=oval, label=\"Ia\"] Ia;\n    node[shape=oval, label=\"Isu\"] Isu;\n    node[shape=oval, label=\"Isd\"] Isd;\n    node[shape=oval, label=\"C\"] C;\n    node[shape=oval, label=\"H\"] H;\n    node[shape=oval, label=\"R\"] R;\n    node[shape=oval, label=\"D\"] D;\n    S->E E->Ia E->Isu E->Isd Ia->R Isu->R Isd->C C->R C->H H->R H->D\n  {S E Isd C H D}\n   }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p class="caption">
 Flow diagram for this model.
 </p>
