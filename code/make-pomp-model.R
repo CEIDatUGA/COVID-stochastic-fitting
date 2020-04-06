@@ -68,21 +68,21 @@ pomp_step <- Csnippet(
   // Compute the transition rates
   rate[1] = foi;                                                //infection, movement from S to E
   rate[2] = exp(log_g_e);                                        //movement through E compartments
-  rate[3] = exp(log_g_e) * frac_asym;                             //from E to Ia
-  rate[4] = exp(log_g_e) * (1 - frac_asym) * (1 - detect_frac);  //from E to Isu
-  rate[5] = exp(log_g_e) * (1 - frac_asym) * detect_frac;        //from E to Isd
+  rate[3] = exp(log_g_e) * 1/(1+exp(frac_asym));                             //from E to Ia
+  rate[4] = exp(log_g_e) * (1 - 1/(1+exp(frac_asym))) * (1 - detect_frac);  //from E to Isu
+  rate[5] = exp(log_g_e) * (1 - 1/(1+exp(frac_asym))) * detect_frac;        //from E to Isd
 
   rate[6] = exp(log_g_a);                                                //movement through Ia stages
   rate[7] = exp(log_g_su);                                               //movement through Isu stages
   rate[8] = g_sd;                                                        //movement through Isd stages - computed above
   rate[9] = exp(log_g_c);                                                //movement through C stages
   
-  rate[10] = exp(log_g_c) * frac_hosp;                                   //movement from C to H  
-  rate[11] = exp(log_g_c) * (1 - frac_hosp);                             //movement from C to R  
+  rate[10] = exp(log_g_c) * 1/(1+exp(frac_hosp));                                   //movement from C to H  
+  rate[11] = exp(log_g_c) * (1 - 1/(1+exp(frac_hosp)));                             //movement from C to R  
 
   rate[12] = exp(log_g_h);                                               //movement through H stages  
-  rate[13] = exp(log_g_h) *  frac_dead;                                  //movement from H to D  
-  rate[14] = exp(log_g_h) * (1 - frac_dead);                             //movement from H to R  
+  rate[13] = exp(log_g_h) *  1/(1+exp(frac_dead));                                  //movement from H to D  
+  rate[14] = exp(log_g_h) * (1 - 1/(1+exp(frac_dead)));                             //movement from H to R  
   
   
   // Compute the state transitions
