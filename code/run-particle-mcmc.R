@@ -14,7 +14,7 @@ library(pomp)
 
 # Load the pomp object ----------------------------------------------------
 
-covid_ga_pomp <- readRDS("../output/covid-ga-pomp-object.RDS")
+covid_ga_pomp <- readRDS("../output/pomp-model.RDS")
 
 
 # Define the prior density ------------------------------------------------
