@@ -294,7 +294,7 @@ parnames <- c(model_pars,measure_pars,ini_pars)
 #######################################################################
 # Load cleaned data ---------------------------------------------------------
 #######################################################################
-filename = here('output/clean-data.RDS')
+filename = here('data/clean-GDPH-data.RDS')
 pomp_data <- readRDS(filename)
 
 
