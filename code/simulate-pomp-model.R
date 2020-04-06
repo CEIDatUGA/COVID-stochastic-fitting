@@ -8,7 +8,9 @@ rm(list = ls(all.names = TRUE))
 
 # Load libraries ----------------------------------------------------------
 library(pomp)
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 library(here) #to simplify loading/saving into different folders
 
 # Load pomp simulator object ---------------------------------------------------------
@@ -59,11 +61,12 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
              theta_hosp = 100,
              theta_death = 100
   )
-  
-pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
-plot(pf@cond.loglik, type = "l", xlab = "time", ylab = "Cond. log likelihood")
-sum(pf@cond.loglik)
-logLik(pf)
+ 
+# this should probably not be in this script? 
+#pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
+#plot(pf@cond.loglik, type = "l", xlab = "time", ylab = "Cond. log likelihood")
+#sum(pf@cond.loglik)
+#logLik(pf)
 
 
 #run simulation a number of times
@@ -73,16 +76,13 @@ sims <- pomp::simulate(pomp_model,
                        include.data=TRUE)
 
 
-sims %>%
+pl <- sims %>%
   dplyr::select(time, .id, cases, hosps, deaths) %>%
-  gather(key = "variable", value = "value", -time, -.id) %>%
+  tidyr::gather(key = "variable", value = "value", -time, -.id) %>%
   ggplot(aes(x = time, y = value, group = .id, color=.id=="data")) +
   geom_line() +
   facet_wrap(~variable, scales = "free_y") +
   guides(color = FALSE)
 
-# p <- sims %>% ggplot(aes(x=time,y=cases,group=.id,color=.id=="data"))+
-#   geom_line() +
-#   guides(color=FALSE)
-# plot(p)
+plot(pl)
   
