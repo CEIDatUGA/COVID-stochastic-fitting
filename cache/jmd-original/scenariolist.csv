@@ -1,0 +1,4 @@
+Scenario,Description,S,E,beta_d,beta_u,beta_e,beta_red_factor,t_int1,sigma,gamma_u,gamma_d,t_int2,detect_frac_0,detect_frac_1,t_int3
+1,"strong transmission reduction, medium detection increase",1.00E+07,10,4.72E-08,2.36E-08,9.43E-09,5.00E-01,12,0.2,0.1,0.2,12,0.1,0.5,12
+2,"medium transmission reduction, low detection increase",1.00E+07,20,4.72E-08,2.36E-08,9.43E-09,7.50E-01,12,0.2,0.1,0.2,12,0.1,0.3,12
+3,"strong transmission reduction, strong  detection increase",1.00E+07,50,4.72E-08,2.36E-08,9.43E-09,5.00E-01,12,0.2,0.1,0.2,12,0.1,0.7,12
