@@ -62,6 +62,7 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
              theta_death = 100
 )
 
+# pf <- pfilter(pomp_object, params = c(parvals, inivals), Np = 2000)
 
 # Set the parameters to estimate (i.e., those to vary) --------------------
 
@@ -69,69 +70,100 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
 # all beta and the reduction factor, they are fully collinear. So, we
 # fix all the betas here.
 
-params_to_estimate <- c("log_beta_s")
-
-params_perts <- rw.sd(log_beta_s = 0.02)
-
 curr_theta <- c(parvals, inivals)
+params_to_estimate <- names(parvals)
+params_to_estimate <- 
+params_perts <- rw.sd(log_beta_s = 0.02,
+                      trans_e = 0.02,
+                      trans_a = 0.02,
+                      trans_c = 0.02,
+                      beta_reduce = 0.02,)
 
 
 # Define "proposal" function for starting values --------------------------
 
 prop_func <- function(theta) {
-  rnorm(1, theta, sd = 1)
-  
-  # betas <- theta[c("beta_d", "beta_u", "beta_e")]
-  # one <- rnorm(n = length(betas), mean = betas, sd = 0)  # update sd if desired
-  # others <- theta[-(which(names(theta) %in% names(betas)))]
-  # two <- rlnorm(n = (length(others)), 
-  #               meanlog = log(others), 
-  #               sdlog = 1)
-  # out <- c(one, two)
-  # names(out) <- names(theta)
-  # return(out)
+  rnorm(length(theta), theta, sd = 1)
 }
 
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 2000
-num_mif_iterations <- 5
+num_particles <- 500
+num_mif_iterations1 <- 5
+num_mif_iterations2 <- 5
 num_cores <- parallel::detectCores() - 1  # alter as needed
+
 foreach (i = 1:num_cores, 
+         .inorder = FALSE,
          .combine = c, 
          .export = c("params_perts", 
                      "prop_func", 
                      "curr_theta")) %dopar% {
+                       
   theta_guess <- curr_theta
   theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
-  mif2(pomp_object, Nmif = num_mif_iterations, params = theta_guess, 
-       Np = num_particles, cooling.fraction = 0.5, rw.sd = params_perts)
+  
+  mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
+       Np = num_particles, cooling.fraction.50 = 0.5, 
+       cooling.type = "hyperbolic", rw.sd = params_perts) -> mf
+  
+  mf <- continue(mf, Nmif = num_mif_iterations2, cooling.fraction.50 = 0.1)
+  
 } -> mifs
-
-mifs %>%
-  traces() %>%
-  melt() %>%
-  filter(variable %in% c("loglik", params_to_estimate)) %>%
-  ggplot(aes(x=iteration,y=value,group=L1,color=L1))+
-  geom_line()+
-  facet_wrap(~variable,scales="free_y")+
-  guides(color=FALSE)
 
 
 # Use particle filter to get the likelihood at the end of MIF run ---------
 
-pf1 <- foreach(mf = mifs, .combine = c) %dopar% {
-  pf <- replicate(n = 10, logLik(pfilter(mf, Np = 2000)))
-  logmeanexp(pf)
+pf1 <- foreach(mf = mifs, .combine = rbind) %dopar% {
+  pf <- replicate(n = 4, pfilter(mf, Np = 2000, max.fail = Inf))
+  ll <- sapply(pf, logLik)
+  ll <- logmeanexp(ll, se = TRUE)
 }
+
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)),
+                               nrow = length(mifs), byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))
+
+pf_logliks <- as_tibble(pf1) %>%
+  rename("LogLik" = V1,
+         "LogLik_SE" = se) %>%
+  mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs)
+
+
+
+# Save output -------------------------------------------------------------
+
+mifRets <- list(mif_objects = mifs, loglik_dfs = pf_logliks)
+outfile <- here('output/mif-results.RDS')
+saveRDS(object = mifRets, file = outfile)
+
+
+
+
+
+
+
+# Cache -------------------------------------------------------------------
+
+# mifs %>%
+#   traces() %>%
+#   melt() %>%
+#   filter(variable %in% c("loglik", params_to_estimate)) %>%
+#   ggplot(aes(x=iteration,y=value,group=L1,color=L1))+
+#   geom_line()+
+#   facet_wrap(~variable,scales="free_y")+
+#   guides(color=FALSE)
+
 
 
 # Extract and save best parameter set for MCMC ----------------------------
-
-mf1 <- mifs[[which.max(pf1)]]
-theta_mif <- coef(mf1)
-saveRDS("../output/mif-mles.RDS")
+# 
+# mf1 <- mifs[[which.max(pf1)]]
+# theta_mif <- coef(mf1)
+# saveRDS("../output/mif-mles.RDS")
 
 
 
@@ -156,8 +188,4 @@ saveRDS("../output/mif-mles.RDS")
 #         theta.guess[estpars] <- rlnorm(n = length(estpars),
 #                                  meanlog = log(theta.guess[estpars]), sdlog = 1)
 #         } 
-# 
-# 
-# 
 
-# 
