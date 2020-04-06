@@ -21,6 +21,16 @@ covid_ga_data <- data %>% dplyr::select(date, cases_cumulative, fatalities_cumul
 # Extend data frame holding data by a month so that pomp runs 
 # simulations for that long
 # not used right now
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ATT: When we add this, let's also add a new column that indicates
+#      "Time_Period" as either calibration or projection. This is because
+#      the forecasting/projection is going to happen in a stand-alone script
+#      after the data to-date have been fitted. Thus, when add the data
+#      to the pomp object, when can just use the subset where
+#      Time_Period == "calibration". Then use the other time frame in the 
+#      forecasting script.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 future <- data.frame(time = max(covid_ga_data$time):(max(covid_ga_data$time)+31),
                      cases = NA )
 #covid_ga_data <- rbind(covid_ga_data,future)
