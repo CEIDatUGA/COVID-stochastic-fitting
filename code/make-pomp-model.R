@@ -296,6 +296,7 @@ parnames <- c(model_pars,measure_pars,ini_pars)
 #######################################################################
 filename = here('data/clean-GDPH-data.RDS')
 pomp_data <- readRDS(filename)
+pomp_data <- pomp_data[ , c("time", "cases", "hosps", "deaths")]
 
 
 # Define the pomp model object --------------------------------------------
