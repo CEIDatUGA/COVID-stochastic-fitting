@@ -154,7 +154,8 @@ pomp_step <- Csnippet(
   H4 += trans[27] - trans[28] - trans[29]; //into D or R
 
   R += trans[11] + trans[15] + trans[24] + trans[29];
-  D += trans[23] + trans[28]; 
+  //D += trans[23] + trans[28]; 
+  D += trans[28];
   "
 )
 
@@ -209,23 +210,27 @@ rinit <- Csnippet(
 dmeas <- Csnippet(
   "
   double d1, d2, d3;
+  double t1, t2, t3;
+  t1 = exp(log_theta_cases);
+  t2 = exp(log_theta_hosps);
+  t3 = exp(log_theta_deaths);
   
   if(ISNA(cases)) {
     d1 = 0;  // loglik is 0 if no observations
   } else {
-    d1 = dnbinom_mu(cases, theta, rho * C1, 1);
+    d1 = dnbinom_mu(cases, t1, C1, 1);
   }
   
   if(ISNA(hosps)) {
     d2 = 0;  // loglik is 0 if no observations
   } else {
-    d2 = dnbinom_mu(hosps, theta_hosp, H1, 1);
+    d2 = dnbinom_mu(hosps, t2, H1, 1);
   }
   
   if(ISNA(deaths)) {
     d3 = 0;  // loglik is 0 if no observations
   } else {
-    d3 = dnbinom_mu(deaths, theta_death, D, 1);
+    d3 = dnbinom_mu(deaths, t3, D, 1);
   }
   
   lik = d1 + d2 + d3;  // sum the individual likelihoods
@@ -238,9 +243,13 @@ dmeas <- Csnippet(
 
 rmeas <- Csnippet(
   "
-  cases = rnbinom_mu(theta, rho * C1);  // for forecasting
-  hosps = rnbinom_mu(theta_hosp, H1);  // for forecasting
-  deaths = rnbinom_mu(theta_death, D);  // for forecasting
+  double t1, t2, t3;
+  t1 = exp(log_theta_cases);
+  t2 = exp(log_theta_hosps);
+  t3 = exp(log_theta_deaths);
+  cases = rnbinom_mu(t1, C1);  // for forecasting
+  hosps = rnbinom_mu(t2, H1);  // for forecasting
+  deaths = rnbinom_mu(t3, D);  // for forecasting
   "
 )
 
@@ -276,7 +285,7 @@ model_pars <- c("log_beta_s", #rate of infection of symptomatic
                 "frac_dead" #fraction hospitalized that die
 )
 
-measure_pars <- c("rho","theta","theta_hosp","theta_death")
+measure_pars <- c("log_theta_cases","log_theta_hosps","log_theta_deaths")
 
 # Initial conditions of state variables are also parameters
 ini_pars <- c("S_0", 
@@ -294,9 +303,20 @@ parnames <- c(model_pars,measure_pars,ini_pars)
 #######################################################################
 # Load cleaned data ---------------------------------------------------------
 #######################################################################
-filename = here('data/clean-GDPH-data.RDS')
-pomp_data <- readRDS(filename)
-pomp_data <- pomp_data[ , c("time", "cases", "hosps", "deaths")]
+pseudo_data <- data.frame(
+  Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+  hold = NA)
+
+filename = here('data/clean-CT-data.RDS')
+pomp_data <- readRDS(filename) %>%
+  filter(Location == "GA") %>%
+  dplyr::select(Date, cases, hosps, deaths) %>%
+  arrange(Date) %>%
+  right_join(pseudo_data, by = "Date") %>%
+  dplyr::select(-hold) %>%
+  mutate(time = 1:n()) %>%
+  dplyr::select(time, cases, hosps, deaths)
+  
 
 
 # Define the pomp model object --------------------------------------------

@@ -28,9 +28,9 @@ inivals <- c(S_0 = 10600000,
              Ia1_0 = 14, Ia2_0 = 14, Ia3_0 = 14, Ia4_0 = 14, 
              Isu1_0 = 111, Isu2_0 = 111, Isu3_0 = 111, Isu4_0 = 111, 
              Isd1_0 = 111, Isd2_0 = 111, Isd3_0 = 111, Isd4_0 = 111, 
-             C1_0 = 35, C2_0 = 35, C3_0 = 35, C4_0 = 35, 
-             H1_0 = 35, H2_0 = 35, H3_0 = 35, H4_0 = 35, 
-             R_0 = 1,
+             C1_0 = 2, C2_0 = 2, C3_0 = 2, C4_0 = 2, 
+             H1_0 = 2, H2_0 = 2, H3_0 = 2, H4_0 = 2, 
+             R_0 = 0,
              D_0 = 0
 )
 
@@ -38,32 +38,33 @@ Ntot <- sum(inivals)  # total population size
 
 # Values for parameters
 # beta is scaled by population size here instead of inside the process model
-parvals <- c(log_beta_s = log(0.75/Ntot), 
-             trans_e = 1, #value of 1 means factor is 0.5
-             trans_a = 1, 
+parvals <- c(log_beta_s = log(0.6/Ntot), 
+             trans_e = 0.5, #value of 1 means factor is 0.5
+             trans_a = 0.5, 
              trans_c = 10, 
-             beta_reduce = 1,  
+             beta_reduce = -0.61,  
              t_int1 = 12,
              t_int2 = 12,
              t_int3 = 12,
              log_g_e = log(4*0.2),
              log_g_a = log(4*0.15),
              log_g_su = log(4*0.15),
-             log_g_c = log(4*0.3),
+             log_g_c = log(4*0.3),  #updated
              log_g_h = log(4*0.3),
-             log_diag_speedup = 1, 
-             detect_0 = 1,
-             detect_1 = 2, 
-             frac_asym = 0.2, 
-             frac_hosp = 0.05, 
-             frac_dead = 0.1, #fraction hospitalized that die
-             rho = 0.5, 
-             theta = 100,
-             theta_hosp = 100,
-             theta_death = 100
+             log_diag_speedup = log(2), 
+             detect_0 = log((1/0.2)-1),
+             detect_1 = log((1/0.4)-1), 
+             frac_asym = log((1/0.2)-1), # 1.39
+             frac_hosp = log((1/0.05)-1), # 2.94
+             frac_dead = log((1/0.1)-1), #fraction hospitalized that die, 2.19
+             theta = log(5),
+             theta_hosp = log(100),
+             theta_death = log(100)
 )
 
+
 # pf <- pfilter(pomp_object, params = c(parvals, inivals), Np = 2000)
+# logLik(pf)
 
 # Set the parameters to estimate (i.e., those to vary) --------------------
 
@@ -73,29 +74,30 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
 
 curr_theta <- c(parvals, inivals)
 params_to_estimate <- names(parvals)
-rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "rho",
-                                          "frac_asym", "frac_hosp", "frac_dead"))
+rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3",
+                                          "log_g_h", "frac_hosp", "frac_dead",
+                                          "theta_hosp", "theta_death"))
 params_to_estimate <- params_to_estimate[-rmones]
-params_perts <- rw.sd(log_beta_s = 0.02,
-                      trans_e = 0.02,
-                      trans_a = 0.02,
-                      trans_c = 0.02,
-                      beta_reduce = 0.02,
-                      log_g_e = 0.02,
-                      log_g_a = 0.02,
-                      log_g_su = 0.02,
-                      log_g_c = 0.02,
-                      log_g_h = 0.02,
-                      log_diag_speedup = 0.02,
-                      detect_0 = 0.02,
-                      detect_1 = 0.02,
-                      # frac_asym = 0.02,
-                      # frac_hosp = 0.02,
-                      # frac_dead = 0.02,
-                      # rho = 0.02,
-                      theta = 0.1,
-                      theta_hosp = 0.1,
-                      theta_death = 0.1)
+params_perts <- rw.sd(log_beta_s = 0.05,
+                      trans_e = 0.05,
+                      trans_a = 0.05,
+                      trans_c = 0.05,
+                      beta_reduce = 0.05,
+                      log_g_e = 0.05,
+                      log_g_a = 0.05,
+                      log_g_su = 0.05,
+                      log_g_c = 0.05, 
+                      # log_g_h = 0.02,  # can't estimate without data
+                      log_diag_speedup = 0.05,
+                      detect_0 = 0.05,
+                      detect_1 = 0.05,
+                      frac_asym = 0.05,
+                      # frac_hosp = 0.02,  # can't estimate without data
+                      # frac_dead = 0.02,  # can't estimate without data
+                      theta = 0.1
+                      # theta_hosp = 0.1,  # can't estimate without data
+                      # theta_death = 0.1  # can't estimate without data
+                      )
 
 
 # Define "proposal" function for starting values --------------------------
@@ -107,9 +109,9 @@ prop_func <- function(theta) {
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 5000
-num_mif_iterations1 <- 1000
-num_mif_iterations2 <- 1000
+num_particles <- 2000
+num_mif_iterations1 <- 150
+num_mif_iterations2 <- 150
 num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
@@ -128,7 +130,7 @@ foreach (i = 1:num_cores,
              cooling.type = "geometric", rw.sd = params_perts) -> mf
   
   mf <- pomp::continue(mf, Nmif = num_mif_iterations2,
-                        cooling.fraction.50 = 0.65, cooling.type = "hyperbolic")
+                        cooling.fraction.50 = 0.65, cooling.type = "geometric")
   
   return(mf)
 } -> mifs
@@ -141,7 +143,7 @@ num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
 pf1 <- foreach(mf = mifs, .combine = rbind, .packages = c("pomp")) %dopar% {
-  pf <- replicate(n = 10, pfilter(mf, Np = 10000, max.fail = Inf))
+  pf <- replicate(n = 10, pfilter(mf, Np = 5000, max.fail = Inf))
   ll <- sapply(pf, logLik)
   ll <- logmeanexp(ll, se = TRUE)
 }
@@ -175,15 +177,30 @@ saveRDS(object = mifRets, file = outfile)
 
 # Cache -------------------------------------------------------------------
 
-# mifs %>%
-#   traces() %>%
-#   melt() %>%
-#   filter(variable %in% c("loglik", params_to_estimate)) %>%
-#   filter(iteration > 100) %>%
-#   ggplot(aes(x=iteration,y=value,group=L1,color=L1))+
-#   geom_line()+
-#   facet_wrap(~variable,scales="free_y")+
-#   guides(color=FALSE)
+mifs %>%
+  traces() %>%
+  melt() %>%
+  filter(variable %in% c("loglik", params_to_estimate)) %>%
+  # filter(iteration > 100) %>%
+  ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
+  geom_line(size = 1)+
+  facet_wrap(~variable,scales="free_y")+
+  scale_color_brewer(type = "qual") +
+  guides(color=FALSE)
+
+sims <- pomp::simulate(mifs[[1]], 
+                       nsim=10, format="data.frame", 
+                       include.data=TRUE)
+
+
+sims %>%
+  dplyr::select(time, .id, cases, hosps, deaths) %>%
+  tidyr::gather(key = "variable", value = "value", -time, -.id) %>%
+  ggplot(aes(x = time, y = value, group = .id, color=.id=="data")) +
+  geom_line() +
+  facet_wrap(~variable, scales = "free_y") +
+  guides(color = FALSE)
+
 # 
 # 
 

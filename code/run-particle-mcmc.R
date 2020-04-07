@@ -40,7 +40,7 @@ prior_dens <- Csnippet(
         dunif(trans_e, -5, 5, 1) +
         dunif(trans_a, -5, 5, 1) +
         dunif(trans_c, -15, 15, 1) +
-        dnorm(beta_reduce, -0.6190392, 0.5, 1) +
+        dunif(beta_reduce, -5, 5, 1) +
         dnorm(log_g_e, -0.2231436, 0.05, 1) +
         dunif(log_g_a, -5, 5, 1) +
         dunif(log_g_su, -5, 5, 1) +
@@ -49,9 +49,7 @@ prior_dens <- Csnippet(
         dnorm(log_diag_speedup, 0.6931472, 0.5, 1) +
         dunif(detect_0, -5, 5, 1) +
         dunif(detect_1, -5, 5, 1) +
-        dunif(theta, 80, 120, 1) +
-        dunif(theta_hosp, 80, 120, 1) +
-        dunif(theta_death, 80, 120, 1);
+        dunif(theta, 1, 4, 1);
   
   if (!give_log) lik = exp(lik);
   "
@@ -69,7 +67,7 @@ params_to_estimate <- params_to_estimate[-rmtwos]
 params_to_estimate <- c(params_to_estimate, "detect_0")
 
 # Set noise level for parameter random walk for proposals
-rw.sd <- rep(0.02, length(params_to_estimate))
+rw.sd <- rep(0.075, length(params_to_estimate))
 names(rw.sd) <- params_to_estimate
 
 pomp_for_mcmc <- pomp(
@@ -79,7 +77,7 @@ pomp_for_mcmc <- pomp(
   cdir = getwd()  # just to fix a Windows error when compiling...
 )
 
-num_mcmc <- 2000
+num_mcmc <- 50
 
 num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
@@ -115,12 +113,12 @@ saveRDS(out_mcmc, outfile)
 # Cache -------------------------------------------------------------------
 
 
-# mcmcmat <- matrix(ncol = num_mcmc+1, nrow = length(out_mcmc))
-# for(i in 1:length(out_mcmc)) {
-#   mcmcmat[i, ] <- as.data.frame(out_mcmc[[i]]@traces)$log_beta_s
-# }
-# 
-# matplot(t(exp(mcmcmat)*10600000), type = "l")
+mcmcmat <- matrix(ncol = num_mcmc+1, nrow = length(out_mcmc))
+for(i in 1:length(out_mcmc)) {
+  mcmcmat[i, ] <- as.data.frame(out_mcmc[[i]]@traces)$log_beta_s
+}
+
+matplot(t(exp(mcmcmat)*10601100), type = "l")
 
 
 

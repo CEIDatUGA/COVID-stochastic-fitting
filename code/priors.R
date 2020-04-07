@@ -8,14 +8,20 @@ logistic <- function(x) {
   1 / (1 + exp(x))
 }
 
+x <- seq(-5, 5, length.out = 1000)
+plot(x, logistic(x), type = "l", bty="n")
+abline(v = c(-2, 2), col = c("red", "blue"))
+abline(h = logistic(c(-2, 2)), col = c("red", "blue"))
+
 # log_beta_s
-ntot <- 106000000
+ntot <- 10601100
 mu <- log(0.658/ntot)
 sigma <- 0.2
 norms <- rnorm(10000, mu, sigma)
 params <- exp(norms) * ntot
 hist(params, main = "beta_s")
-
+x <- seq(-20, -16, length.out = 100)
+plot(x, exp(x)*ntot)
 
 # beta_reduce
 mu <- rev_logistic(0.65)  # from literature

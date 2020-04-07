@@ -25,11 +25,11 @@ pomp_model <- readRDS(filename)
 inivals <- c(S_0 = 10600000, 
              E1_0 = 35, E2_0 = 35, E3_0 = 35, E4_0 = 35, 
              Ia1_0 = 14, Ia2_0 = 14, Ia3_0 = 14, Ia4_0 = 14, 
-             Isu1_0 = 111, Isu2_0 = 111, Isu3_0 = 111, Isu4_0 = 111, 
-             Isd1_0 = 111, Isd2_0 = 111, Isd3_0 = 111, Isd4_0 = 111, 
-             C1_0 = 35, C2_0 = 35, C3_0 = 35, C4_0 = 35, 
-             H1_0 = 35, H2_0 = 35, H3_0 = 35, H4_0 = 35, 
-             R_0 = 1,
+             Isu1_0 = 56, Isu2_0 = 56, Isu3_0 = 56, Isu4_0 = 56, 
+             Isd1_0 = 56, Isd2_0 = 56, Isd3_0 = 56, Isd4_0 = 56, 
+             C1_0 = 2, C2_0 = 2, C3_0 = 2, C4_0 = 2, 
+             H1_0 = 2, H2_0 = 2, H3_0 = 2, H4_0 = 2, 
+             R_0 = 0,
              D_0 = 0
             )
 
@@ -37,9 +37,9 @@ Ntot <- sum(inivals)  # total population size
 
 # Values for parameters
 # beta is scaled by population size here instead of inside the process model
-parvals <- c(log_beta_s = log(0.75/Ntot), 
-             trans_e = 1, #value of 1 means factor is 0.5
-             trans_a = 1, 
+parvals <- c(log_beta_s = log(0.6/Ntot), 
+             trans_e = 0.5, #value of 1 means factor is 0.5
+             trans_a = 0.5, 
              trans_c = 10, 
              beta_reduce = 1,  
              t_int1 = 12,
@@ -50,29 +50,28 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
              log_g_su = log(4*0.15),
              log_g_c = log(4*0.3),  #updated
              log_g_h = log(4*0.3),
-             log_diag_speedup = 1, 
-             detect_0 = 1,
-             detect_1 = 2, 
-             frac_asym = 0.2, 
-             frac_hosp = 0.05, 
-             frac_dead = 0.1, #fraction hospitalized that die
-             rho = 0.5, 
-             theta = 100,
-             theta_hosp = 100,
-             theta_death = 100
+             log_diag_speedup = log(2), 
+             detect_0 = log((1/0.2)-1),
+             detect_1 = log((1/0.4)-1), 
+             frac_asym = log((1/0.2)-1), # 1.39
+             frac_hosp = log((1/0.5)-1), # 2.94
+             frac_dead = log((1/0.3)-1), #fraction hospitalized that die, 2.19
+             log_theta_cases = log(10),
+             log_theta_hosps = log(50),
+             log_theta_deaths = log(50)
   )
  
 # this should probably not be in this script? 
-#pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
-#plot(pf@cond.loglik, type = "l", xlab = "time", ylab = "Cond. log likelihood")
-#sum(pf@cond.loglik)
-#logLik(pf)
+# pf <- pfilter(pomp_model, params = c(parvals,inivals), Np = 2000)
+# plot(pf@cond.loglik, type = "l", xlab = "time", ylab = "Cond. log likelihood")
+# sum(pf@cond.loglik)
+# logLik(pf)
 
 
 #run simulation a number of times
 sims <- pomp::simulate(pomp_model, 
                        params=c(parvals,inivals), 
-                       nsim=10, format="data.frame", 
+                       nsim=2, format="data.frame", 
                        include.data=TRUE)
 
 
