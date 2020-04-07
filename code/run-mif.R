@@ -11,6 +11,7 @@ rm(list = ls(all.names = TRUE))
 library(tidyverse)
 library(pomp)
 library(doParallel)
+library(foreach)
 library(here)
 
 
@@ -72,12 +73,29 @@ parvals <- c(log_beta_s = log(0.75/Ntot),
 
 curr_theta <- c(parvals, inivals)
 params_to_estimate <- names(parvals)
-params_to_estimate <- 
+rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "rho",
+                                          "frac_asym", "frac_hosp", "frac_dead"))
+params_to_estimate <- params_to_estimate[-rmones]
 params_perts <- rw.sd(log_beta_s = 0.02,
                       trans_e = 0.02,
                       trans_a = 0.02,
                       trans_c = 0.02,
-                      beta_reduce = 0.02,)
+                      beta_reduce = 0.02,
+                      log_g_e = 0.02,
+                      log_g_a = 0.02,
+                      log_g_su = 0.02,
+                      log_g_c = 0.02,
+                      log_g_h = 0.02,
+                      log_diag_speedup = 0.02,
+                      detect_0 = 0.02,
+                      detect_1 = 0.02,
+                      # frac_asym = 0.02,
+                      # frac_hosp = 0.02,
+                      # frac_dead = 0.02,
+                      # rho = 0.02,
+                      theta = 0.1,
+                      theta_hosp = 0.1,
+                      theta_death = 0.1)
 
 
 # Define "proposal" function for starting values --------------------------
@@ -89,13 +107,14 @@ prop_func <- function(theta) {
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 500
-num_mif_iterations1 <- 5
-num_mif_iterations2 <- 5
-num_cores <- parallel::detectCores() - 1  # alter as needed
-
+num_particles <- 5000
+num_mif_iterations1 <- 1000
+num_mif_iterations2 <- 1000
+num_cores <- parallel::detectCores() - 2  # alter as needed
+cl <- parallel::makeCluster(num_cores)
+registerDoParallel(cl)
 foreach (i = 1:num_cores, 
-         .inorder = FALSE,
+         .packages = c("pomp"),
          .combine = c, 
          .export = c("params_perts", 
                      "prop_func", 
@@ -104,22 +123,29 @@ foreach (i = 1:num_cores,
   theta_guess <- curr_theta
   theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
   
-  mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
-       Np = num_particles, cooling.fraction.50 = 0.5, 
-       cooling.type = "hyperbolic", rw.sd = params_perts) -> mf
+  pomp::mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
+             Np = num_particles, cooling.fraction.50 = 0.8, 
+             cooling.type = "geometric", rw.sd = params_perts) -> mf
   
-  mf <- continue(mf, Nmif = num_mif_iterations2, cooling.fraction.50 = 0.1)
+  mf <- pomp::continue(mf, Nmif = num_mif_iterations2,
+                        cooling.fraction.50 = 0.65, cooling.type = "hyperbolic")
   
+  return(mf)
 } -> mifs
+stopCluster(cl)
 
 
 # Use particle filter to get the likelihood at the end of MIF run ---------
 
-pf1 <- foreach(mf = mifs, .combine = rbind) %dopar% {
-  pf <- replicate(n = 4, pfilter(mf, Np = 2000, max.fail = Inf))
+num_cores <- parallel::detectCores() - 2  # alter as needed
+cl <- parallel::makeCluster(num_cores)
+registerDoParallel(cl)
+pf1 <- foreach(mf = mifs, .combine = rbind, .packages = c("pomp")) %dopar% {
+  pf <- replicate(n = 10, pfilter(mf, Np = 10000, max.fail = Inf))
   ll <- sapply(pf, logLik)
   ll <- logmeanexp(ll, se = TRUE)
 }
+parallel::stopCluster(cl)
 
 mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)),
                                nrow = length(mifs), byrow = T))
@@ -130,7 +156,8 @@ pf_logliks <- as_tibble(pf1) %>%
          "LogLik_SE" = se) %>%
   mutate(MIF_ID = 1:n()) %>%
   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-  bind_cols(mif_coefs)
+  bind_cols(mif_coefs) %>%
+  arrange(-LogLik)
 
 
 
@@ -152,12 +179,13 @@ saveRDS(object = mifRets, file = outfile)
 #   traces() %>%
 #   melt() %>%
 #   filter(variable %in% c("loglik", params_to_estimate)) %>%
+#   filter(iteration > 100) %>%
 #   ggplot(aes(x=iteration,y=value,group=L1,color=L1))+
 #   geom_line()+
 #   facet_wrap(~variable,scales="free_y")+
 #   guides(color=FALSE)
-
-
+# 
+# 
 
 # Extract and save best parameter set for MCMC ----------------------------
 # 
