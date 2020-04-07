@@ -33,6 +33,9 @@ library(here) #to simplify loading/saving into different folders
   us_clean$Total_Hospitalized[is.na(us_clean$Total_Hospitalized)] <- 0
   us_clean$Daily_Hospitalized[is.na(us_clean$Daily_Hospitalized)] <- 0
   
+  #this bit of code is to get file names to align with what's currently in the pomp code
+  us_clean <- us_clean %>% rename(cases = Daily_Cases, hosps = Daily_Hospitalized, deaths = Daily_Deaths)
+  
   # Save cleaned data
   filename = here('data/clean-CT-data.RDS')
   saveRDS(us_clean,filename)

@@ -15,10 +15,8 @@ library(doParallel)
 library(foreach)
 
 
-
 # Load the pomp object and mif results ------------------------------------
 
-pomp_object <- readRDS(here('output/pomp-model.RDS'))
 mif_results <- readRDS(here('output/mif-results.RDS'))
 
 
@@ -31,6 +29,7 @@ mle_inits <- mif_results$loglik_dfs %>%
   pull(MIF_ID)
 
 mif_init <- mif_results$mif_objects[[mle_inits]]
+
 
 
 # Define the prior density ------------------------------------------------
