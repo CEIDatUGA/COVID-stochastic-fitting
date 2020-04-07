@@ -54,7 +54,7 @@ pomp_step <- Csnippet(
   // Time-dependent rate of movement through Isd dummy compartments
   // t_int2 days after simulation start, the time it takes for individuals to get diagnosed decreases
   if (t<t_int2) 
-      g_sd = exp(log_g_su);  //regular time in sympomatic stage, without diagnosis
+      g_sd = exp(log_g_su);  //regular time in symptomatic stage, without diagnosis
   else
       g_sd = exp(log_diag_speedup)*exp(log_g_su); //shortened time in symptomatic stage, due to diagnosis
 

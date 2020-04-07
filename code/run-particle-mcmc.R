@@ -44,7 +44,7 @@ prior_dens <- Csnippet(
         dnorm(log_g_e, -0.2231436, 0.05, 1) +
         dunif(log_g_a, -5, 5, 1) +
         dunif(log_g_su, -5, 5, 1) +
-        dunif(log_g_c, -5, 5, 1) +
+        dnorm(log_g_c, 5.764807, 1.157302, 1) +
         dunif(log_g_h, -5, 5, 1) +
         dnorm(log_diag_speedup, 0.6931472, 0.5, 1) +
         dunif(detect_0, -5, 5, 1) +
