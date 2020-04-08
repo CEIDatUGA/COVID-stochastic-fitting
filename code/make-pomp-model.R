@@ -11,6 +11,7 @@ rm(list = ls(all.names = TRUE))
 
 
 # Load libraries ----------------------------------------------------------
+library(dplyr)
 library(pomp)
 library(here) #to simplify loading/saving into different folders
 
@@ -29,7 +30,7 @@ pomp_step <- Csnippet(
   
   double E_tot, Ia_tot, Isu_tot, Isd_tot, C_tot, H_tot;
   double foi;  // force of infection
-  double g_sd;  // rate of transition through I_sd compartments
+  double g_sd, g_c;  // rate of transition through I_sd compartments
   double detect_frac; // fraction of those that get eventually diagnosed
 
   E_tot = E1+E2+E3+E4;  // all pre-symptomatic
@@ -44,7 +45,7 @@ pomp_step <- Csnippet(
   // Each group can have its own transmission rate.
   // symptomatic are assumed to transmit the most, other groups have reduced transmission by some factor
   // all parameters are used in the model such that they can take on any numeric value (useful for fitting)
-  foi = exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot);
+  foi = exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
 
   // t_int1 days after simulation start, social distancing intervention reduces transmission rate
   if (t>t_int1)
@@ -53,10 +54,13 @@ pomp_step <- Csnippet(
 
   // Time-dependent rate of movement through Isd dummy compartments
   // t_int2 days after simulation start, the time it takes for individuals to get diagnosed decreases
-  if (t<t_int2) 
-      g_sd = exp(log_g_su);  //regular time in symptomatic stage, without diagnosis
-  else
-      g_sd = exp(log_diag_speedup)*exp(log_g_su); //shortened time in symptomatic stage, due to diagnosis
+  if (t<t_int2) {
+      g_sd = exp(log_g_sd);  //regular time in symptomatic stage prior to diagnosis
+      g_c = exp(log_g_c); //regular time in symptomatic stage with diagnosis
+  } else {
+      g_sd = exp(log_diag_speedup)*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
+      g_c = exp(log_g_c)/exp(log_diag_speedup); //increased time in symptomatic stage post diagnosis
+  }
 
   // Time dependent fraction of those that move into detected category at the end of the E phase.
   // t_int3 days after simulation start, the fraction that move into Isd increases
@@ -75,10 +79,10 @@ pomp_step <- Csnippet(
   rate[6] = exp(log_g_a);                                                //movement through Ia stages
   rate[7] = exp(log_g_su);                                               //movement through Isu stages
   rate[8] = g_sd;                                                        //movement through Isd stages - computed above
-  rate[9] = exp(log_g_c);                                                //movement through C stages
+  rate[9] = g_c;                                                         //movement through C stages - computed above
   
-  rate[10] = exp(log_g_c) * 1/(1+exp(frac_hosp));                                   //movement from C to H  
-  rate[11] = exp(log_g_c) * (1 - 1/(1+exp(frac_hosp)));                             //movement from C to R  
+  rate[10] = g_c * 1/(1+exp(frac_hosp));                                   //movement from C to H  
+  rate[11] = g_c * (1 - 1/(1+exp(frac_hosp)));                             //movement from C to R  
 
   rate[12] = exp(log_g_h);                                               //movement through H stages  
   rate[13] = exp(log_g_h) *  1/(1+exp(frac_dead));                                  //movement from H to D  
@@ -154,7 +158,6 @@ pomp_step <- Csnippet(
   H4 += trans[27] - trans[28] - trans[29]; //into D or R
 
   R += trans[11] + trans[15] + trans[24] + trans[29];
-  //D += trans[23] + trans[28]; 
   D += trans[28];
   "
 )
@@ -210,27 +213,27 @@ rinit <- Csnippet(
 dmeas <- Csnippet(
   "
   double d1, d2, d3;
-  double t1, t2, t3;
-  t1 = exp(log_theta_cases);
-  t2 = exp(log_theta_hosps);
-  t3 = exp(log_theta_deaths);
+  double theta1, theta2, theta3;
+  theta1 = exp(log_theta_cases);
+  theta2 = exp(log_theta_hosps);
+  theta3 = exp(log_theta_deaths);
   
   if(ISNA(cases)) {
     d1 = 0;  // loglik is 0 if no observations
   } else {
-    d1 = dnbinom_mu(cases, t1, C1, 1);
+    d1 = dnbinom_mu(cases, theta1, C1, 1);
   }
   
   if(ISNA(hosps)) {
     d2 = 0;  // loglik is 0 if no observations
   } else {
-    d2 = dnbinom_mu(hosps, t2, H1, 1);
+    d2 = dnbinom_mu(hosps, theta2, H1, 1);
   }
   
   if(ISNA(deaths)) {
     d3 = 0;  // loglik is 0 if no observations
   } else {
-    d3 = dnbinom_mu(deaths, t3, D, 1);
+    d3 = dnbinom_mu(deaths, theta3, D, 1);
   }
   
   lik = d1 + d2 + d3;  // sum the individual likelihoods
@@ -243,13 +246,13 @@ dmeas <- Csnippet(
 
 rmeas <- Csnippet(
   "
-  double t1, t2, t3;
-  t1 = exp(log_theta_cases);
-  t2 = exp(log_theta_hosps);
-  t3 = exp(log_theta_deaths);
-  cases = rnbinom_mu(t1, C1);  // for forecasting
-  hosps = rnbinom_mu(t2, H1);  // for forecasting
-  deaths = rnbinom_mu(t3, D);  // for forecasting
+  double theta1, theta2, theta3;
+  theta1 = exp(log_theta_cases);
+  theta2 = exp(log_theta_hosps);
+  theta3 = exp(log_theta_deaths);
+  cases = rnbinom_mu(theta1, C1);  // for forecasting
+  hosps = rnbinom_mu(theta2, H1);  // for forecasting
+  deaths = rnbinom_mu(theta3, D);  // for forecasting
   "
 )
 
@@ -274,10 +277,10 @@ varnames <- c("S",
 # Parameters --------------------------------------------------------------
 # Parameter and variable names
 model_pars <- c("log_beta_s", #rate of infection of symptomatic 
-                "trans_e", "trans_a", "trans_c", #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
+                "trans_e", "trans_a", "trans_c", "trans_h", #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
                 "beta_reduce",  #overall transmission reduction due to social distancing
                 "t_int1", "t_int2", "t_int3", #time at which different interventions are started
-                "log_g_e", "log_g_a", "log_g_su","log_g_c","log_g_h", #rate of movement through E/Ia/Isu/C/H compartments,
+                "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h", #rate of movement through E/Ia/Isu/Isd/C/H compartments,
                 "log_diag_speedup", #factor by which movement through Isd happens faster (quicker diagnosis) 
                 "detect_0","detect_1", #determines fraction that get diagnosed before and after intervention
                 "frac_asym", #fraction asymptomatic
@@ -308,10 +311,11 @@ pseudo_data <- data.frame(
   hold = NA)
 
 filename = here('data/clean-CT-data.RDS')
-pomp_data <- readRDS(filename) %>%
-  filter(Location == "GA") %>%
+dat <- readRDS(filename)
+pomp_data <- dat %>%
+  dplyr::filter(Location == "GA") %>%
   dplyr::select(Date, cases, hosps, deaths) %>%
-  arrange(Date) %>%
+  dplyr::arrange(Date) %>%
   right_join(pseudo_data, by = "Date") %>%
   dplyr::select(-hold) %>%
   mutate(time = 1:n()) %>%
