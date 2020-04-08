@@ -125,9 +125,9 @@ prop_func <- function(theta) {
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 4000
-num_mif_iterations1 <- 200
-num_mif_iterations2 <- 200
+num_particles <- 2000
+num_mif_iterations1 <- 150
+num_mif_iterations2 <- 100
 num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
@@ -158,7 +158,7 @@ stopCluster(cl)
 cl <- parallel::makeCluster(length(mifs))
 registerDoParallel(cl)
 pf1 <- foreach(mf = mifs, .combine = rbind, .packages = c("pomp")) %dopar% {
-  pf <- replicate(n = 10, pfilter(mf, Np = 10000, max.fail = Inf))
+  pf <- replicate(n = 10, pfilter(mf, Np = 5000, max.fail = Inf))
   ll <- sapply(pf, logLik)
   ll <- logmeanexp(ll, se = TRUE)
 }
@@ -187,21 +187,18 @@ saveRDS(object = mifRets, file = outfile)
 
 
 
-
-
-
 # Cache -------------------------------------------------------------------
 
-mifs %>%
-  traces() %>%
-  melt() %>%
-  filter(variable %in% c("loglik", params_to_estimate)) %>%
-  # filter(iteration > 100) %>%
-  ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
-  geom_line()+
-  facet_wrap(~variable,scales="free_y")+
-  scale_color_brewer(type = "qual") +
-  guides(color=FALSE)
+# mifs %>%
+#   traces() %>%
+#   melt() %>%
+#   filter(variable %in% c("loglik", params_to_estimate)) %>%
+#   # filter(iteration > 100) %>%
+#   ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
+#   geom_line()+
+#   facet_wrap(~variable,scales="free_y")+
+#   scale_color_brewer(type = "qual") +
+#   guides(color=FALSE)
 # 
 # sims <- pomp::simulate(mifs[[6]],
 #                        nsim=1, format="data.frame",
