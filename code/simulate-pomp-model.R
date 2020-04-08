@@ -73,9 +73,11 @@ parvals <- c(log_beta_s = log(0.6/Ntot),
 #run simulation a number of times
 sims <- pomp::simulate(pomp_model, 
                        params=c(parvals,inivals), 
-                       nsim=2, format="data.frame", 
+                       nsim=3, format="data.frame", 
                        include.data=TRUE)
 
+filename = here('output/model-predictions.RDS')
+saveRDS(sims,filename)
 
 pl <- sims %>%
   dplyr::select(time, .id, cases, hosps, deaths) %>%
