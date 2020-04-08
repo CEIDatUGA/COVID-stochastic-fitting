@@ -151,14 +151,17 @@ pomp_step <- Csnippet(
   C2 += trans[20] - trans[21];
   C3 += trans[21] - trans[22];
   C4 += trans[22] - trans[23] - trans[24]; //into H or R
+  C_new += trans[19]; // new cases tracker, reset at obs times
 
   H1 += trans[23] - trans[25]; //from C
   H2 += trans[25] - trans[26];
   H3 += trans[26] - trans[27];
   H4 += trans[27] - trans[28] - trans[29]; //into D or R
+  H_new += trans[23];  // new hosps tracker, reset at obs times
 
   R += trans[11] + trans[15] + trans[24] + trans[29];
   D += trans[28];
+  D_new += trans[28];
   "
 )
 
@@ -192,14 +195,17 @@ rinit <- Csnippet(
   C2 = nearbyint(C2_0);
   C3 = nearbyint(C3_0);
   C4 = nearbyint(C4_0);
+  C_new = nearbyint(C1_0);
 
   H1 = nearbyint(H1_0);
   H2 = nearbyint(H2_0);
   H3 = nearbyint(H3_0);
   H4 = nearbyint(H4_0);
+  H_new = nearbyint(H1_0);
 
   R = nearbyint(R_0);
   D = nearbyint(D_0);
+  D_new = nearbyint(D_0);
   "
 )
 
@@ -221,19 +227,19 @@ dmeas <- Csnippet(
   if(ISNA(cases)) {
     d1 = 0;  // loglik is 0 if no observations
   } else {
-    d1 = dnbinom_mu(cases, theta1, C1, 1);
+    d1 = dnbinom_mu(cases, theta1, C_new, 1);
   }
   
   if(ISNA(hosps)) {
     d2 = 0;  // loglik is 0 if no observations
   } else {
-    d2 = dnbinom_mu(hosps, theta2, H1, 1);
+    d2 = dnbinom_mu(hosps, theta2, H_new, 1);
   }
   
   if(ISNA(deaths)) {
     d3 = 0;  // loglik is 0 if no observations
   } else {
-    d3 = dnbinom_mu(deaths, theta3, D, 1);
+    d3 = dnbinom_mu(deaths, theta3, D_new, 1);
   }
   
   lik = d1 + d2 + d3;  // sum the individual likelihoods
@@ -250,9 +256,9 @@ rmeas <- Csnippet(
   theta1 = exp(log_theta_cases);
   theta2 = exp(log_theta_hosps);
   theta3 = exp(log_theta_deaths);
-  cases = rnbinom_mu(theta1, C1);  // for forecasting
-  hosps = rnbinom_mu(theta2, H1);  // for forecasting
-  deaths = rnbinom_mu(theta3, D);  // for forecasting
+  cases = rnbinom_mu(theta1, C_new);  // for forecasting
+  hosps = rnbinom_mu(theta2, H_new);  // for forecasting
+  deaths = rnbinom_mu(theta3, D_new);  // for forecasting
   "
 )
 
@@ -269,7 +275,8 @@ varnames <- c("S",
              "Isu1", "Isu2", "Isu3", "Isu4", 
              "Isd1", "Isd2", "Isd3", "Isd4", 
              "C1", "C2", "C3", "C4",  
-             "H1", "H2", "H3", "H4",  
+             "H1", "H2", "H3", "H4",
+             "C_new", "H_new", "D_new",
              "R",
              "D")
 
@@ -297,7 +304,7 @@ ini_pars <- c("S_0",
               "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
               "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0", 
               "C1_0", "C2_0", "C3_0", "C4_0",  
-              "H1_0", "H2_0", "H3_0", "H4_0",  
+              "H1_0", "H2_0", "H3_0", "H4_0", 
               "R_0",
               "D_0")
 parnames <- c(model_pars,measure_pars,ini_pars)
@@ -335,7 +342,7 @@ pomp_model <- pomp(
   statenames = varnames,
   paramnames = parnames, 
   obsnames = c("cases", "hosps", "deaths"),
-  accumvars = c("C1","H1","R","D") 
+  accumvars = c("C_new", "H_new", "D_new") 
 )
 
 # Save the pomp object ----------------------------------------------------
