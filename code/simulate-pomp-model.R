@@ -73,7 +73,7 @@ parvals <- c(log_beta_s = log(0.6/Ntot),
 #run simulation a number of times
 sims <- pomp::simulate(pomp_model, 
                        params=c(parvals,inivals), 
-                       nsim=3, format="data.frame", 
+                       nsim=1000, format="data.frame", 
                        include.data=TRUE)
 
 filename = here('output/model-predictions.RDS')
@@ -88,4 +88,30 @@ pl <- sims %>%
   guides(color = FALSE)
 
 plot(pl)
+
+
+# Plot H1 and hosps
+
+# sims %>%
+#   dplyr::select(time, .id, hosps, H1) %>%
+#   filter(.id != "data") %>%
+#   tidyr::gather(key = "variable", value = "value", -time, -.id) %>%
+#   group_by(time, variable) %>%
+#   summarise(MeanLine = mean(value)) -> meantraj
+# 
+# sims %>%
+#   dplyr::select(time, .id, hosps, H1) %>%
+#   filter(.id != "data") %>%
+#   tidyr::gather(key = "variable", value = "value", -time, -.id) -> thesims
+# 
+# ggplot() +
+#   geom_line(data = thesims, aes(x = time, y = value, group = .id), alpha = 0.05) +
+#   geom_line(data = meantraj, aes(x = time, y = MeanLine), size = 1, color = "red") +
+#   facet_wrap(~variable) +
+#   guides(color = FALSE)
+
+
+
+
+
   
