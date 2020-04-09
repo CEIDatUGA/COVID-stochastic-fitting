@@ -96,7 +96,7 @@ stopCluster(cl)
 
 # Save the output ---------------------------------------------------------
 
-outfile <- here("output/pcmcm-output.RDS")
+outfile <- here("output/pmcmc-output.RDS")
 saveRDS(out_mcmc, outfile)
 
 
@@ -144,20 +144,48 @@ saveRDS(out_mcmc, outfile)
 # )
 
 
+beta <- test@traces[ , "log_beta_s"]
+theta <- exp(test@traces[1001:2000, "log_theta_hosps"])
+hstates <- t(test@filter.traj["H_new",1001:2000,]) %>%
+  as.data.frame() %>%
+  melt()
+hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
+hstates$time = rep(c(0,newtimes), times = 1000)
+hstates <- hstates %>%
+  mutate(period = ifelse(time < 40, "calibration", "forecast")) %>%
+  filter(time < 55)
 
-# theta <- exp(test@traces[, "log_theta_hosps"])
-# hstates <- t(test@filter.traj["H_new",,]) %>%
-#   as.data.frame() %>%
-#   melt()
-# hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
-# hstates$time = rep(c(0,newtimes), times = num_mcmc)
-# hstates <- hstates %>%
-#   mutate(period = ifelse(time < 40, "calibration", "forecast"))
-# 
-# ggplot(hstates, aes(x = time, y = value, group = variable)) +
-#   geom_line(aes(color = period)) +
-#   xlab("Time since March 1") +
-#   ylab("Number of new hospitalizations")
+pob <- readRDS("../output/pomp-model.RDS")
+dat <- t(pob@data) %>% as.data.frame()
+dat$time = 1:nrow(dat)
+
+ggplot() +
+  geom_line(data = hstates, aes(x = time, y = value, group = variable, color = period)) +
+  geom_point(data = dat, aes(x = time, y = hosps), size = 1) +
+  geom_line(data = dat, aes(x = time, y = hosps), size = 0.3) +
+  xlab("Time since March 1") +
+  ylab("Number of new hospitalizations")
+
+
+theta <- exp(test@traces[1001:2000, "log_theta_cases"])
+hstates <- t(test@filter.traj["C_new",1001:2000,]) %>%
+  as.data.frame() %>%
+  melt()
+hstates$cases <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
+hstates  <- hstates %>%
+  group_by(variable) %>%
+  mutate(tot = cumsum(cases)) %>%
+  ungroup() %>% as.data.frame
+hstates$time = rep(c(0,newtimes), times = 1000)
+hstates <- hstates %>%
+  mutate(period = ifelse(time < 40, "calibration", "forecast"))
+
+ggplot() +
+  geom_line(data = hstates, 
+            aes(x = time, y = tot, group = variable, color = period), alpha = 0.1) +
+  xlab("Time since March 1") +
+  ylab("Cumulative cases") 
+
 
 
 # Cache -------------------------------------------------------------------
