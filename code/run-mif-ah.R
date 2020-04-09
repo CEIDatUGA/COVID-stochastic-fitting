@@ -49,63 +49,30 @@ params_to_estimate <- c(
                         "frac_asym", #fraction asymptomatic
                         "frac_hosp", #fraction diagnosed that go into hospital
                         "frac_dead", #fraction hospitalized that die
-                        "log_theta_cases","log_theta_hosps","log_theta_deaths",
+                        "log_theta_cases","log_theta_hosps","log_theta_deaths"
+                        )
+inivals_to_estimate <- c(                        
                         "E1_0", "E2_0", "E3_0", "E4_0",  
                         "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
                         "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
                         "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
-                      )
+                        )
 
-# ------- parts below not working, goal is to replace the manual rw.sd() specification
-#assign perturbations to parameters to be estimated, needed for estimation procedure
+
+# -------------------------------------------------------
+# stuff in block below not working
+#assign perturbations to parameters and initial conditions to be estimated, needed for estimation procedure
 #in order of parameters above, hard-coded is not a good idea, but ok for now
-pert_vals = c(rep(0.05,18),rep(0.1,3),rep(0.2,12),rep(0.1,4))
-param_perts_string = paste(params_to_estimate,'=',pert_vals,collapse=', ')
-#not working
-#params_perts_2 <- rw.sd(param_perts_string)
-# ------- end non-working parts
+pert_par_vals = c(rep(0.05,18),rep(0.1,3)) 
+pert_ini_vals = c(rep(0.2,12),rep(0.1,4))
+#make long string containing all parameter names and values in a form required by rw.sd
+param_perts_string = paste(params_to_estimate,'=',pert_par_vals,collapse=', ')
+ini_perts_string = paste0(inivals_to_estimate,' = ivp(',pert_ini_vals,")",collapse=', ')
+#this string is being fed into sw.rd inside mif below in a way suggested by Aaron
+perts_string = paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
 
-# what's the ivp() command doing? 
-# if possible, trying to replace by an easier way to supply that, see code snippets above.
-params_perts <- rw.sd(log_beta_s = 0.05,
-                      trans_e = 0.05,
-                      trans_a = 0.05,
-                      trans_c = 0.05,
-                      trans_h = 0.05,
-                      beta_reduce = 0.05,
-                      log_g_e = 0.05,
-                      log_g_a = 0.05,
-                      log_g_su = 0.05,
-                      log_g_sd = 0.05,
-                      log_g_c = 0.05,
-                      log_g_h = 0.05,
-                      log_diag_speedup = 0.05,
-                      detect_0 = 0.05,
-                      detect_1 = 0.05,
-                      frac_asym = 0.05,
-                      frac_hosp = 0.05,
-                      frac_dead = 0.05,
-                      log_theta_cases = 0.1,
-                      log_theta_hosps = 0.1,
-                      log_theta_deaths = 0.1,
-                      E1_0 = ivp(0.2),
-                      E2_0 = ivp(0.2),
-                      E3_0 = ivp(0.2),
-                      E4_0 = ivp(0.2),
-                      Ia1_0 = ivp(0.2),
-                      Ia2_0 = ivp(0.2),
-                      Ia3_0 = ivp(0.2),
-                      Ia4_0 = ivp(0.2),
-                      Isu1_0 = ivp(0.2),
-                      Isu2_0 = ivp(0.2),
-                      Isu3_0 = ivp(0.2),
-                      Isu4_0 = ivp(0.2),
-                      Isd1_0 = ivp(0.1),
-                      Isd2_0 = ivp(0.1),
-                      Isd3_0 = ivp(0.1),
-                      Isd4_0 = ivp(0.1)
-                      )
 
+#######################################################
 # Define function that runs the whole mif --------------------------
 #function that runs the whole mif, either in parallel or not
 #does it in 2 parts. Variables below contain settings for parts 1 and 2
@@ -119,7 +86,7 @@ run_mif <- function(pomp_model, Nmif, params, num_particles, c_frac, param_perts
                         params = params, 
                         Np = num_particles[1], 
                         cooling.fraction.50 = c_frac[1], 
-                        rw.sd = params_perts,
+                        rw.sd = eval(parse(text=perts_string)),
                         cooling.type = "geometric",
                         verbose = verbose
   )
@@ -136,7 +103,7 @@ run_mif <- function(pomp_model, Nmif, params, num_particles, c_frac, param_perts
 
 
 # Compute different starting values for each run --------------------------
-n_ini_cond = 3*n_cores #number of initial conditions to try, set to number of cores or multiple thereof for best performance
+n_ini_cond = 1*n_cores #number of initial conditions to try, set to number of cores or multiple thereof for best performance
 param_start = matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) #set up matrix for starting values, each row is one set of initial conditions
 colnames(param_start) = params_to_estimate #columns of matrix contain starting values for parameters to be estimated
 for (i in 1:nrow(param_start)) {param_start[i,] = rnorm(length(params_to_estimate), allparvals[params_to_estimate], sd = 1) } #fill matrix with starting values drawn from normal distribution
