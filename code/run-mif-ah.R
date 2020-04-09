@@ -13,8 +13,8 @@ library(foreach)
 library(here)
 
 # Specify if we want to parallelize or not ---------------------------------------------------------------
-#parallel_run = TRUE
-parallel_run = FALSE
+parallel_run = TRUE
+#parallel_run = FALSE
 
 n_cores = 1 #if not parallel, this should be 1, otherwise for parallel specified below
 
@@ -153,7 +153,7 @@ if (parallel_run == FALSE)
     out_mif[[i]] <- run_mif(pomp_model, Nmif = num_mif_iterations, 
                                params = c(param_start[i,],fixed_params), num_particles, 
                                c_frac, param_perts,
-                               verbose = TRUE
+                               verbose = FALSE
                             )
 
     # Use particle filter to get the likelihood at the end of each MIF run ---------
@@ -161,14 +161,12 @@ if (parallel_run == FALSE)
     ll1 <- sapply(pf, logLik)
     ll[[i]] <- logmeanexp(ll1, se = TRUE)
     }
-}
+} #end code section that does mif followed by particle filter for non-parallel setup
 
 #run the pMCMC algorithm in parallel
 if (parallel_run == TRUE)
 {
-  out_mif <- foreach(i=1:n_chains, .inorder = FALSE, 
-                     .export = c("params_perts", "prop_func", "curr_theta"), 
-                     .packages = c("pomp")) %dopar% 
+  out_mif <- foreach(i=1:n_ini_cond, .packages = c("pomp")) %dopar% 
     {
       run_mif(pomp_model, Nmif = num_mif_iterations, 
                               params = c(param_start[i,],fixed_params), num_particles, 
@@ -179,34 +177,33 @@ if (parallel_run == TRUE)
 
   # Use particle filter to get the likelihood at the end of MIF run ---------
   ll <- foreach(mf = out_mif, .packages = c("pomp")) %dopar% {
-    pf <- replicate(n = 10, pfilter(mf, Np = 5000, max.fail = Inf))
+    pf <- replicate(n = 10, pfilter(mf, Np = 500, max.fail = Inf))
     ll1 <- sapply(pf, logLik)
-    ll1 <- logmeanexp(ll, se = TRUE)
+    ll1 <- logmeanexp(ll1, se = TRUE)
   }
-  
   stopCluster(cl)
-}
-
-browser()
+} #end code section that does mif followed by particle filter for parallel setup
 
 
-mif_coefs <- data.frame(matrix(unlist(sapply(out_mif, coef)),
-                               nrow = length(out_mif), byrow = T))
+mif_coefs <- data.frame(matrix(unlist(sapply(out_mif, coef)), nrow = length(out_mif), byrow = T))
 colnames(mif_coefs) <- names(coef(out_mif[[1]]))
 
-pf_logliks <- as_tibble(pf1) %>%
-  rename("LogLik" = V1,
-         "LogLik_SE" = se) %>%
-  mutate(MIF_ID = 1:n()) %>%
+#conver the list containing the log likelihoods for each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+#combine the ll_df and mif_coefs data frames. Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+         "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
   bind_cols(mif_coefs) %>%
-  arrange(-LogLik)
-
+  dplyr::arrange(-LogLik)
 
 
 # Save output -------------------------------------------------------------
-
-mifRets <- list(mif_objects = mifs, loglik_dfs = pf_logliks)
+#create a list of lists
+mifRets <- list(mif_objects = out_mif, loglik_dfs = pf_logliks)
 outfile <- here('output/mif-results.RDS')
 saveRDS(object = mifRets, file = outfile)
 
