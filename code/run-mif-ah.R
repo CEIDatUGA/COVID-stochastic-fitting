@@ -49,63 +49,77 @@ params_to_estimate <- c(
                         "frac_asym", #fraction asymptomatic
                         "frac_hosp", #fraction diagnosed that go into hospital
                         "frac_dead", #fraction hospitalized that die
-                        "log_theta_cases","log_theta_hosps","log_theta_deaths",
+                        "log_theta_cases","log_theta_hosps","log_theta_deaths"
+                        )
+inivals_to_estimate <- c(                        
                         "E1_0", "E2_0", "E3_0", "E4_0",  
                         "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
                         "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
                         "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
-                      )
+                        )
 
-# ------- parts below not working, goal is to replace the manual rw.sd() specification
-#assign perturbations to parameters to be estimated, needed for estimation procedure
+#assign perturbations to parameters and initial conditions to be estimated, needed for estimation procedure
 #in order of parameters above, hard-coded is not a good idea, but ok for now
-pert_vals = c(rep(0.05,18),rep(0.1,3),rep(0.2,12),rep(0.1,4))
-param_perts_string = paste(params_to_estimate,'=',pert_vals,collapse=', ')
-#not working
-#params_perts_2 <- rw.sd(param_perts_string)
-# ------- end non-working parts
+pert_par_vals = c(rep(0.05,18),rep(0.1,3)) 
+pert_ini_vals = c(rep(0.2,12),rep(0.1,4))
+#make long string containing all parameter names and values in a form required by rw.sd
+param_perts_string = paste(params_to_estimate,'=',pert_par_vals,collapse=', ')
+ini_perts_string = paste0(inivals_to_estimate,' = ivp(',pert_ini_vals,")",collapse=', ')
+#perts_string = paste(param_perts_string,ini_perts_string,sep= ", ")
+#create the rw.sd object
+params_perts <- do.call(rw.sd,as.list(perts_string))
+
+
+#x <- rw.sd( a = 0.1, S_0 = ivp(0.2))
+#s1 = "a = 0.1, S_0 = ivp(0.2)"
+#x <- rw.sd(s1)
+#x <- do.call(rw.sd,as.list(s1))
 
 # what's the ivp() command doing? 
 # if possible, trying to replace by an easier way to supply that, see code snippets above.
-params_perts <- rw.sd(log_beta_s = 0.05,
-                      trans_e = 0.05,
-                      trans_a = 0.05,
-                      trans_c = 0.05,
-                      trans_h = 0.05,
-                      beta_reduce = 0.05,
-                      log_g_e = 0.05,
-                      log_g_a = 0.05,
-                      log_g_su = 0.05,
-                      log_g_sd = 0.05,
-                      log_g_c = 0.05,
-                      log_g_h = 0.05,
-                      log_diag_speedup = 0.05,
-                      detect_0 = 0.05,
-                      detect_1 = 0.05,
-                      frac_asym = 0.05,
-                      frac_hosp = 0.05,
-                      frac_dead = 0.05,
-                      log_theta_cases = 0.1,
-                      log_theta_hosps = 0.1,
-                      log_theta_deaths = 0.1,
-                      E1_0 = ivp(0.2),
-                      E2_0 = ivp(0.2),
-                      E3_0 = ivp(0.2),
-                      E4_0 = ivp(0.2),
-                      Ia1_0 = ivp(0.2),
-                      Ia2_0 = ivp(0.2),
-                      Ia3_0 = ivp(0.2),
-                      Ia4_0 = ivp(0.2),
-                      Isu1_0 = ivp(0.2),
-                      Isu2_0 = ivp(0.2),
-                      Isu3_0 = ivp(0.2),
-                      Isu4_0 = ivp(0.2),
-                      Isd1_0 = ivp(0.1),
-                      Isd2_0 = ivp(0.1),
-                      Isd3_0 = ivp(0.1),
-                      Isd4_0 = ivp(0.1)
-                      )
+# params_perts <- rw.sd(log_beta_s = 0.05,
+#                       trans_e = 0.05,
+#                       trans_a = 0.05,
+#                       trans_c = 0.05,
+#                       trans_h = 0.05,
+#                       beta_reduce = 0.05,
+#                       log_g_e = 0.05,
+#                       log_g_a = 0.05,
+#                       log_g_su = 0.05,
+#                       log_g_sd = 0.05,
+#                       log_g_c = 0.05,
+#                       log_g_h = 0.05,
+#                       log_diag_speedup = 0.05,
+#                       detect_0 = 0.05,
+#                       detect_1 = 0.05,
+#                       frac_asym = 0.05,
+#                       frac_hosp = 0.05,
+#                       frac_dead = 0.05,
+#                       log_theta_cases = 0.1,
+#                       log_theta_hosps = 0.1,
+#                       log_theta_deaths = 0.1,
+#                       E1_0 = ivp(0.2),
+#                       E2_0 = ivp(0.2),
+#                       E3_0 = ivp(0.2),
+#                       E4_0 = ivp(0.2),
+#                       Ia1_0 = ivp(0.2),
+#                       Ia2_0 = ivp(0.2),
+#                       Ia3_0 = ivp(0.2),
+#                       Ia4_0 = ivp(0.2),
+#                       Isu1_0 = ivp(0.2),
+#                       Isu2_0 = ivp(0.2),
+#                       Isu3_0 = ivp(0.2),
+#                       Isu4_0 = ivp(0.2),
+#                       Isd1_0 = ivp(0.1),
+#                       Isd2_0 = ivp(0.1),
+#                       Isd3_0 = ivp(0.1),
+#                       Isd4_0 = ivp(0.1)
+#                       )
+# 
+# 
+# params_perts <- params_perts_2
 
+#######################################################
 # Define function that runs the whole mif --------------------------
 #function that runs the whole mif, either in parallel or not
 #does it in 2 parts. Variables below contain settings for parts 1 and 2
