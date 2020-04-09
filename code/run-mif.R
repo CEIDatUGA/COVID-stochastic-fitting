@@ -8,7 +8,8 @@ rm(list = ls(all.names = TRUE))
 
 # Load libraries ----------------------------------------------------------
 
-library(tidyverse)
+library(dplyr)
+#library(dplyr)
 library(pomp)
 library(doParallel)
 library(foreach)
@@ -21,45 +22,16 @@ filename <- here('output/pomp-model.RDS')
 pomp_object <- readRDS(filename)
 
 
-# Initial values ----------------------------------------------------------
 
-inivals <- c(E1_0 = 40, E2_0 = 40, E3_0 = 40, E4_0 = 40, 
-             Ia1_0 = 22, Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
-             Isu1_0 = 90, Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
-             Isd1_0 = 14, Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14)
+#load values for model parameters and initial conditions
+filename = here('output/parvals.RDS')
+allparvals <- readRDS(filename)
 
-Ntot <- sum(inivals) + 10600000 + 2*4 + 2*4  # total population size
-
-# Values for parameters
-# beta is scaled by population size here instead of inside the process model
-parvals <- c(log_beta_s = log(0.6/Ntot), 
-             trans_e = 0.5, #value of 1 means factor is 0.5
-             trans_a = 0.5, 
-             trans_c = 10, 
-             trans_h = 10, 
-             beta_reduce = -0.61,  
-             log_g_e = log(4*0.2),
-             log_g_a = log(4*0.15),
-             log_g_su = log(4*0.15),
-             log_g_sd = log(4*0.15),
-             log_g_c = log(4*0.3),  #updated
-             log_g_h = log(4*0.3),
-             log_diag_speedup = log(2), 
-             detect_0 = log((1/0.2)-1),
-             detect_1 = log((1/0.4)-1), 
-             frac_asym = log((1/0.2)-1), # 1.39
-             frac_hosp = log((1/0.05)-1), # 2.94
-             frac_dead = log((1/0.1)-1), #fraction hospitalized that die, 2.19
-             log_theta_cases = log(50),
-             log_theta_hosps = log(50),
-             log_theta_deaths = log(50)
-)
-
-
-# pf <- pfilter(pomp_object, params = c(parvals, inivals), Np = 2000)
-# logLik(pf)
 
 # Set the parameters to estimate (i.e., those to vary) --------------------
+params_to_estimate <- 
+
+
 
 curr_theta <- c(parvals, inivals)
 params_to_estimate <- names(curr_theta)
