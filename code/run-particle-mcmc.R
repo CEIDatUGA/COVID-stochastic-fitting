@@ -34,44 +34,7 @@ mif_init <- mif_results$mif_objects[[mle_inits]]
 
 # Define the prior density ------------------------------------------------
 
-prior_dens <- Csnippet(
-  "
-  lik = dnorm(log_beta_s, -17.56266, 0.5, 1) +
-        dunif(trans_e, -5, 5, 1) +
-        dunif(trans_a, -5, 5, 1) +
-        dunif(trans_c, -15, 15, 1) +
-        dunif(beta_reduce, -5, 5, 1) +
-        dnorm(log_g_e, -0.2231436, 0.05, 1) +
-        dunif(log_g_a, -5, 5, 1) +
-        dunif(log_g_su, -5, 5, 1) +
-        dnorm(log_g_c, 5.764807, 1.157302, 1) +
-        dunif(log_g_h, -5, 5, 1) +
-        dnorm(log_diag_speedup, 0.6931472, 0.5, 1) +
-        dunif(detect_0, -5, 5, 1) +
-        dunif(detect_1, -5, 5, 1) +
-        dunif(log_theta_cases, -6, 6, 1) +
-        dunif(log_theta_hosps, -6, 6, 1) +
-        dunif(log_theta_deaths, -6, 6, 1) +
-        dnorm(E1_0, 40, 5, 1) +
-        dnorm(E2_0, 40, 5, 1) +
-        dnorm(E3_0, 40, 5, 1) +
-        dnorm(E4_0, 40, 5, 1) +
-        dnorm(Ia1_0, 22, 4, 1) +
-        dnorm(Ia2_0, 22, 4, 1) +
-        dnorm(Ia3_0, 22, 4, 1) +
-        dnorm(Ia4_0, 22, 4, 1) +
-        dnorm(Isu1_0, 90, 7, 1) +
-        dnorm(Isu2_0, 90, 7, 1) +
-        dnorm(Isu3_0, 90, 7, 1) +
-        dnorm(Isu4_0, 90, 7, 1) +
-        dnorm(Isd1_0, 14, 3, 1) +
-        dnorm(Isd2_0, 14, 3, 1) +
-        dnorm(Isd3_0, 14, 3, 1) +
-        dnorm(Isd4_0, 14, 3, 1);
-  
-  if (!give_log) lik = exp(lik);
-  "
-)
+prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 
 # Run pMCMC ---------------------------------------------------------------
@@ -89,7 +52,8 @@ rw.sd <- rep(0.075, length(params_to_estimate))
 names(rw.sd) <- params_to_estimate
 
 # Forecast horizon, days
-horizon <- 7 * 4
+weeks_ahead <- 7  # go one further than 6 to make sure we get the dates
+horizon <- 7 * weeks_ahead
 newtimes <- c(time(mif_init), max(time(mif_init)) + seq_len(horizon))
 newdata <- t(mif_init@data) %>%
   as.data.frame() %>%
@@ -110,7 +74,7 @@ pomp_for_mcmc <- pomp(
   cdir = getwd()  # just to fix a Windows error when compiling...
 )
 
-num_mcmc <- 50
+num_mcmc <- 2000
 
 num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
@@ -122,14 +86,13 @@ foreach(i = 1:num_cores, .combine = c, .packages = c("pomp"),
   pomp::pmcmc(
     pomp_for_mcmc,
     Nmcmc = num_mcmc,
-    Np = 200,
+    Np = 2000,
     proposal = pomp::mvn.diag.rw(rw.sd)
-  ) -> test
+  ) 
 } -> out_mcmc
 
 stopCluster(cl)
 
-pfilter(out_mcmc[[1]], Np = 1000) -> test
 
 # Save the output ---------------------------------------------------------
 
@@ -137,32 +100,75 @@ outfile <- here("output/pcmcm-output.RDS")
 saveRDS(out_mcmc, outfile)
 
 
-theta <- exp(test@traces[, "log_theta_hosps"])
-hstates <- t(test@filter.traj["H_new",,]) %>%
-  as.data.frame() %>%
-  melt()
-hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
-hstates$time = rep(c(0,newtimes), times = num_mcmc)
-hstates <- hstates %>%
-  mutate(period = ifelse(time < 40, "calibration", "forecast"))
-
-ggplot(hstates, aes(x = time, y = value, group = variable)) +
-  geom_line(aes(color = period)) +
-  xlab("Time since March 1") +
-  ylab("Number of new hospitalizations")
-
-
 
 
 # Cache -------------------------------------------------------------------
 
+# prior_dens <- Csnippet(
+#   "
+#   lik = dnorm(log_beta_s, -17.56266, 0.5, 1) +
+#         dunif(trans_e, -5, 5, 1) +
+#         dunif(trans_a, -5, 5, 1) +
+#         dunif(trans_c, -15, 15, 1) +
+#         dunif(beta_reduce, -5, 5, 1) +
+#         dnorm(log_g_e, -0.2231436, 0.05, 1) +
+#         dunif(log_g_a, -5, 5, 1) +
+#         dunif(log_g_su, -5, 5, 1) +
+#         dnorm(log_g_c, 5.764807, 1.157302, 1) +
+#         dunif(log_g_h, -5, 5, 1) +
+#         dnorm(log_diag_speedup, 0.6931472, 0.5, 1) +
+#         dunif(detect_0, -5, 5, 1) +
+#         dunif(detect_1, -5, 5, 1) +
+#         dunif(log_theta_cases, -6, 6, 1) +
+#         dunif(log_theta_hosps, -6, 6, 1) +
+#         dunif(log_theta_deaths, -6, 6, 1) +
+#         dnorm(E1_0, 40, 5, 1) +
+#         dnorm(E2_0, 40, 5, 1) +
+#         dnorm(E3_0, 40, 5, 1) +
+#         dnorm(E4_0, 40, 5, 1) +
+#         dnorm(Ia1_0, 22, 4, 1) +
+#         dnorm(Ia2_0, 22, 4, 1) +
+#         dnorm(Ia3_0, 22, 4, 1) +
+#         dnorm(Ia4_0, 22, 4, 1) +
+#         dnorm(Isu1_0, 90, 7, 1) +
+#         dnorm(Isu2_0, 90, 7, 1) +
+#         dnorm(Isu3_0, 90, 7, 1) +
+#         dnorm(Isu4_0, 90, 7, 1) +
+#         dnorm(Isd1_0, 14, 3, 1) +
+#         dnorm(Isd2_0, 14, 3, 1) +
+#         dnorm(Isd3_0, 14, 3, 1) +
+#         dnorm(Isd4_0, 14, 3, 1);
+#   
+#   if (!give_log) lik = exp(lik);
+#   "
+# )
 
-mcmcmat <- matrix(ncol = num_mcmc+1, nrow = length(out_mcmc))
-for(i in 1:length(out_mcmc)) {
-  mcmcmat[i, ] <- as.data.frame(out_mcmc[[i]]@traces)$log_beta_s
-}
 
-matplot(t(exp(mcmcmat)*10600000), type = "l")
+
+# theta <- exp(test@traces[, "log_theta_hosps"])
+# hstates <- t(test@filter.traj["H_new",,]) %>%
+#   as.data.frame() %>%
+#   melt()
+# hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
+# hstates$time = rep(c(0,newtimes), times = num_mcmc)
+# hstates <- hstates %>%
+#   mutate(period = ifelse(time < 40, "calibration", "forecast"))
+# 
+# ggplot(hstates, aes(x = time, y = value, group = variable)) +
+#   geom_line(aes(color = period)) +
+#   xlab("Time since March 1") +
+#   ylab("Number of new hospitalizations")
+
+
+# Cache -------------------------------------------------------------------
+
+# 
+# mcmcmat <- matrix(ncol = num_mcmc+1, nrow = length(out_mcmc))
+# for(i in 1:length(out_mcmc)) {
+#   mcmcmat[i, ] <- as.data.frame(out_mcmc[[i]]@traces)$log_beta_s
+# }
+# 
+# matplot(t(exp(mcmcmat)*10600000), type = "l")
 
 
 

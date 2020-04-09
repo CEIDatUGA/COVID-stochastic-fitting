@@ -67,7 +67,23 @@ prior_dens_text = paste0("lik =", pr_log_beta_s," + ",
                          pr_frac_dead , " + ",
                          pr_log_theta_cases , " + ",
                          pr_log_theta_hosps , " + ",
-                         pr_log_theta_deaths , "; \n ",
+                         pr_log_theta_deaths , " + ",
+                         "dnorm(E1_0, 40, 5, 1) +
+                         dnorm(E2_0, 40, 5, 1) +
+                         dnorm(E3_0, 40, 5, 1) +
+                         dnorm(E4_0, 40, 5, 1) +
+                         dnorm(Ia1_0, 22, 4, 1) +
+                         dnorm(Ia2_0, 22, 4, 1) +
+                         dnorm(Ia3_0, 22, 4, 1) +
+                         dnorm(Ia4_0, 22, 4, 1) +
+                         dnorm(Isu1_0, 90, 7, 1) +
+                         dnorm(Isu2_0, 90, 7, 1) +
+                         dnorm(Isu3_0, 90, 7, 1) +
+                         dnorm(Isu4_0, 90, 7, 1) +
+                         dnorm(Isd1_0, 14, 3, 1) +
+                         dnorm(Isd2_0, 14, 3, 1) +
+                         dnorm(Isd3_0, 14, 3, 1) +
+                         dnorm(Isd4_0, 14, 3, 1); \n ",
                          "if (!give_log) lik = exp(lik);"
 )
 
