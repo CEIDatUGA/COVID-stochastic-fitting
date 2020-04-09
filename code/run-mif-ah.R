@@ -13,10 +13,10 @@ library(foreach)
 library(here)
 
 # Specify if we want to parallelize or not ---------------------------------------------------------------
-parallel_run = TRUE
-#parallel_run = FALSE
+n_cores = 1 #if not parallel, this should be 1, otherwise for parallel set a different value  below
 
-n_cores = 1 #if not parallel, this should be 1, otherwise for parallel specified below
+parallel_run = TRUE #uncomment one or the other to run parallel or not
+#parallel_run = FALSE
 
 # Turn on parallel or not ---------------------------------------------------------------
 if (parallel_run == TRUE)
@@ -28,7 +28,6 @@ if (parallel_run == TRUE)
   cl <- makeCluster(n_cores) 
   registerDoParallel(cl)
 }
-
 
 # Load the pomp object ----------------------------------------------------
 filename <- here('output/pomp-model.RDS')
