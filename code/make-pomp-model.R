@@ -216,6 +216,12 @@ rinit <- Csnippet(
 
 # Define likelihood function ----------------------------------------------
 
+# Details on dnbinom_mu:
+# dnbinom_mu is negative binomial parameterized by mu (see ?rnbinom)
+# Given data (e.g. x = cases) and model-predicted value (e.g. size = C_new) and mean (e.g theta1), estimate probability.
+# the value 1 in the last slot corresponds to log = 1.
+
+
 dmeas <- Csnippet(
   "
   double d1, d2, d3;
@@ -227,7 +233,7 @@ dmeas <- Csnippet(
   if(ISNA(cases)) {
     d1 = 0;  // loglik is 0 if no observations
   } else {
-    d1 = dnbinom_mu(cases, theta1, C_new, 1);
+    d1 = dnbinom_mu(cases, theta1, C_new, 1); // negative binomial parameterized by mean/mu, which is 
   }
   
   if(ISNA(hosps)) {
@@ -249,14 +255,18 @@ dmeas <- Csnippet(
 
 
 # Define process simulator for observations  ------------------------------
-
+# given the model states (C_new, H_new, D_new)
+# produce simulated data/obervations based on the specified distribution
+# rnbinom_mu is negative binomial parameterized by mu (see ?rnbinom)
+# Given model-predicted value (e.g. size = C_new) and mean (e.g theta1), generate a single random value for expected observed cases (i.e. n=1).
+# size/C_new is number of trials, the outcome is expected number of successes, given the specified mean
 rmeas <- Csnippet(
   "
   double theta1, theta2, theta3;
   theta1 = exp(log_theta_cases);
   theta2 = exp(log_theta_hosps);
   theta3 = exp(log_theta_deaths);
-  cases = rnbinom_mu(theta1, C_new);  // for forecasting
+  cases = rnbinom_mu(theta1, C_new);  // for forecasting. 
   hosps = rnbinom_mu(theta2, H_new);  // for forecasting
   deaths = rnbinom_mu(theta3, D_new);  // for forecasting
   "
@@ -307,6 +317,9 @@ ini_pars <- c("S_0",
               "H1_0", "H2_0", "H3_0", "H4_0", 
               "R_0",
               "D_0")
+
+#combine names of all parameters into a single vector
+#note that values for parameters are specified in a separate script and can be loaded and assigned as needed
 parnames <- c(model_pars,measure_pars,ini_pars)
 
 
@@ -317,7 +330,7 @@ pseudo_data <- data.frame(
   Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
   hold = NA)
 
-filename = here('data/clean-CT-data.RDS')
+filename = here('data/clean-CT-data.RDS') #data from covidtracking.com
 dat <- readRDS(filename)
 pomp_data <- dat %>%
   dplyr::filter(Location == "GA") %>%

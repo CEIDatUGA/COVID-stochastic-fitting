@@ -101,7 +101,7 @@ params_perts <- rw.sd(log_beta_s = 0.05,
                       Isd2_0 = ivp(0.1), 
                       Isd3_0 = ivp(0.1),
                       Isd4_0 = ivp(0.1)
-                      )
+)
 
 length(curr_theta)  
 length(names(params_perts@call)) - 1  # 1 empty name 
@@ -125,9 +125,12 @@ prop_func <- function(theta) {
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 2000
-num_mif_iterations1 <- 150
-num_mif_iterations2 <- 100
+num_particles <- 20
+num_mif_iterations1 <- 15
+num_mif_iterations2 <- 10
+#num_particles <- 2000
+#num_mif_iterations1 <- 150
+#num_mif_iterations2 <- 100
 num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
@@ -138,18 +141,18 @@ foreach (i = 1:num_cores,
                      "prop_func", 
                      "curr_theta")) %dopar% {
                        
-  theta_guess <- curr_theta
-  theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
-  
-  pomp::mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
-             Np = num_particles, cooling.fraction.50 = 0.8, 
-             cooling.type = "geometric", rw.sd = params_perts) -> mf
-  
-  mf <- pomp::continue(mf, Nmif = num_mif_iterations2,
-                        cooling.fraction.50 = 0.65, cooling.type = "geometric")
-  
-  return(mf)
-} -> mifs
+                       theta_guess <- curr_theta
+                       theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
+                       
+                       pomp::mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
+                                  Np = num_particles, cooling.fraction.50 = 0.8, 
+                                  cooling.type = "geometric", rw.sd = params_perts) -> mf
+                       
+                       mf <- pomp::continue(mf, Nmif = num_mif_iterations2,
+                                            cooling.fraction.50 = 0.65, cooling.type = "geometric")
+                       
+                       return(mf)
+                     } -> mifs
 stopCluster(cl)
 
 

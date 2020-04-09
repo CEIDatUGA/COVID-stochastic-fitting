@@ -45,7 +45,22 @@ pr_frac_dead = paste0("dnorm(frac_dead, ",x["frac_dead"],", 0.2, 1)")
 pr_log_theta_cases = paste0("dnorm(log_theta_cases, ",x["log_theta_cases"],", 0.2, 1)")
 pr_log_theta_hosps = paste0("dnorm(log_theta_hosps, ",x["log_theta_hosps"],", 0.2, 1)")
 pr_log_theta_deaths = paste0("dnorm(log_theta_deaths, ",x["log_theta_deaths"],", 0.2, 1)")
-
+pr_E1_0 = paste0("dnorm(E1_0, ",x["E1_0"],", 5, 1)")
+pr_E2_0 = paste0("dnorm(E2_0, ",x["E2_0"],", 5, 1)")
+pr_E3_0 = paste0("dnorm(E3_0, ",x["E3_0"],", 5, 1)")
+pr_E4_0 = paste0("dnorm(E4_0, ",x["E4_0"],", 5, 1)")
+pr_Ia1_0 = paste0("dnorm(Ia1_0, ",x["Ia1_0"],", 4, 1)")
+pr_Ia2_0 = paste0("dnorm(Ia2_0, ",x["Ia2_0"],", 4, 1)")
+pr_Ia3_0 = paste0("dnorm(Ia3_0, ",x["Ia3_0"],", 4, 1)")
+pr_Ia4_0 = paste0("dnorm(Ia4_0, ",x["Ia4_0"],", 4, 1)")
+pr_Isu1_0 = paste0("dnorm(Isu1_0, ",x["Isu1_0"],", 7, 1)")
+pr_Isu2_0 = paste0("dnorm(Isu2_0, ",x["Isu2_0"],", 7, 1)")
+pr_Isu3_0 = paste0("dnorm(Isu3_0, ",x["Isu3_0"],", 7, 1)")
+pr_Isu4_0 = paste0("dnorm(Isu4_0, ",x["Isu4_0"],", 7, 1)")
+pr_Isd1_0 = paste0("dnorm(Isd1_0, ",x["Isd1_0"],", 3, 1)")
+pr_Isd2_0 = paste0("dnorm(IsD2_0, ",x["Isd2_0"],", 3, 1)")
+pr_Isd3_0 = paste0("dnorm(Isd3_0, ",x["Isd3_0"],", 3, 1)")
+pr_Isd4_0 = paste0("dnorm(Isd4_0, ",x["Isd4_0"],", 3, 1)")
 
 prior_dens_text = paste0("lik =", pr_log_beta_s," + ",
                                   pr_trans_e, " + ",
@@ -68,22 +83,22 @@ prior_dens_text = paste0("lik =", pr_log_beta_s," + ",
                          pr_log_theta_cases , " + ",
                          pr_log_theta_hosps , " + ",
                          pr_log_theta_deaths , " + ",
-                         "dnorm(E1_0, 40, 5, 1) +
-                         dnorm(E2_0, 40, 5, 1) +
-                         dnorm(E3_0, 40, 5, 1) +
-                         dnorm(E4_0, 40, 5, 1) +
-                         dnorm(Ia1_0, 22, 4, 1) +
-                         dnorm(Ia2_0, 22, 4, 1) +
-                         dnorm(Ia3_0, 22, 4, 1) +
-                         dnorm(Ia4_0, 22, 4, 1) +
-                         dnorm(Isu1_0, 90, 7, 1) +
-                         dnorm(Isu2_0, 90, 7, 1) +
-                         dnorm(Isu3_0, 90, 7, 1) +
-                         dnorm(Isu4_0, 90, 7, 1) +
-                         dnorm(Isd1_0, 14, 3, 1) +
-                         dnorm(Isd2_0, 14, 3, 1) +
-                         dnorm(Isd3_0, 14, 3, 1) +
-                         dnorm(Isd4_0, 14, 3, 1); \n ",
+                         pr_E1_0 , " + ",
+                         pr_E2_0 , " + ",
+                         pr_E3_0 , " + ",
+                         pr_E4_0 , " + ",
+                         pr_Ia1_0 , " + ",
+                         pr_Ia2_0 , " + ",
+                         pr_Ia3_0 , " + ",
+                         pr_Ia4_0 , " + ",
+                         pr_Isu1_0 , " + ",
+                         pr_Isu2_0 , " + ",
+                         pr_Isu3_0 , " + ",
+                         pr_Isu4_0 , " + ",
+                         pr_Isd1_0 , " + ",
+                         pr_Isd2_0 , " + ",
+                         pr_Isd3_0 , " + ",
+                         pr_Isd4_0 , " ; \n " ,
                          "if (!give_log) lik = exp(lik);"
 )
 
