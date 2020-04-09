@@ -38,7 +38,7 @@ filename = here('output/parvals.RDS')
 allparvals <- readRDS(filename)
 
 # Specify the parameters we want to estimate (i.e., those to vary) --------------------
-# is a subset of all parameters. Can also include initial conditions.
+# This is a subset of all parameters. Can also include initial conditions.
 params_to_estimate <- c(
                         "log_beta_s", #rate of infection of symptomatic 
                         "trans_e", "trans_a", "trans_c", "trans_h", #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
@@ -65,7 +65,8 @@ param_perts_string = paste(params_to_estimate,'=',pert_vals,collapse=', ')
 #params_perts_2 <- rw.sd(param_perts_string)
 # ------- end non-working parts
 
-# what's the ivp() command doing? if possible, trying to replace by an easier way to supply that, see code snippets above.
+# what's the ivp() command doing? 
+# if possible, trying to replace by an easier way to supply that, see code snippets above.
 params_perts <- rw.sd(log_beta_s = 0.05,
                       trans_e = 0.05,
                       trans_a = 0.05,
@@ -135,14 +136,16 @@ run_mif <- function(pomp_model, Nmif, params, num_particles, c_frac, param_perts
 
 
 # Compute different starting values for each run --------------------------
-n_ini_cond = 3*n_cores #number of initial conditions to try, set to number of cores or multiple
-param_start = matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) #set up matrix for starting values
-colnames(param_start) = params_to_estimate
-for (i in 1:nrow(param_start)) {param_start[i,] = rnorm(length(params_to_estimate), allparvals[params_to_estimate], sd = 1) }
-
+n_ini_cond = 3*n_cores #number of initial conditions to try, set to number of cores or multiple thereof for best performance
+param_start = matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) #set up matrix for starting values, each row is one set of initial conditions
+colnames(param_start) = params_to_estimate #columns of matrix contain starting values for parameters to be estimated
+for (i in 1:nrow(param_start)) {param_start[i,] = rnorm(length(params_to_estimate), allparvals[params_to_estimate], sd = 1) } #fill matrix with starting values drawn from normal distribution
 fixed_params = allparvals[!(names(allparvals) %in% params_to_estimate)] #the mif2 routine needs numeric/starting conditions for both fixed and variable parameters
 
+#######################################################
 # Run MIF from different starting points ----------------------------------
+
+# Run MIF not-parallel  ----------------------------------
 if (parallel_run == FALSE)
 {
   out_mif = list()
@@ -162,7 +165,7 @@ if (parallel_run == FALSE)
     }
 } #end code section that does mif followed by particle filter for non-parallel setup
 
-#run the pMCMC algorithm in parallel
+# Run MIF parallel  ----------------------------------
 if (parallel_run == TRUE)
 {
   out_mif <- foreach(i=1:n_ini_cond, .packages = c("pomp")) %dopar% 
@@ -183,11 +186,11 @@ if (parallel_run == TRUE)
   stopCluster(cl)
 } #end code section that does mif followed by particle filter for parallel setup
 
-
+#get estimated values for all parameters that were estimated for each run 
 mif_coefs <- data.frame(matrix(unlist(sapply(out_mif, coef)), nrow = length(out_mif), byrow = T))
 colnames(mif_coefs) <- names(coef(out_mif[[1]]))
 
-#conver the list containing the log likelihoods for each run stored in ll into a data frame
+#convert the list containing the log likelihoods for each run stored in ll into a data frame
 ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
 
 #combine the ll_df and mif_coefs data frames. Also do some cleaning/renaming
