@@ -68,48 +68,8 @@ pert_ini_vals = c(rep(0.2,12),rep(0.1,4))
 #make long string containing all parameter names and values in a form required by rw.sd
 param_perts_string = paste(params_to_estimate,'=',pert_par_vals,collapse=', ')
 ini_perts_string = paste0(inivals_to_estimate,' = ivp(',pert_ini_vals,")",collapse=', ')
-#perts_string = paste(param_perts_string,ini_perts_string,sep= ", ")
-#create the rw.sd object
-#params_perts <- do.call(rw.sd,as.list(perts_string))
-#x <- rw.sd( a = 0.1, S_0 = ivp(0.2))
-#s1 = "a = 0.1, S_0 = ivp(0.2)"
-#x <- rw.sd(s1)
-#x <- do.call(rw.sd,as.list(s1))
-# -------------------------------------------------------
-
-# if possible, trying to replace by an easier way to supply that, see code snippets above.
-params_perts <- rw.sd(log_beta_s = 0.05,
-                      trans_e = 0.05,
-                      trans_a = 0.05,
-                      trans_c = 0.05,
-                      trans_h = 0.05,
-                      beta_reduce = 0.05,
-                      log_g_e = 0.05,
-                      log_g_a = 0.05,
-                      log_g_su = 0.05,
-                      log_g_sd = 0.05,
-                      log_g_c = 0.05,
-                      log_g_h = 0.05,
-                      log_diag_speedup = 0.05,
-                      detect_0 = 0.05,
-                      detect_1 = 0.05,
-                      frac_asym = 0.05,
-                      frac_hosp = 0.05,
-                      frac_dead = 0.05,
-                      log_theta_cases = 0.1,
-                      log_theta_hosps = 0.1,
-                      log_theta_deaths = 0.1,
-                      E1_0 = ivp(0.2),   E2_0 = ivp(0.2),
-                      E3_0 = ivp(0.2), E4_0 = ivp(0.2),
-                      Ia1_0 = ivp(0.2),  Ia2_0 = ivp(0.2),
-                      Ia3_0 = ivp(0.2),     Ia4_0 = ivp(0.2),
-                      Isu1_0 = ivp(0.2),  Isu2_0 = ivp(0.2),
-                      Isu3_0 = ivp(0.2), Isu4_0 = ivp(0.2),
-                      Isd1_0 = ivp(0.1),    Isd2_0 = ivp(0.1),
-                      Isd3_0 = ivp(0.1),   Isd4_0 = ivp(0.1)
-                      )
-
-
+#this string is being fed into sw.rd inside mif below in a way suggested by Aaron
+perts_string = paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
 
 
 #######################################################
@@ -126,7 +86,7 @@ run_mif <- function(pomp_model, Nmif, params, num_particles, c_frac, param_perts
                         params = params, 
                         Np = num_particles[1], 
                         cooling.fraction.50 = c_frac[1], 
-                        rw.sd = params_perts,
+                        rw.sd = eval(parse(text=perts_string)),
                         cooling.type = "geometric",
                         verbose = verbose
   )
