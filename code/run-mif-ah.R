@@ -24,7 +24,7 @@ if (parallel_run == TRUE)
   library(doParallel)
   library(foreach)
   # Set up parallel structure ----------------------------------------------------
-  n_cores = 3
+  n_cores = 4
   cl <- makeCluster(n_cores) 
   registerDoParallel(cl)
 }
@@ -60,10 +60,9 @@ inivals_to_estimate <- c(
 
 
 # -------------------------------------------------------
-# stuff in block below not working
-#assign perturbations to parameters and initial conditions to be estimated, needed for estimation procedure
-#in order of parameters above, hard-coded is not a good idea, but ok for now
-pert_par_vals = c(rep(0.05,18),rep(0.1,3)) 
+# set up the rw.sd structure, i.e. perturbations for parameters needed for mif
+#assign perturbations following order of parameters above, hard-coded is not a good idea, but ok for now
+pert_par_vals = c(rep(0.05,18),rep(0.1,3))  
 pert_ini_vals = c(rep(0.2,12),rep(0.1,4))
 #make long string containing all parameter names and values in a form required by rw.sd
 param_perts_string = paste(params_to_estimate,'=',pert_par_vals,collapse=', ')

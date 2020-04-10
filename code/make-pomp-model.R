@@ -222,6 +222,8 @@ rinit <- Csnippet(
 # the value 1 in the last slot corresponds to log = 1.
 
 
+#R code: dbinom(x=reports, size=H, prob=rho, log=log), C code: lik = dbinom(reports,H,rho,give_log)
+
 dmeas <- Csnippet(
   "
   double d1, d2, d3;
@@ -260,6 +262,9 @@ dmeas <- Csnippet(
 # rnbinom_mu is negative binomial parameterized by mu (see ?rnbinom)
 # Given model-predicted value (e.g. size = C_new) and mean (e.g theta1), generate a single random value for expected observed cases (i.e. n=1).
 # size/C_new is number of trials, the outcome is expected number of successes, given the specified mean
+# Some examples from pomp website
+#R code: reports = rbinom(n=1, size=H, prob=rho), C code: reports = rbinom(H,rho)
+
 rmeas <- Csnippet(
   "
   double theta1, theta2, theta3;
