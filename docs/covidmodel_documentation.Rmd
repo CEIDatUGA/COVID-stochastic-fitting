@@ -18,6 +18,8 @@ output:
 #currentrmdfile = knitr::current_input() 
 #currentappinfo = gsub("_documentation.Rmd" ,"_settings.R",currentrmdfile)
 #source(currentappinfo)
+library(knitr)
+library(googlesheets4)
 ```
 
 
@@ -56,7 +58,7 @@ To allow more realistic distributions of movement through compartments, several 
 
 The included processes/mechanisms are the following:
 
-* Susceptible individuals ($S$`) can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* Susceptible individuals ($S$`) can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
 * All infected hosts first enter the presymptomatic stage and move through the $E$ dummy compartments. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage,  the remainder into the $I_{sd}$ stage.
 * Individuals in the asymptomatic $I_a$ stage are assumed to never be diagnosed and eventually recover.
 * Individuals in the symptomatic $I_{su}$ stage are assumed to remain undiagnosed and eventually recover.
@@ -68,9 +70,9 @@ The included processes/mechanisms are the following:
 
 The following interventions are implemented:
 
-* Social distancing, which is assumed to reduce all transmission rates by some factor.
-* Increased level of detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed.
-* Increased speed of detection, which is assumed to increase the rate at which $I_{sd}$ individuals move into $C$. 
+* Social distancing, starting at time $t_1$, which is assumed to reduce all transmission rates by some factor.
+* Increased speed of detection, starting at time $t_2$, which is assumed to increase the rate at which $I_{sd}$ individuals move into $C$. 
+* Increased level of detection, starting at time $t_3$, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed.
 
 
 ### Model Implementation
@@ -99,17 +101,19 @@ DiagrammeR("digraph SEIR {
 
 
 
+### Model Parameters
 
-
+```{r googlesheets, echo = FALSE}
+#pars <- read_sheet("https://docs.google.com/spreadsheets/d/10K_3bPck0GOCAfuUQtyZ-KEmwf6FQE3CcpSe36HtL4c/edit?usp=sharing", sheet = 2)
+#saveRDS(pars,'partable.rds')
+pars <- readRDS('partable.rds')
+ptable <- pars[,c(1,2,4)]
+knitr::kable(ptable)
+```
 
 ## What to do {#shinytab3}
 
-**The tasks below are described in a way that assumes everything is in units of MONTHS (rate parameters, therefore, have units of inverse months). If any quantity is not given in those units, you need to convert it first (e.g. if it says a year, you need to convert it to 12 months).**
 
-_Some of the simulations might take a few seconds to run. Be patient._
-
-### Task 1: 
-  
 
 ## Further Information {#shinytab4}
 
