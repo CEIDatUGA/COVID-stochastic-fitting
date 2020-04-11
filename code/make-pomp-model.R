@@ -5,15 +5,15 @@
 # Running this script saves an RDS object: pomp-newmodel.RDS.
 # The pomp object can be used for simulating trajectories and fitting
 
-# Clear the decks ---------------------------------------------------------
-
-rm(list = ls(all.names = TRUE))
-
-
-# Load libraries ----------------------------------------------------------
-library(dplyr)
-library(pomp)
-library(here) #to simplify loading/saving into different folders
+# # Clear the decks ---------------------------------------------------------
+# 
+# rm(list = ls(all.names = TRUE))
+# 
+# 
+# # Load libraries ----------------------------------------------------------
+# library(dplyr)
+# library(pomp)
+# library(here) #to simplify loading/saving into different folders
 
 ############################################################################
 # Code to define  process model -------------------------------------------

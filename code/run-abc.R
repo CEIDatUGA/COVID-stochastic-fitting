@@ -1,23 +1,35 @@
 # run-particle-mcmc.R
+# This script is designed to start where mif leaves off. Several
+# ABC MCMC chains are initiated from the parameter estimates from
+# MIF runs. The ABC MCMC is run for several hundred thousand iterations
+# to achieve stable posterior distributions of parameters that are
+# informed by prior distributions. The ABC MCMC results are then passed
+# to the pMCMC script for final inference and forecasting.
 
 
-# Clear the decks ---------------------------------------------------------
+# # Clear the decks ---------------------------------------------------------
+# 
+# rm(list = ls(all.names = TRUE))
+# 
+# 
+# # Load libraries ----------------------------------------------------------
+# 
+# library(tidyverse)
+# library(pomp)
+# library(here)
+# library(doParallel)
+# library(foreach)
 
-rm(list = ls(all.names = TRUE))
 
+# Load the mif and pomp objects -------------------------------------------
 
-# Load libraries ----------------------------------------------------------
-
-library(tidyverse)
-library(pomp)
-
-
-# Load the pomp object ----------------------------------------------------
-
-pomp_object <- readRDS("../output/covid-ga-pomp-object.RDS")
+mifs <- readRDS(here("output/mif-results.RDS"))
+pomp_object <- readRDS(here("output/pomp-model.RDS"))
 
 
 # Define summary statistic (probes) functions -----------------------------
+
+## TODO: Add statistics for other observation variables, D and H
 
 get_stat_times <- function(obs_cases) {
   x <- obs_cases
@@ -30,12 +42,14 @@ get_stat_times <- function(obs_cases) {
   return(c(d0 = d0, d1 = d1))
 }
 
-ds <- get_stat_times(as.numeric(pomp_object@data))
+ds <- get_stat_times(as.numeric(pomp_object@data["cases", ]))
 d0 <- ds["d0"]
 d1 <- ds["d1"]
 if(is.infinite(d1)) d1 <- ncol(pomp_object@data) - 1
 d2 <- ncol(pomp_object@data)
 
+# pomp won't allow variables in the probe functions, so we have to make
+# these time-dependent ones on the fly here.
 max1 <- eval(parse(text = paste0("function(x){ max(log(x[1, 1:(", d0, "-1)] + 10))  }")))
 max2 <- eval(parse(text = paste0("function(x){ max(log(x[1,", d0, ":", d1, "] + 10))  }")))
 max3 <- eval(parse(text = paste0("function(x){ max(log(x[1,(", d1, "+1):", d2, "] + 10))  }")))
@@ -52,65 +66,137 @@ regcoef <- function(x) { as.numeric(coef(lm(x[1,] ~ seq_along(x[1,])))[2]) }
 
 # Define the prior density ------------------------------------------------     
 
-prior_dens <- Csnippet(
-  "
-  lik = dnorm(beta_d,log(2e-7), 0.8, 1) +
-    dnorm(beta_u, log(5e-8), 0.4, 1) +
-    dunif(beta_red_factor, 0.01, 1, 1) +
-    dunif(detect_frac_0, 0.01, 0.6, 1) +
-    dnorm(beta_e, log(5e-8), 0.4, 1) +
-    dlnorm(gamma_u, log(0.5), 1, 1) +
-    dlnorm(gamma_d, log(0.5), 1, 1);
-  if (!give_log) lik = exp(lik);
-"
-)
-
-# dunif(beta_red_factor, 0.01, 1, 1) +
-#   dlnorm(gamma_u, log(0.5), 0.2, 1) +
-#   dlnorm(gamma_d, log(0.5), 0.2, 1) +
-#   dunif(detect_frac_0, 0.01, 0.6, 1);
+# Read in from elsewhere
+prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 
-# Run ABC-MCMC ------------------------------------------------------------     
 
-n <- 1   # number of mcmc chains
+# Set up parameters to estimate and ABC variables -------------------------
 
-estpars <- c("beta_d", "beta_u",  "beta_e", "beta_red_factor", 
-             "gamma_u", "gamma_d", "detect_frac_0", "theta") 
+params_to_estimate <- names(coef(mifs$mif_objects[[1]]))
+rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "S_0",
+                                          "C1_0", "C2_0", "C3_0", "C4_0",
+                                          "H1_0", "H2_0", "H3_0", "H4_0",
+                                          "R_0", "D_0"))
+params_to_estimate <- params_to_estimate[-rmones]
 
 # Set noise level for parameter random walk for proposals
-rw.sd <- rep(0.1, length(estpars))
-names(rw.sd) <- estpars
-rw.sd["theta"] <- 1
-# rw.sd <- c(beta_d = 0.05, beta_u = 0.05, beta_e = 0.05,
-#            beta_red_factor = 0.005, gamma_u = 0.1, gamma_d = 0.1,
-#            detect_frac_0 = 0.005, theta = 0.5)
+rw.sd <- rep(0.2, length(params_to_estimate))
+names(rw.sd) <- params_to_estimate
 
-
-
+# Define the probe list
 plist <- list(
   max1, max2, max3, maxall,
   cumi1, cumi2, cumi3, exp1, regcoef
 )
-psim <- probe(pomp_object, probes = plist, nsim = 1000)
-plot(psim)
-scale.dat <- apply(psim@simvals, 2, sd)
 
-out_abc <- abc(
-  pomp(
-    pomp_object,
-    dprior = prior_dens,
-    paramnames = c("beta_d", "beta_u", "beta_e", "beta_red_factor", 
-                   "gamma_u", "gamma_d", "detect_frac_0", "theta")
-  ),
-  Nabc = 200000,
-  epsilon = 5,
-  scale = scale.dat,
-  proposal = mvn.diag.rw(rw.sd),
-  probes = plist,
-  verbose = TRUE
-)
+# Make a new pomp object for ABC
+abc_pomp_object <- pomp(pomp_object,
+                        dprior = prior_dens,
+                        paramnames = params_to_estimate,
+                        cdir = getwd())  # cdir to avoid weird windows error
 
+# The statistics don't like NA, switch to 0 for now
+abc_pomp_object@data[which(is.na(abc_pomp_object@data))] <- 0 
+
+
+
+# Test the probes and get scale for each ----------------------------------
+
+psim <- probe(abc_pomp_object,
+              params = coef(mifs$mif_objects[[1]]), 
+              probes = plist,
+              nsim = 1000)
+
+scale_dat <- apply(psim@simvals, 2, sd)
+
+
+# Run the ABC-MCMC with MIF starting values -------------------------------
+
+# num_mcmc <- 20000
+# num_burn <- num_mcmc/2
+# num_thin <- (num_mcmc-num_burn) * 0.0004
+
+start_coefs <- mifs$loglik_dfs %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+
+num_cores <- length(mifs$mif_objects)  # alter as needed
+cl <- parallel::makeCluster(num_cores)
+registerDoParallel(cl)
+
+foreach(i = 1:length(mifs$mif_objects), .combine = c, .packages = c("pomp"),
+        .export = c("prior_dens", "params_to_estimate", "rw.sd",
+                    "abc_pomp_object", "abc_num_mcmc", "plist", "scale_dat",
+                    "start_coefs")) %dopar% {
+                      pomp::abc(
+                        pomp::pomp(
+                          abc_pomp_object,
+                          params = start_coefs[i,],
+                        ),
+                        Nabc = abc_num_mcmc,
+                        epsilon = 5,
+                        scale = scale_dat,
+                        proposal = mvn.diag.rw(rw.sd),
+                        probes = plist,
+                        verbose = FALSE
+                      )
+                    } -> out_abc
+
+stopCluster(cl)
+
+
+# Summarize parameters ----------------------------------------------------
+
+all_abc <- tibble()
+for(i in 1:length(out_abc)) {
+  tmp <- out_abc[[i]]
+  param_mat <- tail(tmp@traces, abc_num_mcmc - abc_num_burn) %>%
+    as.data.frame() %>%
+    mutate(chain = i)
+  param_out <- param_mat[seq(1, nrow(param_mat), abc_num_thin), ]
+  all_abc <- bind_rows(all_abc, param_out)
+}
+
+abc_summaries <- all_abc %>%
+  gather(key = "Parameter", value = "Value") %>%
+  group_by(Parameter) %>%
+  summarise(lower = quantile(Value, 0.025),
+            median = quantile(Value, 0.5),
+            upper = quantile(Value, 0.975),
+            mean = mean(Value),
+            sd = sd(Value))
+
+
+# Save the results --------------------------------------------------------
+
+abc_results <- list(abc_chains = all_abc, abc_summaries = abc_summaries)
+saveRDS(object = abc_results, file = here("output/abc-results"))
+
+
+
+
+
+
+
+
+# Cache -------------------------------------------------------------------
+
+
+# out_abc <- abc(
+#   pomp(
+#     abc_pomp_object,
+#     params = coef(mifs$mif_objects[[1]]),
+#     dprior = prior_dens,
+#     paramnames = params_to_estimate
+#   ),
+#   Nabc = 100000,
+#   epsilon = 5,
+#   scale = scale.dat,
+#   proposal = mvn.diag.rw(rw.sd),
+#   probes = plist,
+#   verbose = TRUE
+# )
+# 
 # plot(out_abc)
 
 
@@ -137,37 +223,37 @@ out_abc <- abc(
 # plot(chain$theta, type = "l", bty = "n",
 #      xlab = "MCMC iteration", ylab = expression(theta))
 
-
-chain <- as.data.frame(out_abc@traces)
-par(mfrow = c(4, 2))
-plot(density(exp(chain$beta_d)*10600000, adjust = 1), bty = "n",
-     ylab = "Density", xlab = expression(beta[d]), main = "")
-lines(density(exp(rnorm(100000, log(2e-7), 0.8))*10600000, adjust = 1), 
-      col = "red", lty = 2)
-plot(density(exp(chain$beta_u)*10600000, adjust = 1), bty = "n",
-     ylab = "Density", xlab = expression(beta[u]), main = "")
-lines(density(exp(rnorm(100000, log(5e-8), 0.4))*10600000, adjust = 1), 
-      col = "red", lty = 2)
-plot(density(exp(chain$beta_e)*10600000, adjust = 1), bty = "n",
-     ylab = "Density", xlab = expression(beta[e]), main = "")
-lines(density(exp(rnorm(100000, log(5e-8), 0.4))*10600000, adjust = 1), 
-      col = "red", lty = 2)
-plot(density(chain$beta_red_factor, adjust = 1), bty = "n",
-     ylab = "Density", xlab = expression(xi), main = "")
-lines(x = seq(0, 1, by = 0.01), dunif(x = seq(0, 1, by = 0.01), 0.01, 1), 
-      col = "red", lty = 2)
-plot(density(chain$gamma_u), bty = "n", ylab = "Density", 
-     xlab = expression(gamma[u]), main = "")
-lines(density(rlnorm(100000, log(0.5), 1)), 
-      col = "red", lty = 2)
-plot(density(chain$gamma_d), bty = "n", ylab = "Density", 
-     xlab = expression(gamma[d]), main = "")
-lines(density(rlnorm(100000, log(0.5), 1)), 
-      col = "red", lty = 2)
-plot(density(chain$detect_frac_0, adjust = 1), bty = "n",
-     ylab = "Density", xlab = "detect_frac_0", main = "")
-lines(x = seq(0, 1, by = 0.01), dunif(x = seq(0, 1, by = 0.01), 0.01, 0.6), 
-      col = "red", lty = 2)
-plot(density(chain$theta), bty = "n", xlab = expression(theta), main= "")
+# 
+# chain <- as.data.frame(out_abc@traces)
+# par(mfrow = c(4, 2))
+# plot(density(exp(chain$beta_d)*10600000, adjust = 1), bty = "n",
+#      ylab = "Density", xlab = expression(beta[d]), main = "")
+# lines(density(exp(rnorm(100000, log(2e-7), 0.8))*10600000, adjust = 1), 
+#       col = "red", lty = 2)
+# plot(density(exp(chain$beta_u)*10600000, adjust = 1), bty = "n",
+#      ylab = "Density", xlab = expression(beta[u]), main = "")
+# lines(density(exp(rnorm(100000, log(5e-8), 0.4))*10600000, adjust = 1), 
+#       col = "red", lty = 2)
+# plot(density(exp(chain$beta_e)*10600000, adjust = 1), bty = "n",
+#      ylab = "Density", xlab = expression(beta[e]), main = "")
+# lines(density(exp(rnorm(100000, log(5e-8), 0.4))*10600000, adjust = 1), 
+#       col = "red", lty = 2)
+# plot(density(chain$beta_red_factor, adjust = 1), bty = "n",
+#      ylab = "Density", xlab = expression(xi), main = "")
+# lines(x = seq(0, 1, by = 0.01), dunif(x = seq(0, 1, by = 0.01), 0.01, 1), 
+#       col = "red", lty = 2)
+# plot(density(chain$gamma_u), bty = "n", ylab = "Density", 
+#      xlab = expression(gamma[u]), main = "")
+# lines(density(rlnorm(100000, log(0.5), 1)), 
+#       col = "red", lty = 2)
+# plot(density(chain$gamma_d), bty = "n", ylab = "Density", 
+#      xlab = expression(gamma[d]), main = "")
+# lines(density(rlnorm(100000, log(0.5), 1)), 
+#       col = "red", lty = 2)
+# plot(density(chain$detect_frac_0, adjust = 1), bty = "n",
+#      ylab = "Density", xlab = "detect_frac_0", main = "")
+# lines(x = seq(0, 1, by = 0.01), dunif(x = seq(0, 1, by = 0.01), 0.01, 0.6), 
+#       col = "red", lty = 2)
+# plot(density(chain$theta), bty = "n", xlab = expression(theta), main= "")
 
       

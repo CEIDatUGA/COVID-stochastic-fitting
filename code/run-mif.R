@@ -1,18 +1,18 @@
 # run-mif.R
 
 
-# Clear the decks ---------------------------------------------------------
-
-rm(list = ls(all.names = TRUE))
-
-
-# Load libraries ----------------------------------------------------------
-
-library(tidyverse)
-library(pomp)
-library(doParallel)
-library(foreach)
-library(here)
+# # Clear the decks ---------------------------------------------------------
+# 
+# rm(list = ls(all.names = TRUE))
+# 
+# 
+# # Load libraries ----------------------------------------------------------
+# 
+# library(tidyverse)
+# library(pomp)
+# library(doParallel)
+# library(foreach)
+# library(here)
 
 
 # Load the pomp object ----------------------------------------------------
@@ -125,13 +125,13 @@ prop_func <- function(theta) {
 
 # Run MIF from different starting points ----------------------------------
 
-num_particles <- 20
-num_mif_iterations1 <- 15
-num_mif_iterations2 <- 10
+# num_particles <- 20
+# num_mif_iterations1 <- 15
+# num_mif_iterations2 <- 10
 #num_particles <- 2000
 #num_mif_iterations1 <- 150
 #num_mif_iterations2 <- 100
-num_cores <- parallel::detectCores() - 2  # alter as needed
+# num_cores <- parallel::detectCores() - 2  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
 foreach (i = 1:num_cores, 
@@ -139,16 +139,19 @@ foreach (i = 1:num_cores,
          .combine = c, 
          .export = c("params_perts", 
                      "prop_func", 
-                     "curr_theta")) %dopar% {
+                     "curr_theta",
+                     "mif_num_particles",
+                     "mif_num_iterations1",
+                     "mif_num_iterations2")) %dopar% {
                        
                        theta_guess <- curr_theta
                        theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
                        
-                       pomp::mif2(pomp_object, Nmif = num_mif_iterations1, params = theta_guess, 
-                                  Np = num_particles, cooling.fraction.50 = 0.8, 
+                       pomp::mif2(pomp_object, Nmif = mif_num_iterations1, params = theta_guess, 
+                                  Np = mif_num_particles, cooling.fraction.50 = 0.8, 
                                   cooling.type = "geometric", rw.sd = params_perts) -> mf
                        
-                       mf <- pomp::continue(mf, Nmif = num_mif_iterations2,
+                       mf <- pomp::continue(mf, Nmif = mif_num_iterations1,
                                             cooling.fraction.50 = 0.65, cooling.type = "geometric")
                        
                        return(mf)
@@ -160,8 +163,11 @@ stopCluster(cl)
 
 cl <- parallel::makeCluster(length(mifs))
 registerDoParallel(cl)
-pf1 <- foreach(mf = mifs, .combine = rbind, .packages = c("pomp")) %dopar% {
-  pf <- replicate(n = 10, pfilter(mf, Np = 5000, max.fail = Inf))
+pf1 <- foreach(mf = mifs, 
+               .combine = rbind, 
+               .packages = c("pomp"), 
+               .export = c("pf_reps", "pf_num_particles")) %dopar% {
+  pf <- replicate(n = pf_reps, pfilter(mf, Np = pf_num_particles, max.fail = Inf))
   ll <- sapply(pf, logLik)
   ll <- logmeanexp(ll, se = TRUE)
 }
