@@ -1287,7 +1287,7 @@ color: #333333;
 </ul>
 <p>The included processes/mechanisms are the following:</p>
 <ul>
-<li>Susceptible individuals (<span class="math inline">\(S\)</span>`) can become infected by individuals in the <span class="math inline">\(E\)</span>, <span class="math inline">\(I_a\)</span>, <span class="math inline">\(I_s\)</span>, <span class="math inline">\(I_d\)</span>, and <span class="math inline">\(H\)</span> stages. Rates of transmission from these stages can be adjusted individually.</li>
+<li>Susceptible individuals (<span class="math inline">\(S\)</span>`) can become infected by individuals in the <span class="math inline">\(E\)</span>, <span class="math inline">\(I_a\)</span>, <span class="math inline">\(I_s\)</span>, <span class="math inline">\(I_d\)</span>, <span class="math inline">\(C\)</span>, and <span class="math inline">\(H\)</span> stages. Rates of transmission from these stages can be adjusted individually.</li>
 <li>All infected hosts first enter the presymptomatic stage and move through the <span class="math inline">\(E\)</span> dummy compartments. At the end of the <span class="math inline">\(E\)</span> stage, a fraction moves into the <span class="math inline">\(I_a\)</span> stage, another fraction moves into the <span class="math inline">\(I_{su}\)</span> stage, the remainder into the <span class="math inline">\(I_{sd}\)</span> stage.</li>
 <li>Individuals in the asymptomatic <span class="math inline">\(I_a\)</span> stage are assumed to never be diagnosed and eventually recover.</li>
 <li>Individuals in the symptomatic <span class="math inline">\(I_{su}\)</span> stage are assumed to remain undiagnosed and eventually recover.</li>
@@ -1300,30 +1300,304 @@ color: #333333;
 <h3>Interventions</h3>
 <p>The following interventions are implemented:</p>
 <ul>
-<li>Social distancing, which is assumed to reduce all transmission rates by some factor.</li>
-<li>Increased level of detection, which is assumed to increase the fraction of symptomatic individuals that move into the <span class="math inline">\(I_{sd}\)</span> compartment and will eventually be diagnosed.</li>
-<li>Increased speed of detection, which is assumed to increase the rate at which <span class="math inline">\(I_{sd}\)</span> individuals move into <span class="math inline">\(C\)</span>.</li>
+<li>Social distancing, starting at time <span class="math inline">\(t_1\)</span>, which is assumed to reduce all transmission rates by some factor.</li>
+<li>Increased speed of detection, starting at time <span class="math inline">\(t_2\)</span>, which is assumed to increase the rate at which <span class="math inline">\(I_{sd}\)</span> individuals move into <span class="math inline">\(C\)</span>.</li>
+<li>Increased level of detection, starting at time <span class="math inline">\(t_3\)</span>, which is assumed to increase the fraction of symptomatic individuals that move into the <span class="math inline">\(I_{sd}\)</span> compartment and will eventually be diagnosed.</li>
 </ul>
 </div>
 <div id="model-implementation" class="section level3">
 <h3>Model Implementation</h3>
 <p>The flow diagram for the model implemented in this app is:</p>
 <div class="figure">
-<div id="htmlwidget-d86de1d54e2d72ab8d2e" style="width:800px;height:300px;" class="grViz html-widget"></div>
-<script type="application/json" data-for="htmlwidget-d86de1d54e2d72ab8d2e">{"x":{"diagram":"digraph SEIR {\n  graph [rankdir=TD, overlap=false, fontsize = 10]\n    rank=same;\n    node[shape=oval, label=\"S\"] S;\n    node[shape=oval, label=\"E\"] E;\n    node[shape=oval, label=\"Ia\"] Ia;\n    node[shape=oval, label=\"Isu\"] Isu;\n    node[shape=oval, label=\"Isd\"] Isd;\n    node[shape=oval, label=\"C\"] C;\n    node[shape=oval, label=\"H\"] H;\n    node[shape=oval, label=\"R\"] R;\n    node[shape=oval, label=\"D\"] D;\n    S->E E->Ia E->Isu E->Isd Ia->R Isu->R Isd->C C->R C->H H->R H->D\n  {S E Isd C H D}\n   }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-e9c444515ae684955328" style="width:800px;height:300px;" class="grViz html-widget"></div>
+<script type="application/json" data-for="htmlwidget-e9c444515ae684955328">{"x":{"diagram":"digraph SEIR {\n  graph [rankdir=TD, overlap=false, fontsize = 10]\n    rank=same;\n    node[shape=oval, label=\"S\"] S;\n    node[shape=oval, label=\"E\"] E;\n    node[shape=oval, label=\"Ia\"] Ia;\n    node[shape=oval, label=\"Isu\"] Isu;\n    node[shape=oval, label=\"Isd\"] Isd;\n    node[shape=oval, label=\"C\"] C;\n    node[shape=oval, label=\"H\"] H;\n    node[shape=oval, label=\"R\"] R;\n    node[shape=oval, label=\"D\"] D;\n    S->E E->Ia E->Isu E->Isd Ia->R Isu->R Isd->C C->R C->H H->R H->D\n  {S E Isd C H D}\n   }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p class="caption">
 Flow diagram for this model.
 </p>
 </div>
 </div>
+<div id="model-parameters" class="section level3">
+<h3>Model Parameters</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Parameter defintion</th>
+<th align="left">Parameter symbol</th>
+<th align="left">Comment…4</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Transmission rate of symptomatic individuals (log)</td>
+<td align="left">log_beta_s</td>
+<td align="left">transmission in code is exp(log_beta_s)</td>
+</tr>
+<tr class="even">
+<td align="left">relative transmission of E class compared to Isu/Isd</td>
+<td align="left">trans_e</td>
+<td align="left">modeled as 1/(1+exp(trans_e)), i.e. trans_e=1 means E are half as infectious as Is</td>
+</tr>
+<tr class="odd">
+<td align="left">relative transmission of Ia class compared to Isu/Isd</td>
+<td align="left">trans_a</td>
+<td align="left">see above</td>
+</tr>
+<tr class="even">
+<td align="left">relative transmission of C class compared to Isu/Isd</td>
+<td align="left">trans_c</td>
+<td align="left">see above</td>
+</tr>
+<tr class="odd">
+<td align="left">relative transmission of H class compared to Isu/Isd</td>
+<td align="left">trans_h</td>
+<td align="left">see above</td>
+</tr>
+<tr class="even">
+<td align="left">overall transmission reduction due to social distancing</td>
+<td align="left">beta_reduce</td>
+<td align="left">see above</td>
+</tr>
+<tr class="odd">
+<td align="left">rate of movement through a single E stage (log)</td>
+<td align="left">log_g_e</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">rate of movement through a single Ia stage (log)</td>
+<td align="left">log_g_a</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">rate of movement through a single symptomatic undetected stage</td>
+<td align="left">log_g_su</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">rate of movement through a single symptomatic detected stage</td>
+<td align="left">log_g_sd</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">rate of movement through a single C stage (log)</td>
+<td align="left">log_g_c</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">rate of movement through a single H stage (log)</td>
+<td align="left">log_g_h</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">factor by which movement through Isd is increased and movement through C decreases due to earlier diagnosis</td>
+<td align="left">log_diag_speedup</td>
+<td align="left">modeled as exp(log_diag_speedup) * exp(log_g_sd) and also reduces movement through C by exp(log_g_c) / exp(log_diag_speedup)</td>
+</tr>
+<tr class="even">
+<td align="left">fraction diagnosed (entering Isd) before intervention</td>
+<td align="left">detect_0</td>
+<td align="left">modeled as 1/(1+exp(detect_0))</td>
+</tr>
+<tr class="odd">
+<td align="left">fraction diagnosed (entering Isd) after intervention</td>
+<td align="left">detect_1</td>
+<td align="left">see above</td>
+</tr>
+<tr class="even">
+<td align="left">fraction asymptomatic</td>
+<td align="left">frac_asym</td>
+<td align="left">modeled as 1/(1+exp(frac_asym))</td>
+</tr>
+<tr class="odd">
+<td align="left">fraction diagnosed cases who are hospitalized</td>
+<td align="left">frac_hosp</td>
+<td align="left">modeled as 1/(1+exp(frac_hosp))</td>
+</tr>
+<tr class="even">
+<td align="left">fraction hospitalized who die</td>
+<td align="left">frac_dead</td>
+<td align="left">modeled as 1/(1+exp(frac_dead))</td>
+</tr>
+<tr class="odd">
+<td align="left">time at which social distancing reduces transmission</td>
+<td align="left">t_int1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">time at which diagnosis speeds up movement through Isd</td>
+<td align="left">t_int2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">time at which a greater fraction is detected (moves into Isd)</td>
+<td align="left">t_int3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">observation dispersion</td>
+<td align="left">log_theta_cases</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">observation dispersion</td>
+<td align="left">log_theta_hosps</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">observation dispersion</td>
+<td align="left">log_theta_deaths</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="left">NA</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of susceptible persons</td>
+<td align="left">S</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Number of exposed persons</td>
+<td align="left">E1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of exposed persons</td>
+<td align="left">E2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Number of exposed persons</td>
+<td align="left">E3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of exposed persons</td>
+<td align="left">E4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Asymptomatic individuals who will not be detected</td>
+<td align="left">Ia1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Asymptomatic individuals who will not be detected</td>
+<td align="left">Ia2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Asymptomatic individuals who will not be detected</td>
+<td align="left">Ia3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Asymptomatic individuals who will not be detected</td>
+<td align="left">Ia4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Symptomatic individuals who will not be detected</td>
+<td align="left">Isu1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Symptomatic individuals who will not be detected</td>
+<td align="left">Isu2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Symptomatic individuals who will not be detected</td>
+<td align="left">Isu3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Symptomatic individuals who will not be detected</td>
+<td align="left">Isu4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Symptomatic individuals who will be detected</td>
+<td align="left">Isd1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Symptomatic individuals who will be detected</td>
+<td align="left">Isd2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Symptomatic individuals who will be detected</td>
+<td align="left">Isd3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Symptomatic individuals who will be detected</td>
+<td align="left">Isd4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Detected/diagnosed invidiuals</td>
+<td align="left">C1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Detected/diagnosed invidiuals</td>
+<td align="left">C2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Detected/diagnosed invidiuals</td>
+<td align="left">C3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Detected/diagnosed invidiuals</td>
+<td align="left">C4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Hospitalized individuals</td>
+<td align="left">H1</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Hospitalized individuals</td>
+<td align="left">H2</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Hospitalized individuals</td>
+<td align="left">H3</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Hospitalized individuals</td>
+<td align="left">H4</td>
+<td align="left">NA</td>
+</tr>
+<tr class="even">
+<td align="left">Dead individuals</td>
+<td align="left">D</td>
+<td align="left">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">Recovered individuals</td>
+<td align="left">R</td>
+<td align="left">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div id="shinytab3" class="section level2">
 <h2>What to do</h2>
-<p><strong>The tasks below are described in a way that assumes everything is in units of MONTHS (rate parameters, therefore, have units of inverse months). If any quantity is not given in those units, you need to convert it first (e.g. if it says a year, you need to convert it to 12 months).</strong></p>
-<p><em>Some of the simulations might take a few seconds to run. Be patient.</em></p>
-<div id="task-1" class="section level3">
-<h3>Task 1:</h3>
-</div>
 </div>
 <div id="shinytab4" class="section level2">
 <h2>Further Information</h2>
