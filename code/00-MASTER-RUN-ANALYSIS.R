@@ -40,9 +40,31 @@ abc_num_burn <- abc_num_mcmc/2
 abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
 
 
+#######################################################################
 # Download new data and format --------------------------------------------
+# results saved to data folder with time stamp in name
+source(here("code/data-processing/load-clean-CT-data.R"))
 
-source(here("code/load-clean-CT-data.R"))
+filename = here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+dat <- readRDS(filename)
+pomp_data <- dat %>%
+  dplyr::filter(Location == "GA") %>%
+  dplyr::select(Date, cases, hosps, deaths) %>%
+  dplyr::arrange(Date)
+
+#######################################################################
+# Add faked data ---------------------------------------------------------
+#######################################################################
+pseudo_data <- data.frame(
+  Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+  hold = NA)
+
+pomp_data <- pomp_data %>%
+  right_join(pseudo_data, by = "Date") %>%
+  dplyr::select(-hold) %>%
+  mutate(time = 1:n()) %>%
+  dplyr::select(time, cases, hosps, deaths)
+
 
 
 # Make a pomp model with newest data --------------------------------------
