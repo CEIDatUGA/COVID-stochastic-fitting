@@ -102,7 +102,7 @@ pomp_step <- Csnippet(
   // rate is a pointer to the vector of transition (death) rates (here rate[3:5] but in C form with the &).
   //  dt, a positive real number, is the duration of time interval.
   //  trans is a pointer to the vector that will hold the random deviate (here trans[5:7] but in C form with the &).
-
+  // see also here: https://kingaa.github.io/pomp/vignettes/C_API.html
   
   
   reulermultinom(1, S, &rate[1], dt, &trans[1]); //infection
@@ -232,6 +232,7 @@ rinit <- Csnippet(
 # Define likelihood function ----------------------------------------------
 
 # Details on dnbinom_mu:
+# Question: Is there official documentation on this function somewhere? Can't find it. 
 # dnbinom_mu is negative binomial parameterized by mu (see ?rnbinom)
 # Given data (e.g. x = cases) and model-predicted value (e.g. size = C_new) and mean (e.g theta1), estimate probability.
 # the value 1 in the last slot corresponds to log = 1.
