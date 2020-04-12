@@ -11,9 +11,9 @@
 # 
 # 
 # # Load libraries ----------------------------------------------------------
-# library(dplyr)
-# library(pomp)
-# library(here) #to simplify loading/saving into different folders
+ library(dplyr)
+ library(pomp)
+ library(here) #to simplify loading/saving into different folders
 
 ############################################################################
 # Code to define  process model -------------------------------------------
@@ -88,8 +88,23 @@ pomp_step <- Csnippet(
   rate[13] = exp(log_g_h) *  1/(1+exp(frac_dead));                                  //movement from H to D  
   rate[14] = exp(log_g_h) * (1 - 1/(1+exp(frac_dead)));                             //movement from H to R  
   
-  
+  // ------------------------------------------
   // Compute the state transitions
+  // ------------------------------------------
+  // Some explanations on code, especially parts with multiple transitions
+  // reulermultinom(3, E4, &rate[3], dt, &trans[5]) says there are 3 potential movement that come out of the E4 number of individuals 
+  // following rates rate[3], rate[4], and rate[5]
+  // dt is the time interval
+  // we assign the number of transitions to trans[5], trans[6], and trans[7]. Those trans are then used to balance the equations starting on line 133.
+  // The & symbol in C code creates automatic pointers to that iterate through rate and trans starting at the value in the index (i) to i+(3-1).
+  // m = 3, a positive integer, is number of potential transitions ( to Ia, Isu, Isd)
+  // size = E4, a positive integer, is the number of individuals at risk (pop size in E4).
+  // rate is a pointer to the vector of transition (death) rates (here rate[3:5] but in C form with the &).
+  //  dt, a positive real number, is the duration of time interval.
+  //  trans is a pointer to the vector that will hold the random deviate (here trans[5:7] but in C form with the &).
+
+  
+  
   reulermultinom(1, S, &rate[1], dt, &trans[1]); //infection
   
   reulermultinom(1, E1, &rate[2], dt, &trans[2]); //move through E stages
@@ -327,25 +342,6 @@ ini_pars <- c("S_0",
 #note that values for parameters are specified in a separate script and can be loaded and assigned as needed
 parnames <- c(model_pars,measure_pars,ini_pars)
 
-
-#######################################################################
-# Load cleaned data ---------------------------------------------------------
-#######################################################################
-pseudo_data <- data.frame(
-  Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
-  hold = NA)
-
-filename = here('data/clean-CT-data.RDS') #data from covidtracking.com
-dat <- readRDS(filename)
-pomp_data <- dat %>%
-  dplyr::filter(Location == "GA") %>%
-  dplyr::select(Date, cases, hosps, deaths) %>%
-  dplyr::arrange(Date) %>%
-  right_join(pseudo_data, by = "Date") %>%
-  dplyr::select(-hold) %>%
-  mutate(time = 1:n()) %>%
-  dplyr::select(time, cases, hosps, deaths)
-  
 
 
 # Define the pomp model object --------------------------------------------

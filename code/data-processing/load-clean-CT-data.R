@@ -3,18 +3,28 @@
 
 # Load libraries ----------------------------------------------------------
 
-# library(dplyr)
-# library(readr)
-# library(here) #to simplify loading/saving into different folders
+ library(dplyr)
+ library(readr)
+ library(here) #to simplify loading/saving into different folders
 
 
+#################################
+#US data from https://covidtracking.com/
+filename_us_ct_data = here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+
+if (file.exists(filename_us_ct_data)) {
+  #################################
+  # load already clean data locally
+  #################################
+  us_ct_clean <- readRDS(filename_us_ct_data)
+} else {
   #################################
   # pull data from Covidtracking and process
   #################################
   us_data <- read_csv("https://covidtracking.com/api/states/daily.csv")
   #data for population size for each state/country so we can compute cases per 100K
   #not currently needed, but keep here just in case
-  filename = here('data/us_popsize.RDS')
+  filename = here('data/us_popsize.rds')
   us_popsize <- readRDS(filename)
   us_clean <- us_data %>% dplyr::select(c(date,state,positive,negative,total,hospitalized,death)) %>%
     mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
@@ -25,18 +35,22 @@
     mutate(Daily_Hospitalized = c(0,diff(hospitalized))) %>% 
     mutate(Daily_Deaths = c(0,diff(death))) %>%
     merge(us_popsize) %>%
-    rename(Date = date, Location = state, Population_Size = total_pop, Total_Deaths = death, 
+    rename(Date = date, Location = state_full, Population_Size = total_pop, Total_Deaths = death, 
            Total_Cases = positive, Total_Hospitalized = hospitalized, 
            Total_Test_Negative = negative, Total_Test_Positive = positive, Total_Test_All = total) %>%
-    mutate(Daily_Cases = Daily_Test_Positive, Total_Cases = Total_Test_Positive)
+    mutate(Daily_Cases = Daily_Test_Positive, Total_Cases = Total_Test_Positive) %>%
+    select(-c(state,Total_Test_Negative,Daily_Test_Negative))
+
+
   #Change NA hospitalizations to zero
   us_clean$Total_Hospitalized[is.na(us_clean$Total_Hospitalized)] <- 0
   us_clean$Daily_Hospitalized[is.na(us_clean$Daily_Hospitalized)] <- 0
   
   #this bit of code is to get file names to align with what's currently in the pomp code
-  us_clean <- us_clean %>% rename(cases = Daily_Cases, hosps = Daily_Hospitalized, deaths = Daily_Deaths)
+  us_ct_clean <- us_clean %>% rename(cases = Daily_Cases, hosps = Daily_Hospitalized, deaths = Daily_Deaths)
+
+  saveRDS(us_ct_clean,filename_us_ct_data) #save clean file for loading unless it's outdated
+}
+
   
-  # Save cleaned data
-  filename = here('data/clean-CT-data.RDS')
-  saveRDS(us_clean,filename)
 
