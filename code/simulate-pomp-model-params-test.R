@@ -27,12 +27,43 @@ allparvals <- coef(readRDS(here("output/2020-04-09-forecasts/pmcmc-output.RDS"))
   t() %>%
   colMeans()
 
-allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[2]])
+M2 <- pomp_model
+horizon <- 7*4*4
+time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
+out <- tibble()
+for(i in 1:6){
+  allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[i]])
+  sims <- pomp::simulate(M2, 
+                         params=allparvals, 
+                         nsim=1, format="data.frame", 
+                         include.data=FALSE)
+  
+  # filename = here('output/model-predictions.RDS')
+  # saveRDS(sims,filename)
+  start_date <- as.Date("2020-03-01")
+  end_date <- start_date + max(sims$time) - 1
+  dates <- seq.Date(start_date, end_date, "days") 
+  dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+  
+  pl <- sims %>%
+    left_join(dates_df) %>%
+    dplyr::select(Date, .id, C_new, H_new, D_new) %>%
+    mutate(mif = i)
+  out <- bind_rows(out, pl)
+}
 
+out %>%
+  gather(key = "State", value = "value", -Date, -.id, -mif) %>%
+  ggplot(aes(x = Date, y = value, color = as.factor(mif), group = paste0(mif,.id))) +
+  geom_line() +
+  facet_wrap(~State, scales = "free") +
+  ggtitle("t_int = 12")
+
+
+allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[5]])
 M2 <- pomp_model
 horizon <- 7*20
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
-
 #run simulation a number of times
 # allparvals["beta_reduce"] <- 1
 # allparvals["log_beta_s"] <- -17.1
@@ -51,7 +82,8 @@ dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 
 pl <- sims %>%
   left_join(dates_df) %>%
-  dplyr::select(Date, .id, C_new, H_new, D_new) %>%
+  # dplyr::select(Date, .id, C_new, H_new, D_new) %>%
+  dplyr::select(Date, .id, cases, hosps, deaths) %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
   ggplot(aes(x = Date, y = value, group = .id, color=.id=="data")) +
   geom_line() +

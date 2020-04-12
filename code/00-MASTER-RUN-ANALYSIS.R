@@ -26,12 +26,12 @@ library(foreach)
 num_cores <- parallel::detectCores() - 2  # alter as needed
 
 # For mif2
-mif_num_particles <- 20
-mif_num_iterations1 <- 15
+mif_num_particles <- 1000
+mif_num_iterations1 <- 20
 mif_num_iterations2 <- 10
 
 # For particle filter
-pf_num_particles <- 1000
+pf_num_particles <- 2000
 pf_reps <- 10
 
 # For ABC-MCMC
