@@ -1,265 +1,226 @@
 # run-mif.R
+# This script uses the pomp::mif2() function to estimate parameters
+# of the stochastic SEIR model using maximization by iterated filtering.
+# The data are new daily case counts, new daily hospitalizations, and
+# new daily deaths. See the pomp_model object for details.
+#
+# ******************************************************
+# NOTE: THIS CODE ASSUMES IT IS BEING SOURCED FROM THE
+#       00-MASTER-RUN-ANALYSIS.R SCRIPT. YOU MUST SET
+#       PARAMETER VALUES, ETC., IN THAT SCRIPT BEFORE
+#       RUNNING THIS SCRIPT.
+# ******************************************************
 
-
-# # Clear the decks ---------------------------------------------------------
-# 
-# rm(list = ls(all.names = TRUE))
-# 
-# 
-# # Load libraries ----------------------------------------------------------
-# 
-# library(tidyverse)
-# library(pomp)
-# library(doParallel)
-# library(foreach)
-# library(here)
+# Turn on parallel or not --------------------------------------------------
+if (parallel_run == TRUE) {
+  # Set up parallel structure 
+  n_cores <- num_cores
+  cl <- makeCluster(num_cores) 
+  registerDoParallel(cl)
+} else {
+  n_cores <- 1
+}
 
 
 # Load the pomp object ----------------------------------------------------
-
 filename <- here('output/pomp-model.RDS')
-pomp_object <- readRDS(filename)
+pomp_model <- readRDS(filename)
 
 
-# Initial values ----------------------------------------------------------
-
-inivals <- c(E1_0 = 40, E2_0 = 40, E3_0 = 40, E4_0 = 40, 
-             Ia1_0 = 22, Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
-             Isu1_0 = 90, Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
-             Isd1_0 = 14, Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14)
-
-Ntot <- sum(inivals) + 10600000 + 2*4 + 2*4  # total population size
-
-# Values for parameters
-# beta is scaled by population size here instead of inside the process model
-parvals <- c(log_beta_s = log(0.6/Ntot), 
-             trans_e = 0.5, #value of 1 means factor is 0.5
-             trans_a = 0.5, 
-             trans_c = 10, 
-             trans_h = 10, 
-             beta_reduce = -0.61,  
-             log_g_e = log(4*0.2),
-             log_g_a = log(4*0.15),
-             log_g_su = log(4*0.15),
-             log_g_sd = log(4*0.15),
-             log_g_c = log(4*0.3),  #updated
-             log_g_h = log(4*0.3),
-             log_diag_speedup = log(2), 
-             detect_0 = log((1/0.2)-1),
-             detect_1 = log((1/0.4)-1), 
-             frac_asym = log((1/0.2)-1), # 1.39
-             frac_hosp = log((1/0.05)-1), # 2.94
-             frac_dead = log((1/0.1)-1), #fraction hospitalized that die, 2.19
-             log_theta_cases = log(50),
-             log_theta_hosps = log(50),
-             log_theta_deaths = log(50)
-)
+# load values for model parameters and initial conditions -----------------
+filename <- here('output/parvals.RDS')
+allparvals <- readRDS(filename)
 
 
-# pf <- pfilter(pomp_object, params = c(parvals, inivals), Np = 2000)
-# logLik(pf)
+# Specify the parameters we want to estimate (i.e., those to vary) --------
+# This is a subset of all parameters.
+params_to_estimate <- c(
+  # rate of infection of symptomatic 
+  "log_beta_s", 
+  
+  # parameter that determines relative infectiousness of E/Ia/C 
+  # classes compared to Isu/Isd 
+  "trans_e", "trans_a", "trans_c", "trans_h",
+  
+  # overall transmission reduction due to social distancing
+  "beta_reduce",  
+  
+  # rate of movement through E/Ia/Isu/Isd/C/H compartments,
+  "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h",
+  
+  # factor by which movement through Isd happens faster (quicker diagnosis) 
+  "log_diag_speedup", 
+  
+  # determines fraction that get diagnosed before and after intervention
+  "detect_0","detect_1", 
+  
+  "frac_asym", # fraction asymptomatic
+  "frac_hosp", # fraction diagnosed that go into hospital
+  "frac_dead", # fraction hospitalized that die
+  
+  # negative binomial observation dispersion parameters
+  "log_theta_cases","log_theta_hosps","log_theta_deaths"
+  )
 
-# Set the parameters to estimate (i.e., those to vary) --------------------
-
-curr_theta <- c(parvals, inivals)
-params_to_estimate <- names(curr_theta)
-
-params_perts <- rw.sd(log_beta_s = 0.05,
-                      trans_e = 0.05,
-                      trans_a = 0.05,
-                      trans_c = 0.05,
-                      trans_h = 0.05,
-                      beta_reduce = 0.05,
-                      log_g_e = 0.05,
-                      log_g_a = 0.05,
-                      log_g_su = 0.05,
-                      log_g_sd = 0.05,
-                      log_g_c = 0.05, 
-                      log_g_h = 0.05, 
-                      log_diag_speedup = 0.05,
-                      detect_0 = 0.05,
-                      detect_1 = 0.05,
-                      frac_asym = 0.05,
-                      frac_hosp = 0.05,  
-                      frac_dead = 0.05,  
-                      log_theta_cases = 0.1,
-                      log_theta_hosps = 0.1,  
-                      log_theta_deaths = 0.1,
-                      E1_0 = ivp(0.2), 
-                      E2_0 = ivp(0.2),
-                      E3_0 = ivp(0.2),
-                      E4_0 = ivp(0.2), 
-                      Ia1_0 = ivp(0.2), 
-                      Ia2_0 = ivp(0.2),
-                      Ia3_0 = ivp(0.2),
-                      Ia4_0 = ivp(0.2), 
-                      Isu1_0 = ivp(0.2),
-                      Isu2_0 = ivp(0.2), 
-                      Isu3_0 = ivp(0.2),
-                      Isu4_0 = ivp(0.2), 
-                      Isd1_0 = ivp(0.1), 
-                      Isd2_0 = ivp(0.1), 
-                      Isd3_0 = ivp(0.1),
-                      Isd4_0 = ivp(0.1)
-)
-
-length(curr_theta)  
-length(names(params_perts@call)) - 1  # 1 empty name 
-
-fixed_params <- c(t_int1 = 12, t_int2 = 12,t_int3 = 12,
-                  S_0 = 10600000,
-                  C1_0 = 2, C2_0 = 2, C3_0 = 2, C4_0 = 2,
-                  H1_0 = 2, H2_0 = 2, H3_0 = 2, H4_0 = 2, 
-                  R_0 = 0,
-                  D_0 = 0)
-
-curr_theta <- c(curr_theta, fixed_params)
+# Specify which initial conditions to estiamte
+inivals_to_estimate <- c(                        
+                        "E1_0", "E2_0", "E3_0", "E4_0",  
+                        "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
+                        "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
+                        "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
+                        )
 
 
-# Define "proposal" function for starting values --------------------------
+# Specify mif random walk intensity ---------------------------------
+# set up the rw.sd structure, i.e. perturbations for parameters needed for mif
+# assign perturbations following order of parameters above, 
+# hard-coded is not a good idea, but ok for now
 
-prop_func <- function(theta) {
-  rnorm(length(theta), theta, sd = 1)  # this works because everthing is scaled appropriately
+pert_par_vals <- c(rep(0.05,18), rep(0.1,3))  
+pert_ini_vals <- c(rep(0.2,12), rep(0.1,4))
+
+# make long string containing all parameter names and values
+# in a form required by rw.sd
+param_perts_string <- paste(params_to_estimate, 
+                            '=',
+                            pert_par_vals,
+                            collapse = ', ')
+ini_perts_string <- paste0(inivals_to_estimate, 
+                           ' = ivp(',
+                           pert_ini_vals, 
+                           ")", 
+                           collapse = ', ')
+
+# this string is being fed into sw.rd inside mif 
+# below in a way suggested by Aaron
+perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
+
+
+# Define function that runs the whole mif --------------------------
+# function that runs the whole mif, either in parallel or not
+# does it in 2 parts. Variables set in MASTER script.
+
+run_mif <- function(pomp_model, num_mif_iterations, params, num_particles, 
+                    c_frac, param_perts, verbose) 
+{
+  out_mif <- pomp::mif2(pomp_model, # first part of mif run to converge
+                        Nmif = num_mif_iterations[1], 
+                        params = params, 
+                        Np = num_particles[1], 
+                        cooling.fraction.50 = c_frac[1], 
+                        rw.sd = eval(parse(text=perts_string)),
+                        cooling.type = "geometric",
+                        verbose = verbose)
+  
+  out_mif <- out_mif %>% 
+    pomp::continue( # 2nd part of mif run to 'polish off' things
+      Nmif = num_mif_iterations[2],
+      Np = num_particles[2], 
+      cooling.fraction.50 = c_frac[2], 
+      cooling.type = "geometric",
+      verbose = verbose)
+  
+  return(out_mif)
 }
+
+
+# Compute different starting values for each run --------------------------
+# number of initial conditions to try, set to number of cores or multiple 
+# thereof for best performance
+n_ini_cond <- 1*n_cores 
+
+# set up matrix for starting values, each row is one set of initial conditions
+param_start <- matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) 
+
+# columns of matrix contain starting values for parameters to be estimated
+colnames(param_start) <- params_to_estimate 
+
+# fill matrix with starting values drawn from normal distribution
+for (i in 1:nrow(param_start)) {
+  param_start[i,] = rnorm(length(params_to_estimate), 
+                          allparvals[params_to_estimate], 
+                          sd = 1) 
+} 
+
+# the mif2 routine needs numeric/starting conditions for 
+# both fixed and variable parameters
+fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)] 
 
 
 # Run MIF from different starting points ----------------------------------
+# Run MIF not-parallel
+if (parallel_run == FALSE)
+{
+  out_mif = list()
+  ll = list()
+  for (i in 1:n_ini_cond) 
+  {
+    out_mif[[i]] <- run_mif(pomp_model,  
+                            num_mif_iterations = mif_num_iterations, 
+                            params = c(param_start[i,],fixed_params), 
+                            num_particles = mif_num_particles, 
+                            c_frac = mif_cooling_fracs, param_perts,
+                            verbose = FALSE
+                            )
 
-# num_particles <- 20
-# num_mif_iterations1 <- 15
-# num_mif_iterations2 <- 10
-#num_particles <- 2000
-#num_mif_iterations1 <- 150
-#num_mif_iterations2 <- 100
-# num_cores <- parallel::detectCores() - 2  # alter as needed
-cl <- parallel::makeCluster(num_cores)
-registerDoParallel(cl)
-foreach (i = 1:num_cores, 
-         .packages = c("pomp"),
-         .combine = c, 
-         .export = c("params_perts", 
-                     "prop_func", 
-                     "curr_theta",
-                     "mif_num_particles",
-                     "mif_num_iterations1",
-                     "mif_num_iterations2")) %dopar% {
-                       
-                       theta_guess <- curr_theta
-                       theta_guess[params_to_estimate] <- prop_func(curr_theta[params_to_estimate])
-                       
-                       pomp::mif2(pomp_object, Nmif = mif_num_iterations1, params = theta_guess, 
-                                  Np = mif_num_particles, cooling.fraction.50 = 0.8, 
-                                  cooling.type = "geometric", rw.sd = params_perts) -> mf
-                       
-                       mf <- pomp::continue(mf, Nmif = mif_num_iterations1,
-                                            cooling.fraction.50 = 0.65, cooling.type = "geometric")
-                       
-                       return(mf)
-                     } -> mifs
-stopCluster(cl)
+    # Use particle filter to get the likelihood at the end of each MIF run
+    pf <- replicate(n = pf_reps, pfilter(out_mif[[i]], 
+                                         Np = pf_num_particles, 
+                                         max.fail = Inf))
+    ll1 <- sapply(pf, logLik)
+    ll[[i]] <- logmeanexp(ll1, se = TRUE)
+    }
+} # end code section that does mif followed by pfilter for non-parallel setup
+
+# Run MIF parallel
+if (parallel_run == TRUE)
+{
+  out_mif <- foreach(i=1:n_ini_cond, .packages = c("pomp")) %dopar% 
+    {
+      run_mif(pomp_model, num_mif_iterations = mif_num_iterations, 
+              params = c(param_start[i,],fixed_params), 
+              num_particles = mif_num_particles, 
+              c_frac = mif_cooling_fracs, param_perts,
+              verbose = FALSE
+              )
+    } #end dopar/foreach to compute mif
+
+  # Use particle filter to get the likelihood at the end of MIF run
+  ll <- foreach(mf = out_mif, .packages = c("pomp")) %dopar% {
+    pf <- replicate(n = pf_reps, pfilter(mf, Np = pf_num_particles, max.fail = Inf))
+    ll1 <- sapply(pf, logLik)
+    ll1 <- logmeanexp(ll1, se = TRUE)
+  }
+  stopCluster(cl)
+} # end code section that does mif followed by pfilter for parallel setup
 
 
-# Use particle filter to get the likelihood at the end of MIF run ---------
 
-cl <- parallel::makeCluster(length(mifs))
-registerDoParallel(cl)
-pf1 <- foreach(mf = mifs, 
-               .combine = rbind, 
-               .packages = c("pomp"), 
-               .export = c("pf_reps", "pf_num_particles")) %dopar% {
-  pf <- replicate(n = pf_reps, pfilter(mf, Np = pf_num_particles, max.fail = Inf))
-  ll <- sapply(pf, logLik)
-  ll <- logmeanexp(ll, se = TRUE)
-}
-parallel::stopCluster(cl)
+# Summarize results -------------------------------------------------------
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(out_mif, coef)), 
+                               nrow = length(out_mif), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(out_mif[[1]]))  # names are the same for all mifs
 
-mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)),
-                               nrow = length(mifs), byrow = T))
-colnames(mif_coefs) <- names(coef(mifs[[1]]))
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
 
-pf_logliks <- as_tibble(pf1) %>%
-  rename("LogLik" = V1,
-         "LogLik_SE" = se) %>%
-  mutate(MIF_ID = 1:n()) %>%
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+         "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
   bind_cols(mif_coefs) %>%
-  arrange(-LogLik)
-
+  dplyr::arrange(-LogLik)
 
 
 # Save output -------------------------------------------------------------
-
-mifRets <- list(mif_objects = mifs, loglik_dfs = pf_logliks)
+# create a list of lists
+mifRets <- list(mif_objects = out_mif, loglik_dfs = pf_logliks)
 outfile <- here('output/mif-results.RDS')
 saveRDS(object = mifRets, file = outfile)
-
-
-
-
-# Cache -------------------------------------------------------------------
-
-# mifs %>%
-#   traces() %>%
-#   melt() %>%
-#   filter(variable %in% c("loglik", params_to_estimate)) %>%
-#   # filter(iteration > 100) %>%
-#   ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
-#   geom_line()+
-#   facet_wrap(~variable,scales="free_y")+
-#   scale_color_brewer(type = "qual") +
-#   guides(color=FALSE)
-# 
-# sims <- pomp::simulate(mifs[[6]],
-#                        nsim=1, format="data.frame",
-#                        include.data=TRUE)
-# 
-# 
-# sims %>%
-#   dplyr::select(time, .id, cases, hosps, deaths) %>%
-#   tidyr::gather(key = "variable", value = "value", -time, -.id) %>%
-#   ggplot(aes(x = time, y = value, group = .id, color=.id=="data")) +
-#   geom_line() +
-#   facet_wrap(~variable, scales = "free_y") +
-#   guides(color = FALSE)
-# 
-# sims %>%
-#   dplyr::select(time, .id, H1, hosps) %>%
-#   tidyr::gather(key = "variable", value = "value", -time, -.id) %>%
-#   ggplot(aes(x = time, y = value, group = .id, color=.id=="data")) +
-#   geom_line() +
-#   facet_wrap(~variable, scales = "free_y") +
-#   guides(color = FALSE)
-
-# 
-# 
-
-# Extract and save best parameter set for MCMC ----------------------------
-# 
-# mf1 <- mifs[[which.max(pf1)]]
-# theta_mif <- coef(mf1)
-# saveRDS("../output/mif-mles.RDS")
-
-
-
-
-
-# Cache -------------------------------------------------------------------
-
-# 
-# # Question: Are there rules of thumb for specifying Nmif, Np, coooling.fraction and rw.sd? Or ways to diagnose if one is choosing them right?
-# # Other question: Is this only estimating those parameters that are specified in rw.sd and all others are assumed fixed?
-# 
-# # pf <- pfilter(covid_ga_pomp, params = coef(covid_ga_pomp), Np = 1000)
-# 
-# test <- mif2(pomp_object, Nmif = 50, params = theta.guess, 
-#              Np = 2000, cooling.fraction = 1,
-#              rw.sd = rw.sd(beta_red_factor = 0.02, gamma_u = 0.02,
-#                            gamma_d = 0.02, detect_frac_0 = 0.02))
-# 
-# 
-# mifs <- foreach (i = 1:10, .combine = c) %dopar% {   #Inspect from multiple, randomly chosen starting points
-#         theta.guess <- theta.true
-#         theta.guess[estpars] <- rlnorm(n = length(estpars),
-#                                  meanlog = log(theta.guess[estpars]), sdlog = 1)
-#         } 
 
