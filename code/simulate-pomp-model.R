@@ -22,24 +22,21 @@ pomp_model <- readRDS(filename)
 filename = here('output/parvals.RDS')
 allparvals <- readRDS(filename)
 
-allparvals <- coef(readRDS(here("output/2020-04-09-forecasts/pmcmc-output.RDS"))) %>%
-  as.data.frame() %>%
-  t() %>%
-  colMeans()
+# allparvals <- coef(readRDS(here("output/2020-04-09-forecasts/pmcmc-output.RDS"))) %>%
+#   as.data.frame() %>%
+#   t() %>%
+#   colMeans()
 
-allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[2]])
+allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[3]])
 
 M2 <- pomp_model
 horizon <- 7*20
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
 
 #run simulation a number of times
-# allparvals["beta_reduce"] <- 1
-# allparvals["log_beta_s"] <- -17.1
-# allparvals["t_int1"] <- 35
 sims <- pomp::simulate(M2, 
                        params=allparvals, 
-                       nsim=1, format="data.frame", 
+                       nsim=100, format="data.frame", 
                        include.data=TRUE)
 
 # filename = here('output/model-predictions.RDS')
@@ -51,7 +48,7 @@ dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
 
 pl <- sims %>%
   left_join(dates_df) %>%
-  dplyr::select(Date, .id, C_new, H_new, D_new) %>%
+  dplyr::select(Date, .id, C_new, H_new, D_new, cases, hosps, deaths) %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
   ggplot(aes(x = Date, y = value, group = .id, color=.id=="data")) +
   geom_line() +
