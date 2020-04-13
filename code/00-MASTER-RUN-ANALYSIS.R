@@ -36,9 +36,10 @@ pf_num_particles <- 2000
 pf_reps <- 10
 
 # For ABC-MCMC
-abc_num_mcmc <- 50000
+abc_num_mcmc <- 5000
 abc_num_burn <- abc_num_mcmc/2
 abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
+abc_num_thin <- 1
 
 
 # Download new data and format --------------------------------------------
