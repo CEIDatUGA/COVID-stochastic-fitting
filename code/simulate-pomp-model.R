@@ -34,6 +34,11 @@ M2 <- pomp_model
 horizon <- 7*20
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
 covars <- pomp_model@covar@table
+covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+covars <- as.data.frame(covars) %>%
+  mutate(time = 1:n()) %>%
+  rename("rel_beta_change" = covars)
+M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant"))
 
 #run simulation a number of times
 # allparvals["beta_reduce"] <- 1

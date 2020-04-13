@@ -68,23 +68,11 @@ pomp_data <- pomp_data %>%
 
 # Make the unacast covariate table ----------------------------------------
 
-covarfname <- "W:\\My Drive\\COVID19\\private-confidential-data\\unacast-ga-private.txt"
-covar_table <- read.table(covarfname, header = TRUE) %>%
-  rename("Date" = date, "rel_beta_change" = metric) %>%
-  separate(Date, into = c("m", "d", "y")) %>%
-  mutate(m = str_pad(m, width = 2, side = "left", pad = "0"),
-         d = str_pad(d, width = 2, side = "left", pad = "0"),
-         y = "2020") %>%
-  mutate(Date = as.Date(paste(y, m, d, sep = "-"))) %>%
-  dplyr::select(-y, -m, -d) %>%
-  right_join(pseudo_data, by = "Date") %>%
-  dplyr::select(-hold) %>%
-  fill(rel_beta_change) %>%  # fills NAs with last observed value
-  mutate(time = 1:n()) %>%
-  dplyr::select(time, rel_beta_change) %>%
-  mutate(rel_beta_change = ifelse(sign(rel_beta_change) == 1, 
-                                  rel_beta_change + 1, 
-                                  1 - abs(rel_beta_change)))
+if(file.exists(here("data/unacast-ga-private.txt"))) {
+  source(here("code/model-beta-reduction.R"))
+}
+
+covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 
 
 # Make a pomp model with newest data --------------------------------------
