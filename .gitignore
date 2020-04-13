@@ -3,4 +3,4 @@
 .RData
 .Ruserdata
 unacast-ga-private.txt
-ga_state_raw.csv
+ga_state_raw*.csv

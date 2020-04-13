@@ -20,14 +20,17 @@ pseudo_data <- data.frame(
 
 # Load the data -----------------------------------------------------------     
 
-unacast <- read.table(here("data/unacast-ga-private.txt"), header = TRUE) %>%
-  rename("Date" = date, "rel_beta_change" = metric) %>%
-  separate(Date, into = c("m", "d", "y")) %>%
-  mutate(m = str_pad(m, width = 2, side = "left", pad = "0"),
-         d = str_pad(d, width = 2, side = "left", pad = "0"),
-         y = "2020") %>%
-  mutate(Date = as.Date(paste(y, m, d, sep = "-"))) %>%
-  dplyr::select(-y, -m, -d) %>%
+# unacast <- read.table(here("data/unacast-ga-private.txt"), header = TRUE) %>%
+unacast <- read.csv(here("data/ga_state_raw_0412.csv"))  %>%
+  dplyr::select(date, daily_distance_diff) %>%
+  rename("Date" = date, "rel_beta_change" = daily_distance_diff) %>%
+  # separate(Date, into = c("m", "d", "y")) %>%
+  # mutate(m = str_pad(m, width = 2, side = "left", pad = "0"),
+  #        d = str_pad(d, width = 2, side = "left", pad = "0"),
+  #        y = "2020") %>%
+  # mutate(Date = as.Date(paste(y, m, d, sep = "-"))) %>%
+  # dplyr::select(-y, -m, -d) %>%
+  mutate(Date = as.Date(Date)) %>%
   right_join(pseudo_data, by = "Date") %>%
   dplyr::select(-hold) %>%
   fill(rel_beta_change) %>%  # fills NAs with last observed value

@@ -68,7 +68,9 @@ pomp_data <- pomp_data %>%
 
 # Make the unacast covariate table ----------------------------------------
 
-if(file.exists(here("data/unacast-ga-private.txt"))) {
+thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
+thefile <- paste0("data/", tail(thefiles))
+if(file.exists(here(thefile))) {
   source(here("code/model-beta-reduction.R"))
 }
 
