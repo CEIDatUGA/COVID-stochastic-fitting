@@ -62,7 +62,7 @@ if (file.exists(filename_us_ct_data)) {
     dplyr::filter(Location == "Georgia") %>%
     dplyr::select(Date, cases, hosps, deaths) %>%
     dplyr::arrange(Date)
-  ma <- function(x, n = 7){stats::filter(x, rep(1 / n, n), sides = 1)}
+  ma <- function(x, n = 6){stats::filter(x, rep(1 / n, n), sides = 1)}
   pomp_data$cases <- ceiling(ma(pomp_data$cases))
   pomp_data$hosps <- ceiling(ma(pomp_data$hosps))
   pomp_data$deaths <- ceiling(ma(pomp_data$deaths))

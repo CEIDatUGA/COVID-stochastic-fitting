@@ -44,7 +44,7 @@ M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant
 #run simulation a number of times
 sims <- pomp::simulate(M2, 
                        params=allparvals, 
-                       nsim=10, format="data.frame", 
+                       nsim=100, format="data.frame", 
                        include.data=TRUE)
 
 # filename = here('output/model-predictions.RDS')
@@ -60,11 +60,12 @@ pl <- sims %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
   mutate(.id = ifelse(.id == "data", "ZZZ", .id)) %>%
   ggplot(aes(x = Date, y = value, group = .id, color=.id=="ZZZ",
-             size = .id=="ZZZ")) +
+             size = .id=="ZZZ", alpha = .id == "ZZZ")) +
   geom_line() +
   facet_wrap(~variable, scales = "free_y", ncol = 2) +
   scale_size_manual(values = c(0.5, 1)) +
-  guides(color = FALSE, size = FALSE) +
+  scale_alpha_manual(values = c(0.1, 1)) +
+  guides(color = FALSE, size = FALSE, alpha = FALSE) +
   scale_x_date(date_breaks = "1 month", date_labels =  "%b") 
 
 plot(pl)
