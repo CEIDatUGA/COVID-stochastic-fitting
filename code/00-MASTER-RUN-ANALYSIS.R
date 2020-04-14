@@ -46,8 +46,7 @@ source(here("code/data-processing/load-clean-CT-data.R"))
 # results are saved to data folder with time stamp in name
 # results will be loaded by later files
 thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
-thefile <- paste0("data/", tail(thefiles))
-if(file.exists(here(thefile))) {
+if(length(thefiles) != 0) {
   source(here("code/model-beta-reduction.R"))
 }
 
