@@ -1,6 +1,7 @@
 # make-priors.R
-# library(here)
-# library(pomp)
+ library(here)
+ library(pomp)
+rm(list = ls(all.names = TRUE))
 
 #values for priors are explained in a separate spreadsheet:
 #https://docs.google.com/spreadsheets/d/10K_3bPck0GOCAfuUQtyZ-KEmwf6FQE3CcpSe36HtL4c/edit#gid=478517635
@@ -29,16 +30,16 @@ pr_trans_e = paste0("dnorm(trans_e, ",x["trans_e"],",", param_sds, ", 1)")
 pr_trans_a = paste0("dnorm(trans_a, ",x["trans_e"],",", param_sds, ", 1)") 
 pr_trans_c = paste0("dnorm(trans_c, ",x["trans_c"],",", param_sds, ", 1)") 
 pr_trans_h = paste0("dnorm(trans_h, ",x["trans_h"],",", param_sds, ", 1)") 
-pr_beta_reduce = paste0("dnorm(beta_reduce, ",x["beta_reduce"],",", param_sds, ", 1)")   
 pr_log_g_e = paste0("dnorm(log_g_e, ",x["log_g_e"],",", param_sds, ", 1)") 
 pr_log_g_a = paste0("dnorm(log_g_a, ",x["log_g_a"],",", param_sds, ", 1)") 
 pr_log_g_su = paste0("dnorm(log_g_su, ",x["log_g_su"],",", param_sds, ", 1)") 
 pr_log_g_sd = paste0("dnorm(log_g_sd, ",x["log_g_sd"],",", param_sds, ", 1)") 
 pr_log_g_c = paste0("dnorm(log_g_c, ",x["log_g_c"],",", param_sds, ", 1)") 
 pr_log_g_h = paste0("dnorm(log_g_h, ",x["log_g_h"],",", param_sds, ", 1)") 
-pr_log_diag_speedup = paste0("dnorm(log_diag_speedup, ",x["log_diag_speedup"],",", param_sds, ", 1)") 
-pr_detect_0 = paste0("dnorm(detect_0, ",x["detect_0"],",", param_sds, ", 1)") 
-pr_detect_1 = paste0("dnorm(detect_1, ",x["detect_1"],",", param_sds, ", 1)") 
+pr_log_max_diag = paste0("dnorm(log_max_diag, ",x["log_max_diag"],",", param_sds, ", 1)") 
+pr_log_diag_inc_rate = paste0("dnorm(log_diag_inc_rate, ",x["log_diag_inc_rate"],",", param_sds, ", 1)") 
+pr_max_detect_par = paste0("dnorm(max_detect_par, ",x["max_detect_par"],",", param_sds, ", 1)")  
+pr_log_detect_inc_rate = paste0("dnorm(log_detect_inc_rate, ",x["log_detect_inc_rate"],",", param_sds, ", 1)") 
 pr_frac_asym = paste0("dnorm(frac_asym, ",x["frac_asym"],",", param_sds, ", 1)") 
 pr_frac_hosp = paste0("dnorm(frac_hosp, ",x["frac_hosp"],",", param_sds, ", 1)") 
 pr_frac_dead = paste0("dnorm(frac_dead, ",x["frac_dead"],",", param_sds, ", 1)") 
@@ -67,16 +68,16 @@ prior_dens_text = paste0("lik =", pr_log_beta_s," + ",
                                   pr_trans_a, " + ",
                                   pr_trans_c, " + ",
                                   pr_trans_h, " + ",
-                         pr_beta_reduce , " + ",  
-                         pr_log_g_e , " + ",
+                          pr_log_g_e , " + ",
                          pr_log_g_a , " + ",
                          pr_log_g_su , " + ",
                          pr_log_g_sd , " + ",
                          pr_log_g_c , " + ",  
                          pr_log_g_h , " + ",
-                         pr_log_diag_speedup , " + ", 
-                         pr_detect_0 , " + ",
-                         pr_detect_1 , " + ", 
+                         pr_log_max_diag, " + ",
+                         pr_log_diag_inc_rate , " + ", 
+                         pr_max_detect_par , " + ",
+                         pr_log_detect_inc_rate , " + ", 
                          pr_frac_asym , " + ",
                          pr_frac_hosp , " + ",
                          pr_frac_dead , " + ",
