@@ -93,7 +93,7 @@ plist <- list(
 
 # Make a new pomp object for ABC
 abc_pomp_object <- pomp(pomp_object,
-                        dprior = prior_dens,
+                        # dprior = prior_dens,
                         paramnames = params_to_estimate,
                         cdir = getwd())  # cdir to avoid weird windows error
 
@@ -135,7 +135,7 @@ foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
                           params = start_coefs[i,],
                         ),
                         Nabc = abc_num_mcmc,
-                        epsilon = 17,
+                        epsilon = 5,
                         scale = scale_dat,
                         proposal = mvn.diag.rw(rw.sd),
                         probes = plist,
@@ -168,12 +168,20 @@ abc_summaries <- all_abc %>%
             mean = mean(Value),
             sd = sd(Value))
 
+abc_params <-  abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+  filter(Parameter != "iter")
+mif_params <- t(start_coefs[1, ]) %>% as.data.frame()
+mif_params$Parameter <- row.names(mif_params)
+mif_params <- mif_params %>% left_join(abc_params) %>% mutate(diff = `1` - mean)
+
+abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+  filter(Parameter != "iter") %>% deframe() -> allparvals
+
 
 # Save the results --------------------------------------------------------
 
 # abc_results <- list(abc_chains = all_abc, abc_summaries = abc_summaries)
 # saveRDS(object = abc_results, file = here("output/abc-results"))
-
 
 
 all_abc %>% 

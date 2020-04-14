@@ -23,7 +23,7 @@ x <- readRDS(filename) #for ease of notation, assign parameter values to x
 
 ##Since we don't know how to pass variables into this Csnippet, we create it as a string
 
-param_sds <- 2
+param_sds <- 5
 pr_log_beta_s = paste0("dnorm(log_beta_s, ",x["log_beta_s"],",", param_sds, ", 1)")  
 pr_trans_e = paste0("dnorm(trans_e, ",x["trans_e"],",", param_sds, ", 1)") 
 pr_trans_a = paste0("dnorm(trans_a, ",x["trans_e"],",", param_sds, ", 1)") 

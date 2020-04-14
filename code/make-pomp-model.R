@@ -32,6 +32,7 @@ pomp_step <- Csnippet(
   double foi;  // force of infection
   double g_sd, g_c;  // rate of transition through I_sd compartments
   double detect_frac; // fraction of those that get eventually diagnosed
+  double beta;
 
   E_tot = E1+E2+E3+E4;  // all pre-symptomatic
   Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
