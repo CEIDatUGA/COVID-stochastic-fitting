@@ -19,6 +19,9 @@ library(foreach)
 
 mif_results <- readRDS(here('output/mif-results.RDS'))
 
+n_cores <- parallel::detectCores() - 2  # alter as needed
+n_ini_cond <- 1*n_cores 
+
 
 # Extract MLEs as starting values -----------------------------------------
 
@@ -40,11 +43,27 @@ prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 # Run pMCMC ---------------------------------------------------------------
 
 params_to_estimate <- names(coef(mif_init))
-rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "S_0",
-                                          "C1_0", "C2_0", "C3_0", "C4_0",
-                                          "H1_0", "H2_0", "H3_0", "H4_0",
-                                          "R_0", "D_0"))
+fixed_params <- c("S_0",
+                  "C1_0",
+                  "H1_0",
+                  "R_0", "D_0")
+
+rmones <- which(params_to_estimate %in% fixed_params)
 params_to_estimate <- params_to_estimate[-rmones]
+fixed_params <- coef(mif_init)[fixed_params]
+
+# Set up chain starting points
+param_start <- matrix(0, nrow = n_ini_cond, ncol = length(params_to_estimate)) 
+
+# columns of matrix contain starting values for parameters to be estimated
+colnames(param_start) <- params_to_estimate 
+
+# fill matrix with starting values drawn from normal distribution
+for (i in 1:nrow(param_start)) {
+  param_start[i,] = rnorm(length(params_to_estimate), 
+                          coef(mif_init)[params_to_estimate], 
+                          sd = 1) 
+} 
 
 
 # Set noise level for parameter random walk for proposals
@@ -52,7 +71,7 @@ rw.sd <- rep(0.075, length(params_to_estimate))
 names(rw.sd) <- params_to_estimate
 
 # Forecast horizon, days
-weeks_ahead <- 7  # go one further than 6 to make sure we get the dates
+weeks_ahead <- 1  # go one further than 6 to make sure we get the dates
 horizon <- 7 * weeks_ahead
 newtimes <- c(time(mif_init), max(time(mif_init)) + seq_len(horizon))
 newdata <- t(mif_init@data) %>%
@@ -64,8 +83,17 @@ newdata <- t(mif_init@data) %>%
   ) %>%
   t()
 
+# Set covars table for forecasts
+newcovars <- t(mif_init@covar@table) %>%
+  as.data.frame() %>%
+  bind_rows(
+    data.frame(rel_beta_change = rep(tail(t(mif_init@covar@table), 1), times = horizon))
+  ) %>%
+  mutate(time = 1:n())
+
 mif_init@data <- newdata
 mif_init@times <- newtimes
+mif_init@covar <- covariate_table(newcovars, times = "time", order = "constant")
 
 pomp_for_mcmc <- pomp(
   mif_init,
@@ -74,21 +102,19 @@ pomp_for_mcmc <- pomp(
   cdir = getwd()  # just to fix a Windows error when compiling...
 )
 
-num_mcmc <- 2000
+num_mcmc <- 10
 
-num_cores <- parallel::detectCores() - 2  # alter as needed
-cl <- parallel::makeCluster(num_cores)
+cl <- parallel::makeCluster(n_cores)
 registerDoParallel(cl)
 
-foreach(i = 1:num_cores, .combine = c, .packages = c("pomp"),
-        .export = c("prior_dens", "params_to_estimate", "rw.sd",
-                    "pomp_for_mcmc", "num_mcmc")) %dopar% {
+foreach(i = 1:n_cores, .combine = c, .packages = c("pomp")) %dopar% {
   pomp::pmcmc(
     pomp_for_mcmc,
     Nmcmc = num_mcmc,
     Np = 2000,
-    proposal = pomp::mvn.diag.rw(rw.sd)
-  ) 
+    proposal = pomp::mvn.diag.rw(rw.sd),
+    verbose = FALSE
+  )
 } -> out_mcmc
 
 stopCluster(cl)
@@ -143,19 +169,18 @@ saveRDS(out_mcmc, outfile)
 #   "
 # )
 
-
+test <- out
 beta <- test@traces[ , "log_beta_s"]
-theta <- exp(test@traces[1001:2000, "log_theta_hosps"])
-hstates <- t(test@filter.traj["H_new",1001:2000,]) %>%
+theta <- exp(test@traces[, "log_theta_hosps"])
+hstates <- t(test@filter.traj["H_new",,]) %>%
   as.data.frame() %>%
   melt()
 hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
-hstates$time = rep(c(0,newtimes), times = 1000)
+hstates$time = rep(newtimes, times = 20)
 hstates <- hstates %>%
-  mutate(period = ifelse(time < 40, "calibration", "forecast")) %>%
-  filter(time < 55)
+  mutate(period = ifelse(time < 43, "calibration", "forecast"))
 
-pob <- readRDS("../output/pomp-model.RDS")
+pob <- readRDS("./output/pomp-model.RDS")
 dat <- t(pob@data) %>% as.data.frame()
 dat$time = 1:nrow(dat)
 
