@@ -26,12 +26,10 @@ library(foreach)
 mifs <- readRDS(here("output/mif-results.RDS"))
 pomp_object <- readRDS(here("output/pomp-model.RDS"))
 
-lls <- mifs$loglik_dfs #%>%
-  #filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
+lls <- mifs$loglik_dfs %>%
+  filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
 
 # Define summary statistic (probes) functions -----------------------------
-
-## TODO: Add statistics for other observation variables, D and H
 
 get_stat_times <- function(obs_cases) {
   x <- obs_cases
@@ -114,7 +112,7 @@ params_to_estimate <- c(params_to_estimate,inivals_to_estimate)
 
 
 # Set noise level for parameter random walk for proposals
-rw.sd <- rep(0.2, length(params_to_estimate))
+rw.sd <- rep(0.175, length(params_to_estimate))
 names(rw.sd) <- params_to_estimate
 
 # Define the probe list
@@ -148,7 +146,7 @@ scale_dat <- apply(psim@simvals, 2, sd)
 # Run the ABC-MCMC with MIF starting values -------------------------------
 
 # For ABC-MCMC
-abc_num_mcmc <- 5000
+abc_num_mcmc <- 50000
 abc_num_burn <- abc_num_mcmc/2
 abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
 abc_num_thin <- 1
@@ -170,7 +168,7 @@ foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
                           params = start_coefs[i,],
                         ),
                         Nabc = abc_num_mcmc,
-                        epsilon = 93,
+                        epsilon = 64,
                         scale = scale_dat,
                         proposal = mvn.diag.rw(rw.sd),
                         probes = plist,
@@ -179,11 +177,13 @@ foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
                     } -> out_abc
 
 stopCluster(cl)
-
-
-plot(out@traces[,9], type = "l")
-abline(h = -17.0927194398423, col = "red")
-out_abc <- list("1" = out)
+# 
+# t1 <- tail(out@traces[,1], 10000)
+# ttt <- t1[seq(1, length(t1), 0)]
+# plot(ttt, type = "l")
+# plot(out@traces[,8], type = "l")
+# abline(h = -17.0927194398423, col = "red")
+# out_abc <- list("1" = out)
 # Summarize parameters ----------------------------------------------------
 
 all_abc <- tibble()
@@ -212,8 +212,8 @@ mif_params <- t(start_coefs[1, ]) %>% as.data.frame()
 mif_params$Parameter <- row.names(mif_params)
 mif_params <- mif_params %>% left_join(abc_params) %>% mutate(diff = `1` - mean)
 
-abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
-  filter(Parameter != "iter") %>% deframe() -> allparvals
+# abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+#   filter(Parameter != "iter") %>% deframe() -> allparvals
 
 
 # Save the results --------------------------------------------------------

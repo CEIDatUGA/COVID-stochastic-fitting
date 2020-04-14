@@ -24,7 +24,7 @@ x <- readRDS(filename) #for ease of notation, assign parameter values to x
 
 ##Since we don't know how to pass variables into this Csnippet, we create it as a string
 
-param_sds <- 8
+param_sds <- 4
 pr_log_beta_s = paste0("dnorm(log_beta_s, ",x["log_beta_s"],",", param_sds, ", 1)")  
 pr_trans_e = paste0("dnorm(trans_e, ",x["trans_e"],",", param_sds, ", 1)") 
 pr_trans_a = paste0("dnorm(trans_a, ",x["trans_e"],",", param_sds, ", 1)") 
@@ -85,21 +85,21 @@ prior_dens_text = paste0("lik =", pr_log_beta_s," + ",
                          pr_log_theta_hosps , " + ",
                          pr_log_theta_deaths , " + ",
                          pr_E1_0 , " + ",
-                         pr_E2_0 , " + ",
-                         pr_E3_0 , " + ",
-                         pr_E4_0 , " + ",
+                         # pr_E2_0 , " + ",
+                         # pr_E3_0 , " + ",
+                         # pr_E4_0 , " + ",
                          pr_Ia1_0 , " + ",
-                         pr_Ia2_0 , " + ",
-                         pr_Ia3_0 , " + ",
-                         pr_Ia4_0 , " + ",
+                         # pr_Ia2_0 , " + ",
+                         # pr_Ia3_0 , " + ",
+                         # pr_Ia4_0 , " + ",
                          pr_Isu1_0 , " + ",
-                         pr_Isu2_0 , " + ",
-                         pr_Isu3_0 , " + ",
-                         pr_Isu4_0 , " + ",
-                         pr_Isd1_0 , " + ",
-                         pr_Isd2_0 , " + ",
-                         pr_Isd3_0 , " + ",
-                         pr_Isd4_0 , " ; \n " ,
+                         # pr_Isu2_0 , " + ",
+                         # pr_Isu3_0 , " + ",
+                         # pr_Isu4_0 , " + ",
+                         pr_Isd1_0 , " ; \n " ,
+                         # pr_Isd2_0 , " + ",
+                         # pr_Isd3_0 , " + ",
+                         # pr_Isd4_0 , " ; \n " ,
                          "if (!give_log) lik = exp(lik);"
 )
 
