@@ -70,11 +70,18 @@ params_to_estimate <- parnames
 
 # Specify which initial conditions to estimate
 inivals_to_estimate <- c(                        
-  "E1_0", "E2_0", "E3_0", "E4_0",  
-  "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
-  "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
-  "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
+  "E1_0", 
+  "Ia1_0", 
+  "Isu1_0",  
+  "Isd1_0"
 )
+
+# inivals_to_estimate <- c(                        
+#   "E1_0", "E2_0", "E3_0", "E4_0",  
+#   "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
+#   "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
+#   "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
+# )
 
 par_var_list = list()
 par_var_list$params_to_estimate =  params_to_estimate

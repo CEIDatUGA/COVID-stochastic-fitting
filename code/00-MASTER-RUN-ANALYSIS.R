@@ -45,11 +45,11 @@ source(here("code/data-processing/load-clean-CT-data.R"))
 # Make the unacast covariate table ----------------------------------------
 # results are saved to data folder with time stamp in name
 # results will be loaded by later files
-thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
-thefile <- paste0("data/", tail(thefiles))
-if(file.exists(here(thefile))) {
-  source(here("code/model-beta-reduction.R"))
-}
+# thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
+# thefile <- paste0("data/", tail(thefiles))
+# if(file.exists(here(thefile))) {
+#   source(here("code/model-beta-reduction.R"))
+# }
 
 # Make a pomp model 
 # loads all the previously generated RDS files and generates a pomp model that's ready for fitting
