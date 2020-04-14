@@ -7,40 +7,50 @@ rm(list = ls(all.names = TRUE))
 # Load libraries ----------------------------------------------------------
 library(dplyr)
 library(pomp)
-library(doParallel)
-library(foreach)
 library(here)
 
-# Specify if we want to parallelize or not ---------------------------------------------------------------
-n_cores = 1 #if not parallel, this should be 1, otherwise for parallel set a different value  below
+# load results produced by mif fitting ----------------------------------------------------
+# this is a list of mif objects for each initial condition 
+# followed by pfilter objects run a specified number of times after each mif is run
+filename = here('output/mif-results.RDS')
+mif_res_list <- readRDS(filename)
+mifs = mif_res_list$mif_runs
+pfs = mif_res_list$pf_runs
 
-parallel_run = TRUE #uncomment one or the other to run parallel or not
-#parallel_run = FALSE
 
-# Turn on parallel or not ---------------------------------------------------------------
-if (parallel_run == TRUE)
+# Compute some results -------------------------------------------------------
+# for each initial condition, take the pf runs and compute mean log likelihood
+n_ini_cond = length(mifs)
+ll = list()
+for (i in 1:n_ini_cond) #do last part not in parallel
 {
-  library(doParallel)
-  library(foreach)
-  # Set up parallel structure ----------------------------------------------------
-  n_cores = 4
-  cl <- makeCluster(n_cores) 
-  registerDoParallel(cl)
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
 }
 
-# Load the pomp object ----------------------------------------------------
-filename <- here('output/pomp-model.RDS')
-pomp_model <- readRDS(filename)
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
 
-# load values for model parameters and initial conditions ----------------------------------------------------
-filename = here('output/parvals.RDS')
-allparvals <- readRDS(filename)
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
 
-# load results produced by mif fitting ----------------------------------------------------
-filename = here('output/mif-results.RDS')
-mifresults <- readRDS(filename)
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
 
-mifs = mifresults$mif_objects
+print(pf_logliks)
+
+
 
 
 

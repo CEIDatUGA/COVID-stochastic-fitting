@@ -4,12 +4,7 @@
 # The data are new daily case counts, new daily hospitalizations, and
 # new daily deaths. See the pomp_model object for details.
 #
-# ******************************************************
-# NOTE: THIS CODE ASSUMES IT IS BEING SOURCED FROM THE
-#       00-MASTER-RUN-ANALYSIS.R SCRIPT. YOU MUST SET
-#       PARAMETER VALUES, ETC., IN THAT SCRIPT BEFORE
-#       RUNNING THIS SCRIPT.
-# ******************************************************
+
 
 rm(list = ls(all.names = TRUE))
 
@@ -30,7 +25,7 @@ if (parallel_run == TRUE) {
   n_cores <- num_cores
   cl <- makeCluster(num_cores) 
   registerDoParallel(cl)
-} else {
+} else { #if not run in parallel, set this to 1
   n_cores <- 1
 }
 
@@ -53,8 +48,10 @@ inivals_to_estimate = par_var_list$inivals_to_estimate
 # assign perturbations following order of parameters above, 
 # hard-coded is not a good idea, but ok for now
 
-pert_par_vals <- c(rep(0.05,18), rep(0.1,3))  
-pert_ini_vals <- c(rep(0.2,12), rep(0.1,4))
+#this might need some more manual tweaking
+pert_par_vals <- rep(0.1, length(params_to_estimate))  
+pert_ini_vals <- rep(0.2,length(inivals_to_estimate))
+
 
 # make long string containing all parameter names and values
 # in a form required by rw.sd
@@ -104,7 +101,7 @@ run_mif <- function(pomp_model, num_mif_iterations, params, num_particles,
 # Compute different starting values for each run --------------------------
 # number of initial conditions to try, set to number of cores or multiple 
 # thereof for best performance
-n_ini_cond <- 1*n_cores 
+n_ini_cond <- n_cores 
 
 # set up matrix for starting values, each row is one set of initial conditions
 param_start <- matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) 
@@ -123,14 +120,15 @@ for (i in 1:nrow(param_start)) {
 # both fixed and variable parameters
 fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)] 
 
+
+
 # specify settings for mif2 procedure
 #mif_num_particles <- c(2000, 2000)  # two rounds of MIF
 #mif_num_iterations <- c(100, 50)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
-mif_num_particles <- c(1000, 1000)  # two rounds of MIF
+mif_num_particles <- c(100, 100)  # two rounds of MIF
 mif_num_iterations <- c(50, 50)  # two rounds of MIF
-
 
 # For particle filter log likelihood estimation of MIF MLEs
 pf_num_particles <- 2000
@@ -144,6 +142,7 @@ if (parallel_run == FALSE)
   print('Starting MIF2 + pfilter non-parallel')
   out_mif = list()
   ll = list()
+  pf = list()
   for (i in 1:n_ini_cond) 
   {
     out_mif[[i]] <- run_mif(pomp_model,  
@@ -151,15 +150,13 @@ if (parallel_run == FALSE)
                             params = c(param_start[i,],fixed_params), 
                             num_particles = mif_num_particles, 
                             c_frac = mif_cooling_fracs, param_perts,
-                            verbose = FALSE
+                            verbose = TRUE
                             )
 
     # Use particle filter to get the likelihood at the end of each MIF run
-    pf <- replicate(n = pf_reps, pfilter(out_mif[[i]], 
+    pf[[i]] <- replicate(n = pf_reps, pfilter(out_mif[[i]], 
                                          Np = pf_num_particles, 
                                          max.fail = Inf))
-    ll1 <- sapply(pf, logLik)
-    ll[[i]] <- logmeanexp(ll1, se = TRUE)
     }
 } # end code section that does mif followed by pfilter for non-parallel setup
 
@@ -178,41 +175,17 @@ if (parallel_run == TRUE)
     } #end dopar/foreach to compute mif
 
   # Use particle filter to get the likelihood at the end of MIF run
-  ll <- foreach(mf = out_mif, .packages = c("pomp")) %dopar% {
-    pf <- replicate(n = pf_reps, pfilter(mf, Np = pf_num_particles, max.fail = Inf))
-    ll1 <- sapply(pf, logLik)
-    ll1 <- logmeanexp(ll1, se = TRUE)
+  pf <- foreach(mf = out_mif, .packages = c("pomp")) %dopar% {
+        replicate(n = pf_reps, pfilter(mf, Np = pf_num_particles, max.fail = Inf))
   }
   stopCluster(cl)
 } # end code section that does mif followed by pfilter for parallel setup
 
 
-
-# Summarize results -------------------------------------------------------
-# get estimated values for all parameters that were estimated for each run 
-mif_coefs <- data.frame(matrix(unlist(sapply(out_mif, coef)), 
-                               nrow = length(out_mif), 
-                               byrow = T))
-colnames(mif_coefs) <- names(coef(out_mif[[1]]))  # names are the same for all mifs
-
-# convert the list containing the log likelihoods for 
-# each run stored in ll into a data frame
-ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
-
-# combine the ll_df and mif_coefs data frames. 
-# Also do some cleaning/renaming
-pf_logliks <- ll_df %>%
-  dplyr::rename("LogLik" = X1,
-         "LogLik_SE" = X2) %>%
-  dplyr::mutate(MIF_ID = 1:n()) %>%
-  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-  bind_cols(mif_coefs) %>%
-  dplyr::arrange(-LogLik)
-
-
 # Save output -------------------------------------------------------------
-# create a list of lists
-mifRets <- list(mif_objects = out_mif, loglik_dfs = pf_logliks)
+# create a list of lists containing the mif runs 
+# and for each mif run, the subsequent pfilter runs 
+mifRets <- list(mif_runs = out_mif, pf_runs = pf)
 outfile <- here('output/mif-results.RDS')
 saveRDS(object = mifRets, file = outfile)
 
