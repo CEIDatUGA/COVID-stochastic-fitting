@@ -2,4 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-ga_state_raw*
+unacast-ga-private.txt
+ga_state_raw*.csv
+

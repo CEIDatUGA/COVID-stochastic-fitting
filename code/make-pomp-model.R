@@ -32,6 +32,7 @@ pomp_step <- Csnippet(
   double foi;  // force of infection
   double g_sd, g_c;  // rate of transition through I_sd compartments
   double detect_frac; // fraction of those that get eventually diagnosed
+  double beta;
 
   E_tot = E1+E2+E3+E4;  // all pre-symptomatic
   Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -48,8 +49,9 @@ pomp_step <- Csnippet(
   foi = exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
 
   // t_int1 days after simulation start, social distancing intervention reduces transmission rate
-  if (t>t_int1)
-      foi = 1/(1+exp(beta_reduce))*foi;
+  //if (t>t_int1)
+      //foi = 1/(1+exp(beta_reduce))*foi;
+  foi = foi * rel_beta_change;
 
 
   // Time-dependent rate of movement through Isd dummy compartments
@@ -344,12 +346,12 @@ ini_pars <- c("S_0",
 parnames <- c(model_pars,measure_pars,ini_pars)
 
 
-
 # Define the pomp model object --------------------------------------------
 pomp_model <- pomp(
   data = pomp_data, 
   times = "time",
-  t0 = 0,
+  t0 = 1,  # set first sim time to first observation time
+  covar = covariate_table(covar_table, times = "time", order = "constant"),
   dmeasure = dmeas,
   rmeasure = rmeas,
   rinit = rinit,

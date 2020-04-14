@@ -26,6 +26,8 @@
 mifs <- readRDS(here("output/mif-results.RDS"))
 pomp_object <- readRDS(here("output/pomp-model.RDS"))
 
+lls <- mifs$loglik_dfs %>%
+  filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
 
 # Define summary statistic (probes) functions -----------------------------
 
@@ -70,7 +72,6 @@ regcoef <- function(x) { as.numeric(coef(lm(x[1,] ~ seq_along(x[1,])))[2]) }
 prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 
-
 # Set up parameters to estimate and ABC variables -------------------------
 
 params_to_estimate <- names(coef(mifs$mif_objects[[1]]))
@@ -92,7 +93,7 @@ plist <- list(
 
 # Make a new pomp object for ABC
 abc_pomp_object <- pomp(pomp_object,
-                        dprior = prior_dens,
+                        # dprior = prior_dens,
                         paramnames = params_to_estimate,
                         cdir = getwd())  # cdir to avoid weird windows error
 
@@ -117,14 +118,14 @@ scale_dat <- apply(psim@simvals, 2, sd)
 # num_burn <- num_mcmc/2
 # num_thin <- (num_mcmc-num_burn) * 0.0004
 
-start_coefs <- mifs$loglik_dfs %>%
+start_coefs <- lls %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
-num_cores <- length(mifs$mif_objects)  # alter as needed
+num_cores <- length(nrow(lls))  # alter as needed
 cl <- parallel::makeCluster(num_cores)
 registerDoParallel(cl)
 
-foreach(i = 1:length(mifs$mif_objects), .combine = c, .packages = c("pomp"),
+foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
         .export = c("prior_dens", "params_to_estimate", "rw.sd",
                     "abc_pomp_object", "abc_num_mcmc", "plist", "scale_dat",
                     "start_coefs")) %dopar% {
@@ -152,27 +153,43 @@ for(i in 1:length(out_abc)) {
   tmp <- out_abc[[i]]
   param_mat <- tail(tmp@traces, abc_num_mcmc - abc_num_burn) %>%
     as.data.frame() %>%
-    mutate(chain = i)
+    mutate(chain = i,
+           iter = 1:n())
   param_out <- param_mat[seq(1, nrow(param_mat), abc_num_thin), ]
   all_abc <- bind_rows(all_abc, param_out)
 }
 
 abc_summaries <- all_abc %>%
-  gather(key = "Parameter", value = "Value") %>%
-  group_by(Parameter) %>%
+  gather(key = "Parameter", value = "Value", -chain) %>%
+  group_by(Parameter, chain) %>%
   summarise(lower = quantile(Value, 0.025),
             median = quantile(Value, 0.5),
             upper = quantile(Value, 0.975),
             mean = mean(Value),
             sd = sd(Value))
 
+abc_params <-  abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+  filter(Parameter != "iter")
+mif_params <- t(start_coefs[1, ]) %>% as.data.frame()
+mif_params$Parameter <- row.names(mif_params)
+mif_params <- mif_params %>% left_join(abc_params) %>% mutate(diff = `1` - mean)
+
+abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+  filter(Parameter != "iter") %>% deframe() -> allparvals
+
 
 # Save the results --------------------------------------------------------
 
-abc_results <- list(abc_chains = all_abc, abc_summaries = abc_summaries)
-saveRDS(object = abc_results, file = here("output/abc-results"))
+# abc_results <- list(abc_chains = all_abc, abc_summaries = abc_summaries)
+# saveRDS(object = abc_results, file = here("output/abc-results"))
 
 
+all_abc %>% 
+  dplyr::select(log_beta_s, chain, iter) %>%
+  gather(key = "param", value = "value", -chain, -iter) %>%
+  ggplot(aes(x = iter, y = value, color = as.factor(chain), group = chain)) +
+  geom_line()
+  
 
 
 

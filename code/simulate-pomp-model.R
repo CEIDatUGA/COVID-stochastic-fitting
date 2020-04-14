@@ -26,12 +26,20 @@ allparvals <- readRDS(filename)
 #   as.data.frame() %>%
 #   t() %>%
 #   colMeans()
+lls <- readRDS(here("output/mif-results.RDS"))[[2]]
+allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[5]])
 
-allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[3]])
 
 M2 <- pomp_model
 horizon <- 7*20
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
+covars <- pomp_model@covar@table
+covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+covars <- as.data.frame(covars) %>%
+  mutate(time = 1:n()) %>%
+  rename("rel_beta_change" = covars)
+# covars$rel_beta_change <- 1
+M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant"))
 
 #run simulation a number of times
 sims <- pomp::simulate(M2, 
@@ -50,10 +58,14 @@ pl <- sims %>%
   left_join(dates_df) %>%
   dplyr::select(Date, .id, C_new, H_new, D_new, cases, hosps, deaths) %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
-  ggplot(aes(x = Date, y = value, group = .id, color=.id=="data")) +
+  mutate(.id = ifelse(.id == "data", "ZZZ", .id)) %>%
+  ggplot(aes(x = Date, y = value, group = .id, color=.id=="ZZZ",
+             size = .id=="ZZZ")) +
   geom_line() +
-  facet_wrap(~variable, scales = "free_y") +
-  guides(color = FALSE) 
+  facet_wrap(~variable, scales = "free_y", ncol = 2) +
+  scale_size_manual(values = c(0.5, 1)) +
+  guides(color = FALSE, size = FALSE) +
+  scale_x_date(date_breaks = "1 month", date_labels =  "%b") 
 
 plot(pl)
 
