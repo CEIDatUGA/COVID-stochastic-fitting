@@ -11,6 +11,19 @@
 #       RUNNING THIS SCRIPT.
 # ******************************************************
 
+rm(list = ls(all.names = TRUE))
+
+
+library(pomp)  # must be at least version 2.x
+library(here)
+library(doParallel)
+library(foreach)
+
+# turn on parallel running or not
+parallel_run <- TRUE
+num_cores <- parallel::detectCores() - 2  # alter as needed
+
+
 # Turn on parallel or not --------------------------------------------------
 if (parallel_run == TRUE) {
   # Set up parallel structure 
@@ -22,54 +35,20 @@ if (parallel_run == TRUE) {
 }
 
 
+
 # Load the pomp object ----------------------------------------------------
 filename <- here('output/pomp-model.RDS')
 pomp_model <- readRDS(filename)
-
 
 # load values for model parameters and initial conditions -----------------
 filename <- here('output/parvals.RDS')
 allparvals <- readRDS(filename)
 
-
-# Specify the parameters we want to estimate (i.e., those to vary) --------
-# This is a subset of all parameters.
-params_to_estimate <- c(
-  # rate of infection of symptomatic 
-  "log_beta_s", 
-  
-  # parameter that determines relative infectiousness of E/Ia/C 
-  # classes compared to Isu/Isd 
-  "trans_e", "trans_a", "trans_c", "trans_h",
-  
-  # overall transmission reduction due to social distancing
-  "beta_reduce",  
-  
-  # rate of movement through E/Ia/Isu/Isd/C/H compartments,
-  "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h",
-  
-  # factor by which movement through Isd happens faster (quicker diagnosis) 
-  "log_diag_speedup", 
-  
-  # determines fraction that get diagnosed before and after intervention
-  "detect_0","detect_1", 
-  
-  "frac_asym", # fraction asymptomatic
-  "frac_hosp", # fraction diagnosed that go into hospital
-  "frac_dead", # fraction hospitalized that die
-  
-  # negative binomial observation dispersion parameters
-  "log_theta_cases","log_theta_hosps","log_theta_deaths"
-  )
-
-# Specify which initial conditions to estiamte
-inivals_to_estimate <- c(                        
-                        "E1_0", "E2_0", "E3_0", "E4_0",  
-                        "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
-                        "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
-                        "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
-                        )
-
+# load list that contains names of model parameters and initial conditions that are estimated-----------------
+filename <- here('output/estpars.RDS')
+est_list <- readRDS(filename)
+params_to_estimate = est_list$params_to_estimate
+inivals_to_estimate = est_list$inivals_to_estimate
 
 # Specify mif random walk intensity ---------------------------------
 # set up the rw.sd structure, i.e. perturbations for parameters needed for mif
@@ -146,11 +125,25 @@ for (i in 1:nrow(param_start)) {
 # both fixed and variable parameters
 fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)] 
 
+# specify settings for mif2 procedure
+#mif_num_particles <- c(2000, 2000)  # two rounds of MIF
+#mif_num_iterations <- c(100, 50)  # two rounds of MIF
+mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
+
+mif_num_particles <- c(200, 200)  # two rounds of MIF
+mif_num_iterations <- c(10, 10)  # two rounds of MIF
+
+
+# For particle filter log likelihood estimation of MIF MLEs
+pf_num_particles <- 2000
+pf_reps <- 10
+
 
 # Run MIF from different starting points ----------------------------------
 # Run MIF not-parallel
 if (parallel_run == FALSE)
 {
+  print('Starting MIF2 + pfilter non-parallel')
   out_mif = list()
   ll = list()
   for (i in 1:n_ini_cond) 
@@ -175,6 +168,7 @@ if (parallel_run == FALSE)
 # Run MIF parallel
 if (parallel_run == TRUE)
 {
+  print('Starting MIF2 + pfilter parallel')
   out_mif <- foreach(i=1:n_ini_cond, .packages = c("pomp")) %dopar% 
     {
       run_mif(pomp_model, num_mif_iterations = mif_num_iterations, 

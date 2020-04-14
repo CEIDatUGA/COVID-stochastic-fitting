@@ -1,6 +1,8 @@
 # load-clean-CT-data.R
 # load and clean/process covid tracking data so it is ready for fitting
 
+rm(list = ls(all.names = TRUE))
+
 # Load libraries ----------------------------------------------------------
 
  library(dplyr)
@@ -49,7 +51,75 @@ if (file.exists(filename_us_ct_data)) {
   #this bit of code is to get file names to align with what's currently in the pomp code
   us_ct_clean <- us_clean %>% rename(cases = Daily_Cases, hosps = Daily_Hospitalized, deaths = Daily_Deaths)
 
-  saveRDS(us_ct_clean,filename_us_ct_data) #save clean file for loading unless it's outdated
+  
+  #below copied from the master analysis script
+  #includes more processing of data for pomp use
+  
+  #filename = here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+  #dat <- readRDS(filename)
+  dat <- us_ct_clean
+  pomp_data <- dat %>%
+    dplyr::filter(Location == "Georgia") %>%
+    dplyr::select(Date, cases, hosps, deaths) %>%
+    dplyr::arrange(Date)
+  ma <- function(x, n = 7){stats::filter(x, rep(1 / n, n), sides = 1)}
+  pomp_data$cases <- ceiling(ma(pomp_data$cases))
+  pomp_data$hosps <- ceiling(ma(pomp_data$hosps))
+  pomp_data$deaths <- ceiling(ma(pomp_data$deaths))
+  
+  # decycle <- function(y, wday) {
+  #   sy <- predict(smooth.spline(seq_along(y), y, spar = 0.75))$y
+  #   sy[sy < 0] <- 0
+  #   df <- data.frame(w = wday, y = y, sy = sy) %>%
+  #     mutate(rd = y / sy) %>%
+  #     filter(y > 0 & sy > 0) %>%
+  #     group_by(w) %>%
+  #     summarise(mrd = mean(rd))
+  # }
+  # 
+  # wday_data <- as.matrix(pomp_data[ , -c(1,5)])
+  # wday_data[which(is.na(wday_data))] <- 0
+  # wday_deviations <- apply(wday_data, MARGIN = 2, decycle, 
+  #                          wday = pomp_data$weekday)
+  # 
+  # cases <- pomp_data %>% 
+  #   dplyr::select(Date, weekday, cases) %>%
+  #   left_join(wday_deviations$cases, by = c("weekday" = "w")) %>%
+  #   mutate(cases_adj = round(cases / mrd)) %>%
+  #   dplyr::select(Date, cases_adj)
+  # hosps <- pomp_data %>% 
+  #   dplyr::select(Date, weekday, hosps) %>%
+  #   left_join(wday_deviations$hosps, by = c("weekday" = "w")) %>%
+  #   mutate(hosps_adj = round(hosps / mrd)) %>%
+  #   dplyr::select(Date, hosps_adj)
+  # deaths <- pomp_data %>% 
+  #   dplyr::select(Date, weekday, deaths) %>%
+  #   left_join(wday_deviations$deaths, by = c("weekday" = "w")) %>%
+  #   mutate(deaths_adj = round(deaths / mrd)) %>%
+  #   dplyr::select(Date, deaths_adj)
+  # 
+  # pomp_data <- cases %>%
+  #   left_join(hosps, by = "Date") %>%
+  #   left_join(deaths, by = "Date") %>%
+  #   rename("cases" = cases_adj,
+  #          "hosps" = hosps_adj,
+  #          "deaths" = deaths_adj)
+  
+  # Create full time series of NAs to make sure pomp_data
+  # starts at the time of model initialization
+  pseudo_data <- data.frame(
+    Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+    hold = NA)
+  
+  # Merge in the NAs to complete the time series
+  pomp_data <- pomp_data %>%
+    right_join(pseudo_data, by = "Date") %>%
+    dplyr::select(-hold) %>%
+    mutate(time = 1:n()) %>%
+    dplyr::select(time, cases, hosps, deaths)
+  
+  #saveRDS(us_ct_clean,filename_us_ct_data) #save clean file for loading unless it's outdated
+  saveRDS(pomp_data,filename_us_ct_data) #save clean file for loading unless it's outdated
 }
 
   

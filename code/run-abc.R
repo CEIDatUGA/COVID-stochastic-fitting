@@ -9,16 +9,16 @@
 
 # # Clear the decks ---------------------------------------------------------
 # 
-# rm(list = ls(all.names = TRUE))
+rm(list = ls(all.names = TRUE))
 # 
 # 
 # # Load libraries ----------------------------------------------------------
 # 
-# library(tidyverse)
-# library(pomp)
-# library(here)
-# library(doParallel)
-# library(foreach)
+library(tidyverse)
+library(pomp)
+library(here)
+library(doParallel)
+library(foreach)
 
 
 # Load the mif and pomp objects -------------------------------------------
@@ -97,12 +97,21 @@ prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 # Set up parameters to estimate and ABC variables -------------------------
 
-params_to_estimate <- names(coef(mifs$mif_objects[[1]]))
-rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "S_0",
-                                          "C1_0", "C2_0", "C3_0", "C4_0",
-                                          "H1_0", "H2_0", "H3_0", "H4_0",
-                                          "R_0", "D_0"))
-params_to_estimate <- params_to_estimate[-rmones]
+# load list that contains names of model parameters and initial conditions that are estimated-----------------
+filename <- here('output/estpars.RDS')
+est_list <- readRDS(filename)
+params_to_estimate = est_list$params_to_estimate
+inivals_to_estimate = est_list$inivals_to_estimate
+params_to_estimate <- c(params_to_estimate,inivals_to_estimate)
+
+
+# params_to_estimate <- names(coef(mifs$mif_objects[[1]]))
+# rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "S_0",
+#                                           "C1_0", "C2_0", "C3_0", "C4_0",
+#                                           "H1_0", "H2_0", "H3_0", "H4_0",
+#                                           "R_0", "D_0"))
+# params_to_estimate <- params_to_estimate[-rmones]
+
 
 # Set noise level for parameter random walk for proposals
 rw.sd <- rep(0.2, length(params_to_estimate))
@@ -138,9 +147,11 @@ scale_dat <- apply(psim@simvals, 2, sd)
 
 # Run the ABC-MCMC with MIF starting values -------------------------------
 
-# num_mcmc <- 20000
-# num_burn <- num_mcmc/2
-# num_thin <- (num_mcmc-num_burn) * 0.0004
+# For ABC-MCMC
+abc_num_mcmc <- 5000
+abc_num_burn <- abc_num_mcmc/2
+abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
+abc_num_thin <- 1
 
 start_coefs <- lls %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)

@@ -7,7 +7,7 @@
 
 # # Clear the decks ---------------------------------------------------------
 # 
-# rm(list = ls(all.names = TRUE))
+rm(list = ls(all.names = TRUE))
 # 
 # 
 # # Load libraries ----------------------------------------------------------
@@ -31,7 +31,7 @@ pomp_step <- Csnippet(
   double E_tot, Ia_tot, Isu_tot, Isd_tot, C_tot, H_tot;
   double foi;  // force of infection
   double g_sd, g_c;  // rate of transition through I_sd compartments
-  double detect_frac; // fraction of those that get eventually diagnosed
+  double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
   double beta;
 
   E_tot = E1+E2+E3+E4;  // all pre-symptomatic
@@ -41,35 +41,30 @@ pomp_step <- Csnippet(
   C_tot = C1+C2+C3+C4;  // all diagnosed/cases
   H_tot = H1+H2+H3+H4;  // all hospitalized
   
-
+  // ---------------------------------------------------------------
+  // below we define and compute different quantities that
+  // depend on time-varying interventions  
+  // ---------------------------------------------------------------
+  
   // Force of Infection (foi):
   // Each group can have its own transmission rate.
   // symptomatic are assumed to transmit the most, other groups have reduced transmission by some factor
   // all parameters are used in the model such that they can take on any numeric value (useful for fitting)
-  foi = exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
-
-  // t_int1 days after simulation start, social distancing intervention reduces transmission rate
-  //if (t>t_int1)
-      //foi = 1/(1+exp(beta_reduce))*foi;
-  foi = foi * rel_beta_change;
-
+  // the overall foi is modulated by the unacast data stream as covariate
+  foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
 
   // Time-dependent rate of movement through Isd dummy compartments
-  // t_int2 days after simulation start, the time it takes for individuals to get diagnosed decreases
-  if (t<t_int2) {
-      g_sd = exp(log_g_sd);  //regular time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c); //regular time in symptomatic stage with diagnosis
-  } else {
-      g_sd = exp(log_diag_speedup)*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c)/exp(log_diag_speedup); //increased time in symptomatic stage post diagnosis
-  }
+  // starts at no speedup, then increases with time up to a max
+  // ramp-up speed and max value are fitted
+  diag_speedup = (1 + exp(log_max_diag) )* exp(log_diag_inc_rate) * t / (1 + exp(log_diag_inc_rate) * t);
+  g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
+  g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
 
   // Time dependent fraction of those that move into detected category at the end of the E phase.
-  // t_int3 days after simulation start, the fraction that move into Isd increases
-  if (t<t_int3)
-    detect_frac = 1/(1+exp(detect_0));
-  else
-    detect_frac = 1/(1+exp(detect_1));
+  // starts at 0 at simulation start, then ramps up to some max value (0-1). 
+  // ramp-up speed and max value are fitted
+  detect_frac = 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate) * t / (1 + exp(log_detect_inc_rate) * t);
+  
   
   // Compute the transition rates
   rate[1] = foi;                                                //infection, movement from S to E
@@ -318,11 +313,11 @@ varnames <- c("S",
 # Parameter and variable names
 model_pars <- c("log_beta_s", #rate of infection of symptomatic 
                 "trans_e", "trans_a", "trans_c", "trans_h", #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
-                "beta_reduce",  #overall transmission reduction due to social distancing
-                "t_int1", "t_int2", "t_int3", #time at which different interventions are started
                 "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h", #rate of movement through E/Ia/Isu/Isd/C/H compartments,
-                "log_diag_speedup", #factor by which movement through Isd happens faster (quicker diagnosis) 
-                "detect_0","detect_1", #determines fraction that get diagnosed before and after intervention
+                "log_max_diag", #max for factor by which movement through Isd happens faster (quicker diagnosis) 
+                "log_diag_inc_rate", #rate at which faster diagnosis ramps up to max
+                "max_detect_par", #max fraction detected
+                "log_detect_inc_rate", #speed at which fraction detected ramps up
                 "frac_asym", #fraction asymptomatic
                 "frac_hosp", #fraction diagnosed that go into hospital
                 "frac_dead" #fraction hospitalized that die
@@ -344,6 +339,14 @@ ini_pars <- c("S_0",
 #combine names of all parameters into a single vector
 #note that values for parameters are specified in a separate script and can be loaded and assigned as needed
 parnames <- c(model_pars,measure_pars,ini_pars)
+
+#load data
+filename = here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+pomp_data <- readRDS(filename)
+
+
+# Load unacast covariate table ----------------------------------------
+covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 
 
 # Define the pomp model object --------------------------------------------
