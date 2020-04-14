@@ -26,16 +26,14 @@ rm(list = ls(all.names = TRUE))
 #parallel_run <- FALSE
 #num_cores <- parallel::detectCores() - 2  # alter as needed
 
-# Run script to initial parameter values 
+# Run script that defines parameter and variable names
+# specifies parameters that are being fitted
+# assigns values to variables and initial conditions
 # results are written into RDS file and loaded by later scripts
-source(here("code/set-par-vals.R"))
-
-# Run script to specify parameters that are being fitted
-# results are written into RDS file and loaded by later scripts
-source(here("code/set-estimated-pars.R"))
+source(here("code/set-pars-and-vars.R"))
 
 # Run script to set priors
-# needs results from set-par-vals.R 
+# needs results from set-pars-and-vars.R 
 # results are written into RDS file and loaded by later scripts
 source(here("code/set-priors.R"))
 

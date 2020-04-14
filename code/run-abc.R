@@ -1,4 +1,4 @@
-# run-particle-mcmc.R
+# run-abc.R
 # This script is designed to start where mif leaves off. Several
 # ABC MCMC chains are initiated from the parameter estimates from
 # MIF runs. The ABC MCMC is run for several hundred thousand iterations
@@ -97,21 +97,15 @@ prior_dens <- readRDS(here("output/prior-dens-object.RDS"))
 
 # Set up parameters to estimate and ABC variables -------------------------
 
-# load list that contains names of model parameters and initial conditions that are estimated-----------------
-filename <- here('output/estpars.RDS')
-est_list <- readRDS(filename)
-params_to_estimate = est_list$params_to_estimate
-inivals_to_estimate = est_list$inivals_to_estimate
+############################################################################
+# Load list that defines variables and parameters and their values
+############################################################################
+filename = here('output/var-par-definitions.RDS')
+par_var_list <- readRDS(filename) 
+allparvals <- par_var_list$allparvals
+params_to_estimate = par_var_list$params_to_estimate
+inivals_to_estimate = par_var_list$inivals_to_estimate
 params_to_estimate <- c(params_to_estimate,inivals_to_estimate)
-
-
-# params_to_estimate <- names(coef(mifs$mif_objects[[1]]))
-# rmones <- which(params_to_estimate %in% c("t_int1", "t_int2", "t_int3", "S_0",
-#                                           "C1_0", "C2_0", "C3_0", "C4_0",
-#                                           "H1_0", "H2_0", "H3_0", "H4_0",
-#                                           "R_0", "D_0"))
-# params_to_estimate <- params_to_estimate[-rmones]
-
 
 # Set noise level for parameter random walk for proposals
 rw.sd <- rep(0.2, length(params_to_estimate))

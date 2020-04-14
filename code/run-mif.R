@@ -41,14 +41,12 @@ filename <- here('output/pomp-model.RDS')
 pomp_model <- readRDS(filename)
 
 # load values for model parameters and initial conditions -----------------
-filename <- here('output/parvals.RDS')
-allparvals <- readRDS(filename)
+filename = here('output/var-par-definitions.RDS')
+par_var_list <- readRDS(filename) 
+allparvals <- par_var_list$allparvals
+params_to_estimate = par_var_list$params_to_estimate
+inivals_to_estimate = par_var_list$inivals_to_estimate
 
-# load list that contains names of model parameters and initial conditions that are estimated-----------------
-filename <- here('output/estpars.RDS')
-est_list <- readRDS(filename)
-params_to_estimate = est_list$params_to_estimate
-inivals_to_estimate = est_list$inivals_to_estimate
 
 # Specify mif random walk intensity ---------------------------------
 # set up the rw.sd structure, i.e. perturbations for parameters needed for mif
