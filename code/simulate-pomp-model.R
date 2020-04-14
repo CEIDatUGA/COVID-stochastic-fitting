@@ -26,9 +26,9 @@ allparvals <- readRDS(filename)
 #   as.data.frame() %>%
 #   t() %>%
 #   colMeans()
-# 
 lls <- readRDS(here("output/mif-results.RDS"))[[2]]
 allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[5]])
+
 
 M2 <- pomp_model
 horizon <- 7*20
@@ -42,9 +42,6 @@ covars <- as.data.frame(covars) %>%
 M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant"))
 
 #run simulation a number of times
-# allparvals["beta_reduce"] <- 1
-# allparvals["log_beta_s"] <- -16
-# allparvals["t_int2"] <- 3
 sims <- pomp::simulate(M2, 
                        params=allparvals, 
                        nsim=100, format="data.frame", 
