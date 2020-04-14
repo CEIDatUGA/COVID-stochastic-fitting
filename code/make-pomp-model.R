@@ -293,52 +293,15 @@ rmeas <- Csnippet(
 
 
 ############################################################################
-# Code to define variables, parameters and parameter transformations
+# load values for model parameters and initial conditions -----------------
 ############################################################################
-
-# State variables to track ------------------------------------------------
-varnames <- c("S", 
-             "E1", "E2", "E3", "E4",  
-             "Ia1", "Ia2", "Ia3", "Ia4", 
-             "Isu1", "Isu2", "Isu3", "Isu4", 
-             "Isd1", "Isd2", "Isd3", "Isd4", 
-             "C1", "C2", "C3", "C4",  
-             "H1", "H2", "H3", "H4",
-             "C_new", "H_new", "D_new",
-             "R",
-             "D")
-
-
-# Parameters --------------------------------------------------------------
-# Parameter and variable names
-model_pars <- c("log_beta_s", #rate of infection of symptomatic 
-                "trans_e", "trans_a", "trans_c", "trans_h", #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
-                "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h", #rate of movement through E/Ia/Isu/Isd/C/H compartments,
-                "log_max_diag", #max for factor by which movement through Isd happens faster (quicker diagnosis) 
-                "log_diag_inc_rate", #rate at which faster diagnosis ramps up to max
-                "max_detect_par", #max fraction detected
-                "log_detect_inc_rate", #speed at which fraction detected ramps up
-                "frac_asym", #fraction asymptomatic
-                "frac_hosp", #fraction diagnosed that go into hospital
-                "frac_dead" #fraction hospitalized that die
-)
-
-measure_pars <- c("log_theta_cases","log_theta_hosps","log_theta_deaths")
-
-# Initial conditions of state variables are also parameters
-ini_pars <- c("S_0", 
-              "E1_0", #"E2_0", "E3_0", "E4_0",  
-              "Ia1_0", #"Ia2_0", "Ia3_0", "Ia4_0", 
-              "Isu1_0", #"Isu2_0", "Isu3_0", "Isu4_0", 
-              "Isd1_0", #"Isd2_0", "Isd3_0", "Isd4_0", 
-              "C1_0", #"C2_0", "C3_0", "C4_0",  
-              "H1_0", #"H2_0", "H3_0", "H4_0", 
-              "R_0",
-              "D_0")
-
-#combine names of all parameters into a single vector
-#note that values for parameters are specified in a separate script and can be loaded and assigned as needed
-parnames <- c(model_pars,measure_pars,ini_pars)
+filename = here('output/var-par-definitions.RDS')
+par_var_list <- readRDS(filename) 
+allparvals <- par_var_list$allparvals
+params_to_estimate = par_var_list$params_to_estimate
+inivals_to_estimate = par_var_list$inivals_to_estimate
+varnames <- par_var_list$varnames
+allparnames <- names(allparvals) #includes initial conditions
 
 #load data
 filename = here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
@@ -360,7 +323,7 @@ pomp_model <- pomp(
   rinit = rinit,
   rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
   statenames = varnames,
-  paramnames = parnames, 
+  paramnames = allparnames, 
   obsnames = c("cases", "hosps", "deaths"),
   accumvars = c("C_new", "H_new", "D_new") 
 )

@@ -26,16 +26,14 @@ library(here)
 #parallel_run <- FALSE
 #num_cores <- parallel::detectCores() - 2  # alter as needed
 
-# Run script to initial parameter values 
+# Run script that defines parameter and variable names
+# specifies parameters that are being fitted
+# assigns values to variables and initial conditions
 # results are written into RDS file and loaded by later scripts
-source(here("code/set-par-vals.R"))
-
-# Run script to specify parameters that are being fitted
-# results are written into RDS file and loaded by later scripts
-source(here("code/set-estimated-pars.R"))
+source(here("code/set-pars-and-vars.R"))
 
 # Run script to set priors
-# needs results from set-par-vals.R 
+# needs results from set-pars-and-vars.R 
 # results are written into RDS file and loaded by later scripts
 source(here("code/set-priors.R"))
 
@@ -47,11 +45,11 @@ source(here("code/data-processing/load-clean-CT-data.R"))
 # Make the unacast covariate table ----------------------------------------
 # results are saved to data folder with time stamp in name
 # results will be loaded by later files
-thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
-thefile <- paste0("data/", tail(thefiles))
-if(file.exists(here(thefile))) {
-  source(here("code/model-beta-reduction.R"))
-}
+# thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
+# thefile <- paste0("data/", tail(thefiles))
+# if(file.exists(here(thefile))) {
+#   source(here("code/model-beta-reduction.R"))
+# }
 
 # Make a pomp model 
 # loads all the previously generated RDS files and generates a pomp model that's ready for fitting
