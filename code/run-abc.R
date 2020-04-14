@@ -26,8 +26,8 @@
 mifs <- readRDS(here("output/mif-results.RDS"))
 pomp_object <- readRDS(here("output/pomp-model.RDS"))
 
-lls <- mifs$loglik_dfs %>%
-  filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
+lls <- mifs$loglik_dfs #%>%
+  #filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
 
 # Define summary statistic (probes) functions -----------------------------
 
@@ -52,18 +52,41 @@ d2 <- ncol(pomp_object@data)
 
 # pomp won't allow variables in the probe functions, so we have to make
 # these time-dependent ones on the fly here.
+# Cases data
 max1 <- eval(parse(text = paste0("function(x){ max(log(x[1, 1:(", d0, "-1)] + 10))  }")))
 max2 <- eval(parse(text = paste0("function(x){ max(log(x[1,", d0, ":", d1, "] + 10))  }")))
 max3 <- eval(parse(text = paste0("function(x){ max(log(x[1,(", d1, "+1):", d2, "] + 10))  }")))
 maxall <- function(x){ max(log(x[1,])) }
 maxday <- function(x){ which.max(x[1,]) }
-
 cumi1 <- eval(parse(text = paste0("function(x){ sum(log(x[1, 1:(", d0, "-1)] + 10))  }")))
 cumi2 <- eval(parse(text = paste0("function(x){ sum(log(x[1, ", d0, ":", d1, "] + 10))  }")))
 cumi3 <- eval(parse(text = paste0("function(x){ sum(log(x[1, (", d1, "+1):", d2, "] + 10))  }")))
-
 exp1 <- eval(parse(text = paste0("function(x) { max(x[1, ]) / which.max(x[1, ]) -", d0, "}")))
 regcoef <- function(x) { as.numeric(coef(lm(x[1,] ~ seq_along(x[1,])))[2]) }
+
+# Hosps data
+hmax1 <- eval(parse(text = paste0("function(x){ max(log(x[2, 1:(", d0, "-1)] + 10))  }")))
+hmax2 <- eval(parse(text = paste0("function(x){ max(log(x[2,", d0, ":", d1, "] + 10))  }")))
+hmax3 <- eval(parse(text = paste0("function(x){ max(log(x[2,(", d1, "+1):", d2, "] + 10))  }")))
+hmaxall <- function(x){ max(log(x[2,])) }
+hmaxday <- function(x){ which.max(x[2,]) }
+hcumi1 <- eval(parse(text = paste0("function(x){ sum(log(x[2, 1:(", d0, "-1)] + 10))  }")))
+hcumi2 <- eval(parse(text = paste0("function(x){ sum(log(x[2, ", d0, ":", d1, "] + 10))  }")))
+hcumi3 <- eval(parse(text = paste0("function(x){ sum(log(x[2, (", d1, "+1):", d2, "] + 10))  }")))
+hexp1 <- eval(parse(text = paste0("function(x) { max(x[2, ]) / which.max(x[1, ]) -", d0, "}")))
+hregcoef <- function(x) { as.numeric(coef(lm(x[2,] ~ seq_along(x[2,])))[2]) }
+
+# Deaths data
+dmax1 <- eval(parse(text = paste0("function(x){ max(log(x[3, 1:(", d0, "-1)] + 10))  }")))
+dmax2 <- eval(parse(text = paste0("function(x){ max(log(x[3,", d0, ":", d1, "] + 10))  }")))
+dmax3 <- eval(parse(text = paste0("function(x){ max(log(x[3,(", d1, "+1):", d2, "] + 10))  }")))
+dmaxall <- function(x){ max(log(x[3,])) }
+dmaxday <- function(x){ which.max(x[3,]) }
+dcumi1 <- eval(parse(text = paste0("function(x){ sum(log(x[3, 1:(", d0, "-1)] + 10))  }")))
+dcumi2 <- eval(parse(text = paste0("function(x){ sum(log(x[3, ", d0, ":", d1, "] + 10))  }")))
+dcumi3 <- eval(parse(text = paste0("function(x){ sum(log(x[3, (", d1, "+1):", d2, "] + 10))  }")))
+dexp1 <- eval(parse(text = paste0("function(x) { max(x[3, ]) / which.max(x[1, ]) -", d0, "}")))
+dregcoef <- function(x) { as.numeric(coef(lm(x[3,] ~ seq_along(x[3,])))[2]) }
 
 
 # Define the prior density ------------------------------------------------     
@@ -87,13 +110,14 @@ names(rw.sd) <- params_to_estimate
 
 # Define the probe list
 plist <- list(
-  max1, max2, max3, maxall,
-  cumi1, cumi2, cumi3, exp1, regcoef
+  max1, max2, max3, maxall, cumi1, cumi2, cumi3, exp1, regcoef,
+  hmax1, hmax2, hmax3, hmaxall, hcumi1, hcumi2, hcumi3, hexp1, hregcoef,
+  dmax1, dmax2, dmax3, dmaxall, dcumi1, dcumi2, dcumi3, dexp1, dregcoef
 )
 
 # Make a new pomp object for ABC
 abc_pomp_object <- pomp(pomp_object,
-                        # dprior = prior_dens,
+                        dprior = prior_dens,
                         paramnames = params_to_estimate,
                         cdir = getwd())  # cdir to avoid weird windows error
 
@@ -135,17 +159,20 @@ foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
                           params = start_coefs[i,],
                         ),
                         Nabc = abc_num_mcmc,
-                        epsilon = 5,
+                        epsilon = 93,
                         scale = scale_dat,
                         proposal = mvn.diag.rw(rw.sd),
                         probes = plist,
-                        verbose = FALSE
-                      )
+                        verbose = TRUE
+                      ) -> out
                     } -> out_abc
 
 stopCluster(cl)
 
 
+plot(out@traces[,9], type = "l")
+abline(h = -17.0927194398423, col = "red")
+out_abc <- list("1" = out)
 # Summarize parameters ----------------------------------------------------
 
 all_abc <- tibble()

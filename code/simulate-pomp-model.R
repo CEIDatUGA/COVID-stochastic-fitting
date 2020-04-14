@@ -44,7 +44,7 @@ M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant
 #run simulation a number of times
 sims <- pomp::simulate(M2, 
                        params=allparvals, 
-                       nsim=100, format="data.frame", 
+                       nsim=10, format="data.frame", 
                        include.data=TRUE)
 
 # filename = here('output/model-predictions.RDS')
