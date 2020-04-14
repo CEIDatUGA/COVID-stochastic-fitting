@@ -18,16 +18,16 @@ params_to_estimate <- c(
   "trans_e", "trans_a", "trans_c", "trans_h",
   
   # overall transmission reduction due to social distancing
-  "beta_reduce",  
+  #"beta_reduce",  
   
   # rate of movement through E/Ia/Isu/Isd/C/H compartments,
   "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c","log_g_h",
   
   # factor by which movement through Isd happens faster (quicker diagnosis) 
-  "log_diag_speedup", 
+  "log_max_diag",     "log_diag_inc_rate",   "max_detect_par",      "log_detect_inc_rate",
   
   # determines fraction that get diagnosed before and after intervention
-  "detect_0","detect_1", 
+  #"detect_0","detect_1", 
   
   "frac_asym", # fraction asymptomatic
   "frac_hosp", # fraction diagnosed that go into hospital
@@ -39,10 +39,10 @@ params_to_estimate <- c(
 
 # Specify which initial conditions to estimate
 inivals_to_estimate <- c(                        
-  "E1_0", "E2_0", "E3_0", "E4_0",  
-  "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
-  "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
-  "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
+  "E1_0", #"E2_0", "E3_0", "E4_0",  
+  "Ia1_0", #"Ia2_0", "Ia3_0", "Ia4_0", 
+  "Isu1_0", #"Isu2_0", "Isu3_0", "Isu4_0", 
+  "Isd1_0" #"Isd2_0", "Isd3_0", "Isd4_0" 
 )
 
 est_list = list()

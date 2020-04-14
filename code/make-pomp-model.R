@@ -184,35 +184,35 @@ rinit <- Csnippet(
   "
   S = nearbyint(S_0);
   E1 = nearbyint(E1_0);
-  E2 = nearbyint(E2_0);
-  E3 = nearbyint(E3_0);
-  E4 = nearbyint(E4_0);
+  E2 = nearbyint(E1_0);
+  E3 = nearbyint(E1_0);
+  E4 = nearbyint(E1_0);
   
   Ia1 = nearbyint(Ia1_0);
-  Ia2 = nearbyint(Ia2_0);
-  Ia3 = nearbyint(Ia3_0);
-  Ia4 = nearbyint(Ia4_0);
+  Ia2 = nearbyint(Ia1_0);
+  Ia3 = nearbyint(Ia1_0);
+  Ia4 = nearbyint(Ia1_0);
   
   Isu1 = nearbyint(Isu1_0);
-  Isu2 = nearbyint(Isu2_0);
-  Isu3 = nearbyint(Isu3_0);
-  Isu4 = nearbyint(Isu4_0);
+  Isu2 = nearbyint(Isu1_0);
+  Isu3 = nearbyint(Isu1_0);
+  Isu4 = nearbyint(Isu1_0);
 
   Isd1 = nearbyint(Isd1_0);
-  Isd2 = nearbyint(Isd2_0);
-  Isd3 = nearbyint(Isd3_0);
-  Isd4 = nearbyint(Isd4_0);
+  Isd2 = nearbyint(Isd1_0);
+  Isd3 = nearbyint(Isd1_0);
+  Isd4 = nearbyint(Isd1_0);
   
   C1 = nearbyint(C1_0);
-  C2 = nearbyint(C2_0);
-  C3 = nearbyint(C3_0);
-  C4 = nearbyint(C4_0);
+  C2 = nearbyint(C1_0);
+  C3 = nearbyint(C1_0);
+  C4 = nearbyint(C1_0);
   C_new = nearbyint(C1_0);
 
   H1 = nearbyint(H1_0);
-  H2 = nearbyint(H2_0);
-  H3 = nearbyint(H3_0);
-  H4 = nearbyint(H4_0);
+  H2 = nearbyint(H1_0);
+  H3 = nearbyint(H1_0);
+  H4 = nearbyint(H1_0);
   H_new = nearbyint(H1_0);
 
   R = nearbyint(R_0);
@@ -327,12 +327,12 @@ measure_pars <- c("log_theta_cases","log_theta_hosps","log_theta_deaths")
 
 # Initial conditions of state variables are also parameters
 ini_pars <- c("S_0", 
-              "E1_0", "E2_0", "E3_0", "E4_0",  
-              "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
-              "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
-              "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0", 
-              "C1_0", "C2_0", "C3_0", "C4_0",  
-              "H1_0", "H2_0", "H3_0", "H4_0", 
+              "E1_0", #"E2_0", "E3_0", "E4_0",  
+              "Ia1_0", #"Ia2_0", "Ia3_0", "Ia4_0", 
+              "Isu1_0", #"Isu2_0", "Isu3_0", "Isu4_0", 
+              "Isd1_0", #"Isd2_0", "Isd3_0", "Isd4_0", 
+              "C1_0", #"C2_0", "C3_0", "C4_0",  
+              "H1_0", #"H2_0", "H3_0", "H4_0", 
               "R_0",
               "D_0")
 

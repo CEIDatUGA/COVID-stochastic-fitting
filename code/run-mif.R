@@ -130,8 +130,8 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 #mif_num_iterations <- c(100, 50)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
-mif_num_particles <- c(200, 200)  # two rounds of MIF
-mif_num_iterations <- c(10, 10)  # two rounds of MIF
+mif_num_particles <- c(1000, 1000)  # two rounds of MIF
+mif_num_iterations <- c(50, 50)  # two rounds of MIF
 
 
 # For particle filter log likelihood estimation of MIF MLEs
