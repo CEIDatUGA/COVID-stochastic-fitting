@@ -183,25 +183,25 @@ pomp_step <- Csnippet(
 rinit <- Csnippet(
   "
   S = nearbyint(S_0);
-  E1 = nearbyint(E1_0);
-  E2 = nearbyint(E1_0);
-  E3 = nearbyint(E1_0);
-  E4 = nearbyint(E1_0);
+  E1 = nearbyint(exp(E1_0));
+  E2 = nearbyint(exp(E1_0));
+  E3 = nearbyint(exp(E1_0));
+  E4 = nearbyint(exp(E1_0));
   
-  Ia1 = nearbyint(Ia1_0);
-  Ia2 = nearbyint(Ia1_0);
-  Ia3 = nearbyint(Ia1_0);
-  Ia4 = nearbyint(Ia1_0);
+  Ia1 = nearbyint(exp(Ia1_0));
+  Ia2 = nearbyint(exp(Ia1_0));
+  Ia3 = nearbyint(exp(Ia1_0));
+  Ia4 = nearbyint(exp(Ia1_0));
   
-  Isu1 = nearbyint(Isu1_0);
-  Isu2 = nearbyint(Isu1_0);
-  Isu3 = nearbyint(Isu1_0);
-  Isu4 = nearbyint(Isu1_0);
+  Isu1 = nearbyint(exp(Isu1_0));
+  Isu2 = nearbyint(exp(Isu1_0));
+  Isu3 = nearbyint(exp(Isu1_0));
+  Isu4 = nearbyint(exp(Isu1_0));
 
-  Isd1 = nearbyint(Isd1_0);
-  Isd2 = nearbyint(Isd1_0);
-  Isd3 = nearbyint(Isd1_0);
-  Isd4 = nearbyint(Isd1_0);
+  Isd1 = nearbyint(exp(Isd1_0));
+  Isd2 = nearbyint(exp(Isd1_0));
+  Isd3 = nearbyint(exp(Isd1_0));
+  Isd4 = nearbyint(exp(Isd1_0));
   
   C1 = nearbyint(C1_0);
   C2 = nearbyint(C1_0);

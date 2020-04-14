@@ -27,11 +27,11 @@ allparvals <- readRDS(filename)
 #   t() %>%
 #   colMeans()
 lls <- readRDS(here("output/mif-results.RDS"))[[2]]
-allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[5]])
+allparvals <- coef(readRDS(here("output/mif-results.RDS"))[[1]][[2]])
 
 
 M2 <- pomp_model
-horizon <- 7*20
+horizon <- 7*6
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
 covars <- pomp_model@covar@table
 covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
