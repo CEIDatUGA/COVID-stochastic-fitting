@@ -7,6 +7,7 @@ rm(list = ls(all.names = TRUE))
 # Load libraries ----------------------------------------------------------
 library(dplyr)
 library(pomp)
+library(ggplot2)
 library(here)
 
 # load results produced by mif fitting ----------------------------------------------------
@@ -52,13 +53,13 @@ print(pf_logliks)
 
 
 
-
+# Compute some results -------------------------------------------------------
 
 mifs[[1]] %>% 
   traces() %>%
   melt() %>%
   filter(variable %in% c("loglik", params_to_estimate)) %>%
-  # filter(iteration > 100) %>%
+  filter(iteration > 100) %>%
   ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
   geom_line()+
   facet_wrap(~variable,scales="free_y")+
