@@ -49,8 +49,10 @@ inivals_to_estimate = par_var_list$inivals_to_estimate
 # hard-coded is not a good idea, but ok for now
 
 #this might need some more manual tweaking
-pert_par_vals <- rep(0.1, length(params_to_estimate))  
-pert_ini_vals <- rep(0.2,length(inivals_to_estimate))
+pert_par_vals <- rep(0.05, length(params_to_estimate))
+pert_ini_vals <- rep(0.1, length(inivals_to_estimate))
+# pert_par_vals <- c(rep(0.05,18), rep(0.1,3))
+# pert_ini_vals <- c(rep(0.2,12), rep(0.1,4))
 
 
 # make long string containing all parameter names and values
@@ -123,12 +125,12 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
-#mif_num_particles <- c(2000, 2000)  # two rounds of MIF
-#mif_num_iterations <- c(100, 50)  # two rounds of MIF
+mif_num_particles <- c(2000, 2000)  # two rounds of MIF
+mif_num_iterations <- c(100, 50)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
-mif_num_particles <- c(100, 100)  # two rounds of MIF
-mif_num_iterations <- c(50, 50)  # two rounds of MIF
+# mif_num_particles <- c(2000, 2000)  # two rounds of MIF
+# mif_num_iterations <- c(50, 50)  # two rounds of MIF
 
 # For particle filter log likelihood estimation of MIF MLEs
 pf_num_particles <- 2000

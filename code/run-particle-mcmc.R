@@ -17,21 +17,59 @@ library(foreach)
 
 # Load the pomp object and mif results ------------------------------------
 
-mif_results <- readRDS(here('output/mif-results.RDS'))
+# load results produced by mif fitting ----------------------------------------------------
+# this is a list of mif objects for each initial condition 
+# followed by pfilter objects run a specified number of times after each mif is run
+filename = here('output/mif-results.RDS')
+mif_res_list <- readRDS(filename)
+mifs = mif_res_list$mif_runs
+pfs = mif_res_list$pf_runs
 
-n_cores <- parallel::detectCores() - 2  # alter as needed
-n_ini_cond <- 1*n_cores 
+
+# Compute some results -------------------------------------------------------
+# for each initial condition, take the pf runs and compute mean log likelihood
+n_ini_cond = length(mifs)
+ll = list()
+for (i in 1:n_ini_cond) #do last part not in parallel
+{
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+pf_logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
+
+
+n_cores <- parallel::detectCores() - 2 # alter as needed
+n_ini_cond <- n_cores 
 
 
 # Extract MLEs as starting values -----------------------------------------
 
 # Get the parameter set with the highest log likelihood and then
 # pull those parameter estimates into a named vector
-mle_inits <- mif_results$loglik_dfs %>%
+mle_inits <- pf_logliks %>%
   filter(LogLik == max(LogLik)) %>%  # get MLEs
   pull(MIF_ID)
 
-mif_init <- mif_results$mif_objects[[mle_inits]]
+mif_init <- mifs[[mle_inits]]
 
 
 
@@ -71,7 +109,7 @@ rw.sd <- rep(0.075, length(params_to_estimate))
 names(rw.sd) <- params_to_estimate
 
 # Forecast horizon, days
-weeks_ahead <- 1  # go one further than 6 to make sure we get the dates
+weeks_ahead <- 7  # go one further than 6 to make sure we get the dates
 horizon <- 7 * weeks_ahead
 newtimes <- c(time(mif_init), max(time(mif_init)) + seq_len(horizon))
 newdata <- t(mif_init@data) %>%
@@ -102,7 +140,7 @@ pomp_for_mcmc <- pomp(
   cdir = getwd()  # just to fix a Windows error when compiling...
 )
 
-num_mcmc <- 10
+num_mcmc <- 1000
 
 cl <- parallel::makeCluster(n_cores)
 registerDoParallel(cl)
@@ -169,47 +207,47 @@ saveRDS(out_mcmc, outfile)
 #   "
 # )
 
-test <- out
-beta <- test@traces[ , "log_beta_s"]
-theta <- exp(test@traces[, "log_theta_hosps"])
-hstates <- t(test@filter.traj["H_new",,]) %>%
-  as.data.frame() %>%
-  melt()
-hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
-hstates$time = rep(newtimes, times = 20)
-hstates <- hstates %>%
-  mutate(period = ifelse(time < 43, "calibration", "forecast"))
-
-pob <- readRDS("./output/pomp-model.RDS")
-dat <- t(pob@data) %>% as.data.frame()
-dat$time = 1:nrow(dat)
-
-ggplot() +
-  geom_line(data = hstates, aes(x = time, y = value, group = variable, color = period)) +
-  geom_point(data = dat, aes(x = time, y = hosps), size = 1) +
-  geom_line(data = dat, aes(x = time, y = hosps), size = 0.3) +
-  xlab("Time since March 1") +
-  ylab("Number of new hospitalizations")
-
-
-theta <- exp(test@traces[1001:2000, "log_theta_cases"])
-hstates <- t(test@filter.traj["C_new",1001:2000,]) %>%
-  as.data.frame() %>%
-  melt()
-hstates$cases <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
-hstates  <- hstates %>%
-  group_by(variable) %>%
-  mutate(tot = cumsum(cases)) %>%
-  ungroup() %>% as.data.frame
-hstates$time = rep(c(0,newtimes), times = 1000)
-hstates <- hstates %>%
-  mutate(period = ifelse(time < 40, "calibration", "forecast"))
-
-ggplot() +
-  geom_line(data = hstates, 
-            aes(x = time, y = tot, group = variable, color = period), alpha = 0.1) +
-  xlab("Time since March 1") +
-  ylab("Cumulative cases") 
+# test <- out
+# beta <- test@traces[ , "log_beta_s"]
+# theta <- exp(test@traces[, "log_theta_hosps"])
+# hstates <- t(test@filter.traj["H_new",,]) %>%
+#   as.data.frame() %>%
+#   melt()
+# hstates$hosps <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
+# hstates$time = rep(newtimes, times = 20)
+# hstates <- hstates %>%
+#   mutate(period = ifelse(time < 43, "calibration", "forecast"))
+# 
+# pob <- readRDS("./output/pomp-model.RDS")
+# dat <- t(pob@data) %>% as.data.frame()
+# dat$time = 1:nrow(dat)
+# 
+# ggplot() +
+#   geom_line(data = hstates, aes(x = time, y = value, group = variable, color = period)) +
+#   geom_point(data = dat, aes(x = time, y = hosps), size = 1) +
+#   geom_line(data = dat, aes(x = time, y = hosps), size = 0.3) +
+#   xlab("Time since March 1") +
+#   ylab("Number of new hospitalizations")
+# 
+# 
+# theta <- exp(test@traces[1001:2000, "log_theta_cases"])
+# hstates <- t(test@filter.traj["C_new",1001:2000,]) %>%
+#   as.data.frame() %>%
+#   melt()
+# hstates$cases <- rnbinom(n = nrow(hstates), size = theta, mu = hstates$value)
+# hstates  <- hstates %>%
+#   group_by(variable) %>%
+#   mutate(tot = cumsum(cases)) %>%
+#   ungroup() %>% as.data.frame
+# hstates$time = rep(c(0,newtimes), times = 1000)
+# hstates <- hstates %>%
+#   mutate(period = ifelse(time < 40, "calibration", "forecast"))
+# 
+# ggplot() +
+#   geom_line(data = hstates, 
+#             aes(x = time, y = tot, group = variable, color = period), alpha = 0.1) +
+#   xlab("Time since March 1") +
+#   ylab("Cumulative cases") 
 
 
 

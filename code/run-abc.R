@@ -22,12 +22,47 @@ library(foreach)
 
 
 # Load the mif and pomp objects -------------------------------------------
-
-mifs <- readRDS(here("output/mif-results.RDS"))
 pomp_object <- readRDS(here("output/pomp-model.RDS"))
+filename = here('output/mif-results.RDS')
+mif_res_list <- readRDS(filename)
+mifs = mif_res_list$mif_runs
+pfs = mif_res_list$pf_runs
 
-lls <- mifs$loglik_dfs %>%
-  filter(LogLik > max(LogLik) - 0.5*qchisq(df=1, p=0.99))
+
+# Compute some results -------------------------------------------------------
+# for each initial condition, take the pf runs and compute mean log likelihood
+n_ini_cond = length(mifs)
+ll = list()
+for (i in 1:n_ini_cond) #do last part not in parallel
+{
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+lls <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)  %>%
+  filter(LogLik > min(LogLik))
+
+mif_id <- lls %>%
+  filter(LogLik == max(LogLik)) %>%
+  pull(MIF_ID)
 
 # Define summary statistic (probes) functions -----------------------------
 
@@ -130,7 +165,7 @@ abc_pomp_object@data[which(is.na(abc_pomp_object@data))] <- 0
 # Test the probes and get scale for each ----------------------------------
 
 psim <- probe(abc_pomp_object,
-              params = coef(mifs$mif_objects[[1]]), 
+              params = coef(mifs[[1]]), 
               probes = plist,
               nsim = 1000)
 
@@ -140,10 +175,10 @@ scale_dat <- apply(psim@simvals, 2, sd)
 # Run the ABC-MCMC with MIF starting values -------------------------------
 
 # For ABC-MCMC
-abc_num_mcmc <- 50000
-abc_num_burn <- abc_num_mcmc/2
-abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
-abc_num_thin <- 1
+abc_num_mcmc <- 200000
+# abc_num_burn <- abc_num_mcmc/2
+# abc_num_thin <- (abc_num_mcmc - abc_num_burn) * 0.0004
+# abc_num_thin <- 1
 
 start_coefs <- lls %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
@@ -162,15 +197,21 @@ foreach(i = 1:nrow(lls), .combine = c, .packages = c("pomp"),
                           params = start_coefs[i,],
                         ),
                         Nabc = abc_num_mcmc,
-                        epsilon = 64,
+                        epsilon = 70,
                         scale = scale_dat,
                         proposal = mvn.diag.rw(rw.sd),
                         probes = plist,
-                        verbose = TRUE
-                      ) -> out
+                        verbose = FALSE
+                      ) 
                     } -> out_abc
 
 stopCluster(cl)
+
+saveRDS(out_abc, file = here("output/abc-results.RDS"))
+
+
+
+
 # 
 # t1 <- tail(out@traces[,1], 10000)
 # ttt <- t1[seq(1, length(t1), 0)]
@@ -180,31 +221,31 @@ stopCluster(cl)
 # out_abc <- list("1" = out)
 # Summarize parameters ----------------------------------------------------
 
-all_abc <- tibble()
-for(i in 1:length(out_abc)) {
-  tmp <- out_abc[[i]]
-  param_mat <- tail(tmp@traces, abc_num_mcmc - abc_num_burn) %>%
-    as.data.frame() %>%
-    mutate(chain = i,
-           iter = 1:n())
-  param_out <- param_mat[seq(1, nrow(param_mat), abc_num_thin), ]
-  all_abc <- bind_rows(all_abc, param_out)
-}
-
-abc_summaries <- all_abc %>%
-  gather(key = "Parameter", value = "Value", -chain) %>%
-  group_by(Parameter, chain) %>%
-  summarise(lower = quantile(Value, 0.025),
-            median = quantile(Value, 0.5),
-            upper = quantile(Value, 0.975),
-            mean = mean(Value),
-            sd = sd(Value))
-
-abc_params <-  abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
-  filter(Parameter != "iter")
-mif_params <- t(start_coefs[1, ]) %>% as.data.frame()
-mif_params$Parameter <- row.names(mif_params)
-mif_params <- mif_params %>% left_join(abc_params) %>% mutate(diff = `1` - mean)
+# all_abc <- tibble()
+# for(i in 1:length(out_abc)) {
+#   tmp <- out_abc[[i]]
+#   param_mat <- tail(tmp@traces, abc_num_mcmc - abc_num_burn) %>%
+#     as.data.frame() %>%
+#     mutate(chain = i,
+#            iter = 1:n())
+#   param_out <- param_mat[seq(1, nrow(param_mat), abc_num_thin), ]
+#   all_abc <- bind_rows(all_abc, param_out)
+# }
+# 
+# abc_summaries <- all_abc %>%
+#   gather(key = "Parameter", value = "Value", -chain) %>%
+#   group_by(Parameter, chain) %>%
+#   summarise(lower = quantile(Value, 0.025),
+#             median = quantile(Value, 0.5),
+#             upper = quantile(Value, 0.975),
+#             mean = mean(Value),
+#             sd = sd(Value))
+# 
+# abc_params <-  abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
+#   filter(Parameter != "iter")
+# mif_params <- t(start_coefs[1, ]) %>% as.data.frame()
+# mif_params$Parameter <- row.names(mif_params)
+# mif_params <- mif_params %>% left_join(abc_params) %>% mutate(diff = `1` - mean)
 
 # abc_summaries %>% filter(chain == 1) %>% dplyr::select(Parameter, mean) %>%
 #   filter(Parameter != "iter") %>% deframe() -> allparvals

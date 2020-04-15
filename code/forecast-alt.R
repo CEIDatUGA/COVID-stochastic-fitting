@@ -21,14 +21,47 @@ library(iterators)
 
 # Load the MIF results ----------------------------------------------------
 
-mifs <- readRDS(here("output/mif-results.RDS"))
-logliks <- mifs$loglik_dfs
+filename <- (here("output/mif-results.RDS"))
+mif_res_list <- readRDS(filename)
+mifs = mif_res_list$mif_runs
+pfs = mif_res_list$pf_runs
+
+
+# Compute some results -------------------------------------------------------
+# for each initial condition, take the pf runs and compute mean log likelihood
+n_ini_cond = length(mifs)
+ll = list()
+for (i in 1:n_ini_cond) #do last part not in parallel
+{
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+
+# get estimated values for all parameters that were estimated for each run 
+mif_coefs <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(mif_coefs) <- names(coef(mifs[[1]]))  # names are the same for all mifs
+
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# combine the ll_df and mif_coefs data frames. 
+# Also do some cleaning/renaming
+logliks <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(mif_coefs) %>%
+  dplyr::arrange(-LogLik)
 
 
 # Define some global functions and settings -------------------------------
 
 # Forecast horizon
-horizon <- 7 * 2  # 7 days * 7 weeks
+horizon <- 7 * 7  # 7 days * 7 weeks
 
 # Weighted quantile function (from King et al. 2015)
 wquant <- function (x, weights, probs = c(0.025,0.5,0.975)) {
@@ -58,9 +91,9 @@ logliks  %>%
 
 sobolDesign(lower=ranges[,'min'],
             upper=ranges[,'max'],
-            nseq=10) -> params
+            nseq=20) -> params
 
-params <- logliks[5,4:ncol(logliks)] %>%
+params <- logliks[,4:ncol(logliks)] %>%
   as.data.frame()
 
 # Run the simulations -----------------------------------------------------
@@ -86,12 +119,12 @@ foreach(p=iter(params,by='row'),
     group_by(rep) %>%
     summarize(
       S_0=S,
-      E1_0=E1, E2_0=E2, E3_0=E3, E4_0=E4,
-      Ia1_0=Ia1, Ia2_0=Ia2, Ia3_0=Ia3, Ia4_0=Ia4,
-      Isu1_0=Isu1, Isu2_0=Isu2, Isu3_0=Isu3, Isu4_0=Isu4,
-      Isd1_0=Isd1, Isd2_0=Isd2, Isd3_0=Isd3, Isd4_0=Isd4,
-      C1_0 = C1, C2_0 = C2, C3_0 = C3, C4_0 = C4,
-      H1_0 = H1, H2_0 = H2, H3_0 = H3, H4_0 = H4,
+      E1_0=log(E1), #E2_0=E2, E3_0=E3, E4_0=E4,
+      Ia1_0=log(Ia1), #Ia2_0=Ia2, Ia3_0=Ia3, Ia4_0=Ia4,
+      Isu1_0=log(Isu1), #Isu2_0=Isu2, Isu3_0=Isu3, Isu4_0=Isu4,
+      Isd1_0=log(Isd1),#Isd2_0=Isd2, Isd3_0=Isd3, Isd4_0=Isd4,
+      C1_0 = C1, #C2_0 = C2, C3_0 = C3, C4_0 = C4,
+      H1_0 = H1, #H2_0 = H2, H3_0 = H3, H4_0 = H4,
       R_0=R, D_0 = D
     ) %>%
     gather(variable,value,-rep) %>%
@@ -106,7 +139,7 @@ foreach(p=iter(params,by='row'),
   ## generate simulations over the interval for which we have data
   M1 %>%
     simulate(params=pp,format="data.frame") %>%
-    select(.id,time,H1,hosps, cases, C1, D, deaths) %>%
+    select(.id, time, H_new, hosps, cases, C_new, D_new, deaths) %>%
     mutate(
       period="calibration",
       loglik=logLik(pf)
@@ -117,13 +150,19 @@ foreach(p=iter(params,by='row'),
   time(M2) <- max(time(M1))+seq_len(horizon)
   timezero(M2) <- max(time(M1))
   
+  # Set covars table for forecasts
+  newcovars <- data.frame(
+    rel_beta_change = rep(tail(t(M1@covar@table), 1), times = horizon +1)) %>%
+    mutate(time = 1:n() + (max(time(M1)-1)))
+  M2@covar <- covariate_table(newcovars, times = "time", order = "constant")
+  
   ## set the initial conditions to the final states computed above
   pp[rownames(x),] <- x
   
   ## perform forecast simulations
   M2 %>%
     simulate(params=pp,format="data.frame") %>%
-    select(.id,time,H1,hosps, cases, C1, D, deaths) %>%
+    select(.id, time, H_new, hosps, cases, C_new, D_new, deaths) %>%
     mutate(
       period="projection",
       loglik=logLik(pf)
@@ -131,9 +170,10 @@ foreach(p=iter(params,by='row'),
   
   bind_rows(calib,proj)
 } -> out
+
 out %>%
   # filter(loglik != -Inf) %>%
-  # mutate(weight=exp(loglik-mean(loglik))) %>%
+  mutate(weight=exp(loglik-mean(loglik))) %>%
   arrange(time,.id) -> sims
 
 
@@ -147,16 +187,16 @@ out %>%
 sims %>%
   # mutate(weight = ifelse(weight == Inf, 1, weight)) %>%
   group_by(time,period) %>%
-  summarize(
-    lower = quantile(cases, probs = 0.01),
-    median = median(cases),
-    upper = quantile(cases, probs = 0.9)
-  ) %>%
   # summarize(
-  #   lower=wquant(H1,weights=weight,probs=0.025),
-  #   median=wquant(H1,weights=weight,probs=0.5),
-  #   upper=wquant(H1,weights=weight,probs=0.975)
+  #   lower = quantile(hosps, probs = 0.025),
+  #   median = mean(hosps),
+  #   upper = quantile(hosps, probs = 0.975)
   # ) %>%
+  summarize(
+    lower=wquant(cases,weights=weight,probs=0.025),
+    median=wquant(cases, weights=weight,probs=0.5),
+    upper=wquant(cases,weights=weight,probs=0.975)
+  ) %>%
   ungroup() -> simq
 
 # thedata <- readRDS(here("output/pomp-model.RDS"))@data
@@ -170,10 +210,16 @@ start_date <- as.Date("2020-03-01")
 end_date <- start_date + max(sims$time) - 1
 dates <- seq.Date(start_date, end_date, "days") 
 dates_df <- data.frame(Time = c(1:length(dates)), Date = dates)
-sims %>%
-  rename("Time" = time, "H_new" = H1, "rep" = .id) %>%
-  dplyr::select(Time, H_new, rep) %>%
-  left_join(dates_df, by = "Time") %>%
-  dplyr::select(Date, H_new, rep) -> forecasts
 
-saveRDS(object = forecasts, file = here("output/forecasts.RDS"))
+# sims %>%
+#   rename("Time" = time, "H_new" = H1, "rep" = .id) %>%
+#   dplyr::select(Time, H_new, rep) %>%
+#   left_join(dates_df, by = "Time") %>%
+#   dplyr::select(Date, H_new, rep) -> forecasts
+
+# saveRDS(object = forecasts, file = here("output/forecasts.RDS"))
+
+
+ggplot(calib, aes(x = time, y = hosps, group = .id)) +
+  geom_line(alpha = 0.1) +
+  geom_hline(aes(yintercept = 180), color = "red")

@@ -41,6 +41,10 @@ pomp_step <- Csnippet(
   C_tot = C1+C2+C3+C4;  // all diagnosed/cases
   H_tot = H1+H2+H3+H4;  // all hospitalized
   
+  //double dW;
+  // compute the environmental stochasticity
+  //dW = rgammawn(exp(sigma_dw), dt);
+  
   // ---------------------------------------------------------------
   // below we define and compute different quantities that
   // depend on time-varying interventions  
@@ -67,7 +71,7 @@ pomp_step <- Csnippet(
   
   
   // Compute the transition rates
-  rate[1] = foi;                                                //infection, movement from S to E
+  rate[1] = foi; // * dw/dt;                                                //infection, movement from S to E
   rate[2] = exp(log_g_e);                                        //movement through E compartments
   rate[3] = exp(log_g_e) * 1/(1+exp(frac_asym));                             //from E to Ia
   rate[4] = exp(log_g_e) * (1 - 1/(1+exp(frac_asym))) * (1 - detect_frac);  //from E to Isu

@@ -11,8 +11,8 @@
 
 rm(list = ls(all.names = TRUE))
 
-SAVE_RESULTS <- TRUE
-MAKE_PLOTS <- FALSE
+SAVE_RESULTS <- FALSE
+MAKE_PLOTS <- TRUE
 
 
 # Load libraries ----------------------------------------------------------
@@ -58,7 +58,7 @@ for(i in 1:length(mcmcs)) {
   
   # Reshape the large matrix into a long dataframe indexed by
   # time, chain, and iteration
-  tmp <- t(tmp["H_new", 1001:2000, ]) %>%  # only use 1000 final iterations
+  tmp <- t(tmp["H_new", , ]) %>%  # only use 1000 final iterations
     as.data.frame() %>%
     gather(key = "iter", value = "H_new") %>%
     group_by(iter) %>%

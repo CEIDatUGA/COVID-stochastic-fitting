@@ -1,0 +1,118 @@
+---
+title: "COVID-19 Model Fitting and Forecasting Report"
+author: "Andrew Tredennick, Andreas Handel, and John Drake"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libs}
+library(pomp)
+library(tidyverse)
+library(here)
+```
+
+## Data
+
+We use data from covid-tracker (link).
+The data are very noisy and have weekly cycles that make fitting the model difficult.
+Therefore, we use a 6-day moving average to the smooth the data for model fitting and to account for the pulse of reports every 7 days.
+The idea is to keep the model from thinking cases, hospitalizations, and deaths are going down when, in fact, they are still going up.
+Observation error in the model itself also helps with this.
+
+```{r data}
+# Load covid tracking data
+us_data <- read_csv("https://covidtracking.com/api/states/daily.csv")
+
+# Load state population sizes
+filename = here('data/us_popsize.rds')
+us_popsize <- readRDS(filename)
+  
+# Rename columns and comvert to daily counts with diff()
+us_clean <- us_data %>% 
+  dplyr::select(c(date,state,positive,negative,total,hospitalized,death)) %>%
+  mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
+  group_by(state) %>% arrange(date) %>%
+  mutate(Daily_Test_Positive = c(0,diff(positive))) %>% 
+  mutate(Daily_Test_Negative = c(0,diff(negative))) %>% 
+  mutate(Daily_Test_All = c(0,diff(total))) %>% 
+  mutate(Daily_Hospitalized = c(NA,diff(hospitalized))) %>% 
+  mutate(Daily_Deaths = c(NA,diff(death))) %>%
+  merge(us_popsize) %>%
+  rename(Date = date, Location = state_full, Population_Size = total_pop, 
+         Total_Deaths = death,Total_Cases = positive, 
+         Total_Hospitalized = hospitalized, Total_Test_Negative = negative,
+         Total_Test_Positive = positive, Total_Test_All = total) %>%
+  mutate(Daily_Cases = Daily_Test_Positive,
+         Total_Cases = Total_Test_Positive) %>%
+  select(-c(state,Total_Test_Negative,Daily_Test_Negative))
+
+#Change NA hospitalizations to zero
+# us_clean$Total_Hospitalized[is.na(us_clean$Total_Hospitalized)] <- 0
+# us_clean$Daily_Hospitalized[is.na(us_clean$Daily_Hospitalized)] <- 0
+
+
+# This bit of code is to get columns names to align with 
+# what's currently in the pomp code
+us_ct_clean <- us_clean %>% 
+  rename(cases = Daily_Cases,
+         hosps = Daily_Hospitalized, 
+         deaths = Daily_Deaths)
+
+# Extract Georgia data
+pomp_data <- us_ct_clean %>%
+  dplyr::filter(Location == "Georgia") %>%
+  dplyr::select(Date, cases, hosps, deaths) %>%
+  dplyr::arrange(Date)
+
+# Make a plot of the data
+data_plot <- pomp_data %>%
+  gather(key = "Observation", value = "Persons", -Date) %>%
+  ggplot(aes(x = Date, y = Persons, fill = Observation)) +
+  geom_col(alpha = 0.5) +
+  facet_wrap(~Observation, scales = "free_y") +
+  guides(fill = FALSE)
+data_plot
+
+# Fit splines through the data
+get_spline <- function(x) {
+  xl <- x[is.na(x) == FALSE]
+  y <- smooth.spline(seq_along(xl), xl, spar = 0.5)
+  return(c(x[is.na(x)], ceiling(y$y)))
+}
+
+smooth_data <- pomp_data %>%
+  mutate(cases = get_spline(cases),
+         hosps = get_spline(hosps),
+         deaths = get_spline(deaths)) %>%
+  gather(key = "Observation", value = "Persons", -Date)
+
+data_plot +
+  geom_line(data = smooth_data, aes(x = Date, y = Persons, color = Observation)) +
+  guides(color = FALSE)
+
+pseudo_data <- data.frame(
+    Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+    hold = NA)
+  
+  # Merge in the NAs to complete the time series
+  pomp_data <- pomp_data %>%
+    right_join(pseudo_data, by = "Date") %>%
+    dplyr::select(-hold) %>%
+    mutate(time = 1:n()) %>%
+    dplyr::select(time, cases, hosps, deaths)
+  
+  #saveRDS(us_ct_clean,filename_us_ct_data) #save clean file for loading unless it's outdated
+  saveRDS(pomp_data,filename_us_ct_data)
+
+```
+
+## Iterated filtering
+
+```{r mif-plots, eval = FALSE}
+
+```
+

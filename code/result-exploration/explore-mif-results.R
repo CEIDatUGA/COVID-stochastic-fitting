@@ -51,22 +51,23 @@ pf_logliks <- ll_df %>%
 
 print(pf_logliks)
 
+allparvals <- pf_logliks[5, -c(1,2,3)]
 
 
 # Compute some results -------------------------------------------------------
 
-mifs[[1]] %>% 
+mifs %>% 
   traces() %>%
   melt() %>%
-  filter(variable %in% c("loglik", params_to_estimate)) %>%
-  filter(iteration > 100) %>%
+  filter(variable %in% c("loglik", "log_beta_s")) %>%
+  # filter(iteration > 100) %>%
   ggplot(aes(x=iteration,y=value,group=L1,color=as.factor(L1)))+
   geom_line()+
   facet_wrap(~variable,scales="free_y")+
   scale_color_brewer(type = "qual") +
   guides(color=FALSE)
 
-sims <- pomp::simulate(mifs[[1]],
+sims <- pomp::simulate(mifs[[5]],
                        nsim=1, format="data.frame",
                        include.data=TRUE)
 

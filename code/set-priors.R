@@ -15,10 +15,10 @@ rm(list = ls(all.names = TRUE))
 filename = here('output/var-par-definitions.RDS')
 x <- readRDS(filename) #for ease of notation, assign parameter values to x
 
-param_sds <- 4
+param_sds <- 3
 prior_par_list = list()
 prior_ini_list = list()
-ini_sds <- 4
+ini_sds <- 1
 
 #makes priors of form "dnorm(par,mu,param_sd,1)
 
