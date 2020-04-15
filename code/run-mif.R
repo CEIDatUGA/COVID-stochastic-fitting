@@ -16,7 +16,7 @@ library(foreach)
 
 # turn on parallel running or not
 parallel_run <- TRUE
-num_cores <- parallel::detectCores() - 2  # alter as needed
+num_cores <- parallel::detectCores() - 1  # alter as needed
 
 
 # Turn on parallel or not --------------------------------------------------
@@ -101,7 +101,7 @@ run_mif <- function(pomp_model, num_mif_iterations, params, num_particles,
 # Compute different starting values for each run --------------------------
 # number of initial conditions to try, set to number of cores or multiple 
 # thereof for best performance
-n_ini_cond <- n_cores 
+n_ini_cond <- 1*n_cores 
 
 # set up matrix for starting values, each row is one set of initial conditions
 param_start <- matrix(0,nrow = n_ini_cond, ncol = length(params_to_estimate)) 
@@ -123,12 +123,12 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
-#mif_num_particles <- c(2000, 2000)  # two rounds of MIF
-#mif_num_iterations <- c(100, 50)  # two rounds of MIF
+mif_num_particles <- c(2000, 2000)  # two rounds of MIF
+mif_num_iterations <- c(100, 50)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
-mif_num_particles <- c(100, 100)  # two rounds of MIF
-mif_num_iterations <- c(50, 50)  # two rounds of MIF
+#mif_num_particles <- c(100, 100)  # two rounds of MIF
+#mif_num_iterations <- c(50, 50)  # two rounds of MIF
 
 # For particle filter log likelihood estimation of MIF MLEs
 pf_num_particles <- 2000
@@ -141,7 +141,6 @@ if (parallel_run == FALSE)
 {
   print('Starting MIF2 + pfilter non-parallel')
   out_mif = list()
-  ll = list()
   pf = list()
   for (i in 1:n_ini_cond) 
   {
@@ -150,7 +149,7 @@ if (parallel_run == FALSE)
                             params = c(param_start[i,],fixed_params), 
                             num_particles = mif_num_particles, 
                             c_frac = mif_cooling_fracs, param_perts,
-                            verbose = TRUE
+                            verbose = FALSE
                             )
 
     # Use particle filter to get the likelihood at the end of each MIF run
