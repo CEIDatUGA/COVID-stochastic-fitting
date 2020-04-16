@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
 ```{r libs}
@@ -17,13 +17,9 @@ library(here)
 
 ## Data
 
-We use data from covid-tracker (link).
-The data are very noisy and have weekly cycles that make fitting the model difficult.
-Therefore, we use a 6-day moving average to the smooth the data for model fitting and to account for the pulse of reports every 7 days.
-The idea is to keep the model from thinking cases, hospitalizations, and deaths are going down when, in fact, they are still going up.
-Observation error in the model itself also helps with this.
+We use data on confirmed cases, hospitalizations, and deaths from [The Covid Tracking Project](https://covidtracking.com/).
 
-```{r data}
+```{r data, fig.height=2.5}
 # Load covid tracking data
 us_data <- read_csv("https://covidtracking.com/api/states/daily.csv")
 
@@ -50,11 +46,6 @@ us_clean <- us_data %>%
          Total_Cases = Total_Test_Positive) %>%
   select(-c(state,Total_Test_Negative,Daily_Test_Negative))
 
-#Change NA hospitalizations to zero
-# us_clean$Total_Hospitalized[is.na(us_clean$Total_Hospitalized)] <- 0
-# us_clean$Daily_Hospitalized[is.na(us_clean$Daily_Hospitalized)] <- 0
-
-
 # This bit of code is to get columns names to align with 
 # what's currently in the pomp code
 us_ct_clean <- us_clean %>% 
@@ -68,51 +59,223 @@ pomp_data <- us_ct_clean %>%
   dplyr::select(Date, cases, hosps, deaths) %>%
   dplyr::arrange(Date)
 
-# Make a plot of the data
-data_plot <- pomp_data %>%
-  gather(key = "Observation", value = "Persons", -Date) %>%
-  ggplot(aes(x = Date, y = Persons, fill = Observation)) +
-  geom_col(alpha = 0.5) +
-  facet_wrap(~Observation, scales = "free_y") +
-  guides(fill = FALSE)
-data_plot
-
-# Fit splines through the data
-get_spline <- function(x) {
-  xl <- x[is.na(x) == FALSE]
-  y <- smooth.spline(seq_along(xl), xl, spar = 0.5)
-  return(c(x[is.na(x)], ceiling(y$y)))
-}
-
-smooth_data <- pomp_data %>%
-  mutate(cases = get_spline(cases),
-         hosps = get_spline(hosps),
-         deaths = get_spline(deaths)) %>%
-  gather(key = "Observation", value = "Persons", -Date)
-
-data_plot +
-  geom_line(data = smooth_data, aes(x = Date, y = Persons, color = Observation)) +
-  guides(color = FALSE)
-
+# Make a pseudo data frame to include all dates from March 1 to now
 pseudo_data <- data.frame(
     Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
     hold = NA)
   
-  # Merge in the NAs to complete the time series
-  pomp_data <- pomp_data %>%
-    right_join(pseudo_data, by = "Date") %>%
-    dplyr::select(-hold) %>%
-    mutate(time = 1:n()) %>%
-    dplyr::select(time, cases, hosps, deaths)
-  
-  #saveRDS(us_ct_clean,filename_us_ct_data) #save clean file for loading unless it's outdated
-  saveRDS(pomp_data,filename_us_ct_data)
+# Merge in the NAs to complete the time series
+pomp_data <- pomp_data %>%
+  right_join(pseudo_data, by = "Date") %>%
+  dplyr::select(-hold) %>%
+  mutate(time = 1:n()) %>%
+  dplyr::select(Date, time, cases, hosps, deaths)
 
+# Plot the data to date
+pomp_data %>%
+  dplyr::select(-time) %>%
+  gather(key = "Observation", value = "Persons", -Date) %>%
+  ggplot(aes(x = Date, y = Persons)) +
+  geom_line() +
+  geom_point() +
+  facet_wrap(~Observation, scales = "free_y")
+```
+
+We also use data on traveling distance as a metric of social distancing.
+It is a relative metric ($\phi(t)$) that we assume linearly impacts the force of infection, such that the force of infection at time *t*, $f(t)$, is reduced to: $\phi(t) \times f(t)$.
+Here is $\phi(t)$ over time.
+
+```{r unacast}
+phi <- readRDS("../output/rel-beta-change-covar.RDS") %>%
+  left_join(pomp_data %>%
+              dplyr::select(Date, time), by = "time")
+
+ggplot(data = phi, aes(x = Date, y = rel_beta_change)) +
+  geom_line() +
+  geom_point() +
+  ylab(expression(phi))
 ```
 
 ## Iterated filtering
 
-```{r mif-plots, eval = FALSE}
+We start the estimation procedure by using iterated filtering to find the maximum likelihood parameter estimates.
+We use the ```pomp::mif2()``` function.
+Here are the results from MIF iterations started from size different parameter set guesses.
+
+First, we look at the trace plots.
+```{r mif-plots}
+mif_res <- readRDS("../output/mif-results.RDS")
+mifs <- mif_res$mif_runs
+
+# Combine the mif runs for plotting
+all_mifs <- tibble()  # empty object
+for(i in 1:length(mifs)) {
+  tmpmif <- mifs[[i]]@traces %>%
+    as.data.frame() %>%
+    mutate(Iteration = 0:(n()-1)) %>%
+    gather(key = "Parameter", value = "Value", -Iteration) %>%
+    mutate(MIF_ID = i)
+  
+  all_mifs <- bind_rows(all_mifs, tmpmif)
+}
+
+# Read in the parameter names we actually estimate
+params_to_estimate <- readRDS("../output/var-par-definitions.RDS")
+params_to_estimate <- c(params_to_estimate$params_to_estimate, 
+                        params_to_estimate$inivals_to_estimate,
+                        "loglik")
+
+all_mifs <- all_mifs %>%
+  filter(Parameter %in% params_to_estimate)
+
+ggplot(all_mifs, aes(x = Iteration, y = Value, color = as.factor(MIF_ID))) +
+  geom_line() +
+  facet_wrap(~Parameter, scales = "free_y") +
+  guides(color = FALSE)
+```
+
+We can also look at the log likelihoods of the estimated parameter sets.
+```{r lls}
+pfs <- mif_res$pf_runs
+n_ini_cond = length(mifs)
+ll = list()
+for (i in 1:n_ini_cond) #do last part not in parallel
+{
+  ll1 <- sapply(pfs[[i]], logLik)
+  ll[[i]] <- logmeanexp(ll1, se = TRUE)
+}
+# convert the list containing the log likelihoods for 
+# each run stored in ll into a data frame
+ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
+
+# extract best fit paramter values for each mif run
+coef_est_df <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                               nrow = length(mifs), 
+                               byrow = T))
+colnames(coef_est_df) <- names(coef(mifs[[1]]))  
+
+
+# combine the ll_df and coef_est_df data frames. 
+# Also do some cleaning/renaming
+mif_result_df <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(coef_est_df) %>%
+  dplyr::arrange(-LogLik)
+
+knitr::kable(mif_result_df)
+```
+
+Those parameter sets are on the esimation scales.
+We can backtransform the highest likelihood parameter set for inspection.
+
+```{r mles}
+backtransform <- function(param_df) {
+  out <- length(nrow(param_df))
+  for(i in 1:nrow(param_df)) {
+    trans <- param_df[i,"trans"]
+    x <- param_df[i,"value"]
+    if(trans == "log") {
+      out[i] <- exp(x)
+    } else {
+      out[i] <- 1/(1+exp(x))
+    }
+  }
+  return(out)
+} 
+
+param_names <- c("log_beta_s", "trans_e", "trans_a", "trans_c", "trans_h", 
+                 "log_g_e", "log_g_a", "log_g_su", "log_g_sd", "log_g_c", "log_g_h", 
+                 "log_max_diag", "log_diag_inc_rate", "max_detect_par", 
+                 "log_detect_inc_rate", "frac_asym", "frac_hosp", "frac_dead", 
+                 "log_theta_cases", "log_theta_hosps", "log_theta_deaths", 
+                 "log_sigma_dw", "E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+
+param_trans <- c("log", "logis", "logis", "logis", "logis",
+                 "log", "log", "log", "log", "log", "log",
+                 "log", "logis", "logis",
+                 "log", "logis", "logis", "logis", 
+                 "log", "log", "log",
+                 "log", "log", "log", "log", "log")
+
+param_df <- data.frame(param_name = param_names,
+                       trans = param_trans)
+
+ests <- mif_result_df %>%
+  filter(LogLik == max(LogLik)) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) %>%
+  as.data.frame() %>%
+  gather(key = "param_name")
+
+param_df <- param_df %>%
+  left_join(ests)
+param_df$transforms <- backtransform(param_df)
+param_df$transforms[param_df$param_name == "log_beta_s"] <- param_df$transforms[param_df$param_name == "log_beta_s"]*10600018
+
+
+param_df$transforms <- round(param_df$transforms,3)
+comparment_rates <- c("log_g_e", "log_g_a", "log_g_su", 
+                      "log_g_sd", "log_g_c", "log_g_h")
+param_df <- param_df %>%
+  mutate(transforms = ifelse(param_name %in% comparment_rates, transforms/4, transforms))
+
+param_df[ , c("param_name", "transforms")] %>% deframe() %>% knitr::kable()
+```
+
+## Simulate from the MLEs
+
+The next step is to ensure that the MLEs generate "reasonable" trajectories.
+This step is a bit subjective, and here inlies the art of modeling and forecasting.
+
+```{r sim-mles}
+allparvals <- mif_result_df %>%
+  filter(LogLik == max(LogLik)) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) 
+
+filename <- here('./output/pomp-model.RDS')
+pomp_model <- readRDS(filename)
+
+M2 <- pomp_model  # define new pomp model for simulation
+horizon <- 7*6  # days times weeks
+time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
+
+# Update the covariate table to go into the future
+covars <- pomp_model@covar@table
+covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+covars <- as.data.frame(covars) %>%
+  mutate(time = 1:n()) %>%
+  rename("rel_beta_change" = covars)
+M2 <- pomp(M2, 
+           covar = covariate_table(covars, times = "time", order = "constant"))
+
+# Run simulation a number of times
+sims <- pomp::simulate(M2, 
+                       params=allparvals, 
+                       nsim=1000, format="data.frame", 
+                       include.data=TRUE)
+
+# Set up dates for plotting
+start_date <- as.Date("2020-03-01")
+end_date <- start_date + max(sims$time) - 1
+dates <- seq.Date(start_date, end_date, "days") 
+dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+
+sims %>%
+  left_join(dates_df) %>%
+  dplyr::select(Date, .id, C_new, H_new, D_new, cases, hosps, deaths) %>%
+  tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
+  mutate(.id = ifelse(.id == "data", "ZZZ", .id)) %>%
+  ggplot(aes(x = Date, y = value, group = .id, color=.id=="ZZZ",
+             size = .id=="ZZZ", alpha = .id == "ZZZ")) +
+  geom_line() +
+  facet_wrap(~variable, scales = "free_y", ncol = 2) +
+  scale_size_manual(values = c(0.5, 1)) +
+  scale_alpha_manual(values = c(0.1, 1)) +
+  guides(color = FALSE, size = FALSE, alpha = FALSE) +
+  scale_x_date(date_breaks = "1 month", date_labels =  "%b") 
 
 ```
 
+## Forecasts
