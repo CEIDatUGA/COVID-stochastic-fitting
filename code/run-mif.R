@@ -125,6 +125,7 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
+#mif_num_particles <- c(200, 200)  # two rounds of MIF
 mif_num_particles <- c(2000, 2000)  # two rounds of MIF
 mif_num_iterations <- c(100, 50)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF

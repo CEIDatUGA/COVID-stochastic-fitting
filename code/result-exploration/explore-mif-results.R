@@ -4,7 +4,6 @@
 
 #  ---------------------------------------------------------
 #To-do ideas
-#Haven't done this yet, but it'd be nice to have a function that back transforms the MLEs to the natural scale so we can easily inspect the parameter values
 #Correlations of parameters across MIF iterations
 #bivariate histograms of likelihoods/posteriors
 #  ---------------------------------------------------------
@@ -28,6 +27,18 @@ filename = here('output/mif-results.RDS')
 mif_res_list <- readRDS(filename)
 mifs = mif_res_list$mif_runs
 pfs = mif_res_list$pf_runs
+
+############################################################################
+# load values for model parameters and initial conditions -----------------
+############################################################################
+filename = here('output/var-par-definitions.RDS')
+par_var_list <- readRDS(filename) 
+allparvals <- par_var_list$allparvals
+params_to_estimate = par_var_list$params_to_estimate
+inivals_to_estimate = par_var_list$inivals_to_estimate
+varnames <- par_var_list$varnames
+allparnames <- names(allparvals) #includes initial conditions
+
 
 
 # ---------------------------------------------------------
@@ -68,6 +79,8 @@ coef_est_df <- data.frame(matrix(unlist(sapply(mifs, coef)),
                                byrow = T))
 colnames(coef_est_df) <- names(coef(mifs[[1]]))  
 
+#only keep those parameters that are being estimated
+coef_est_df = select(coef_est_df, params_to_estimate, inivals_to_estimate)
 
 # combine the ll_df and coef_est_df data frames. 
 # Also do some cleaning/renaming
@@ -82,22 +95,106 @@ mif_result_df <- ll_df %>%
 print(mif_result_df)
 
 
-# Likelihood slices for mif results -------------------------------------------------------
+# ---------------------------------------------------------
+# make a second data frame that stores parameters and estimates in biologically meaningful units
+# by applying the transformations done to each parameter 
+# (see the rprocess bit of the pomp model code for how each parameter is used in the model)
+# ---------------------------------------------------------
+
+# function that does the transformation
+transform_params <- function(param_df, param_trans) 
+{
+  out <- param_df #fill with new values
+  for (j in 1:nrow(param_df))
+  {
+  for(i in 1:ncol(param_df)) 
+    {
+    
+    trans <- param_trans[i]
+    x <- param_df[j,i]
+    if(trans == "log") { #changes log-parameters to natural scale
+      out[j,i] <- exp(x)
+    } 
+    if(trans == "logis")
+    {
+      out[j,i] <- 1/(1+exp(x))
+    }
+    if(trans == "logplus")
+    {
+      out[j,i] <- 1+exp(x)
+    }
+    if(trans == "thalf") #transforms to time at which intervention is at 1/2 strengt
+    {
+      out[j,i] <- 1/exp(x)
+    }
+    if(trans == "loginv") #exponentiates log rates, turns them into time. also multiply by 4 for 4 compartments
+    {
+      out[j,i] <- 4/exp(x)
+    }
+  }
+  }
+  return(out)
+} 
+
+# specify transformation for each parameter to get it into biologically meaningful units
+
+#this needs to be in the same order as the parameters in the coef_est_df computed above
+param_trans <- c("log", "logis", "logis", "logis", "logis",
+                 "loginv", "loginv", "loginv", "loginv", "loginv", "loginv",
+                 "logplus", "thalf", "logis", "thalf", 
+                 "logis", "logis", "logis", 
+                 "log", "log", "log",
+                 "log", "log", "log", "log", "log")
+
+coef_natural_df <- transform_params(coef_est_df, param_trans)
+
+# also give some parameters new names to avoid confusion
+param_nat_names <- c("beta_s", "frac_trans_e", "frac_trans_a", "frac_trans_c", "frac_trans_h", 
+                 "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
+                 "max_diag_factor", "t_half_diag", "max_detect_frac", "t_half_detect", 
+                 "frac_asym", "frac_hosp", "frac_dead", 
+                 "theta_cases", "theta_hosps", "theta_deaths", 
+                 "sigma_dw", "E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+
+colnames(coef_natural_df) <- param_nat_names  
+
+# combine this new dataframe with the ll_df as done above 
+# Also do some cleaning/renaming
+mif_result_natural_df <- ll_df %>%
+  dplyr::rename("LogLik" = X1,
+                "LogLik_SE" = X2) %>%
+  dplyr::mutate(MIF_ID = 1:n()) %>%
+  dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
+  bind_cols(coef_natural_df) %>%
+  dplyr::arrange(-LogLik)
+
+print(mif_result_natural_df)
+
+
+# ---------------------------------------------------------
+# Likelihood slices for mif results
+# ---------------------------------------------------------
 # take best fit parameter values for each mif, run a particle filter to compute likelihood
 # scan over various parameters (while keeping others at MLE values)
 # produce slices
 # is too computationally intensive to do for all parameters, 
 # currently experimental
-filename = here('output/var-par-definitions.RDS')
-par_var_list <- readRDS(filename)
-filename = here('output/pomp-model.RDS')
-pomp_model <- readRDS(filename)
+#filename = here('output/pomp-model.RDS')
+#pomp_model <- readRDS(filename)
 
-p1 = par_var_list$allparvals["log_beta_s"]
-p2 = par_var_list$allparvals["frac_asym"]
+filename = here('output/mif-results.RDS')
+mif_res_list <- readRDS(filename)
+mifs = mif_res_list$mif_runs
+pfs = mif_res_list$pf_runs
+
+#do slice for each mif so we can compare
+for (i in 1:length(mifs))
+{
+  p1 = coef(mifs[[i]])["log_beta_s"]
+  p2 = coef(mifs[[i]])["frac_asym"]
 
 pslice <- sliceDesign(
-  center=par_var_list$allparvals,
+  center=coef(mifs[[i]]),
   log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=3),
   frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=3)
 ) 
