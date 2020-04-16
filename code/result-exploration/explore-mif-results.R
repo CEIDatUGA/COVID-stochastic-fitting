@@ -83,6 +83,10 @@ print(mif_result_df)
 
 
 # Likelihood slices for mif results -------------------------------------------------------
+# take best fit parameter values for each mif, run a particle filter to compute likelihood
+# scan over various parameters (while keeping others at MLE values)
+# produce slices
+# is too computationally intensive to do for all parameters, 
 # currently experimental
 filename = here('output/var-par-definitions.RDS')
 par_var_list <- readRDS(filename)
@@ -108,14 +112,12 @@ registerDoRNG(108028909)
 slicefit <- foreach (theta=iter(pslice,"row"),
                 .combine=rbind,.inorder=FALSE) %dopar% {
                 library(pomp)
-           
-                pomp_model %>% pfilter(params=theta,Np=5000) -> pf
-           
-               theta$loglik <- logLik(pf)
-               theta
+                pf <- pomp_model %>% pfilter(params=theta,Np=2000) 
+                theta$loglik <- logLik(pf)
+                return(theta)
          } 
 
-slicefit %>% 
+sliceplot <- slicefit %>% 
   gather(variable,value,log_beta_s,frac_asym) %>%
   filter(variable==slice) %>%
   ggplot(aes(x=value,y=loglik,color=variable))+
@@ -125,6 +127,9 @@ slicefit %>%
   labs(x="parameter value",color="")+
   theme_bw()
 
+plot(sliceplot)
 
+#for now, save all objects in workspace to a file
+#not a good way of saving things, just for now
 
 
