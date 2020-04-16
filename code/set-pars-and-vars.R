@@ -57,7 +57,8 @@ parvals <- c(log_beta_s = log(0.4/Ntot), #rate of infection of symptomatic
              frac_dead = 1.2, #fraction hospitalized that die
              log_theta_cases = log(10),
              log_theta_hosps = log(10),
-             log_theta_deaths = log(10)
+             log_theta_deaths = log(10),
+             log_sigma_dw = log(0.1)
 )
 
 parnames <- names(parvals)
