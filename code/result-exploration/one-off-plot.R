@@ -53,7 +53,7 @@ pf_logliks <- ll_df %>%
 
 print(pf_logliks)
 
-allparvals <- pf_logliks[2, -c(1,2,3)]
+allparvals <- pf_logliks[1, -c(1,2,3)]
 
 # Simulate current social distancing
 M2 <- pomp_model
@@ -90,27 +90,31 @@ datadf <- sims %>%
 
 p1 <- sims %>%
   as_tibble() %>%
-  mutate(Period = ifelse(time < 45, "Calibration", "Forecast")) %>%
   left_join(dates_df) %>%
+  mutate(Period = ifelse(Date < Sys.Date(), "Calibration", "Forecast")) %>%
   dplyr::select(Date, Period, .id, cases, deaths) %>%
   rename("New Cases" = cases,
          "New Deaths" = deaths) %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id, -Period) %>%
   filter(.id != "data") %>%
   group_by(Date, variable, Period) %>%
-  summarise(lower = ceiling(quantile(value, 0.025)),
+  summarise(lower = ceiling(quantile(value, 0.1)),
             medvalue = ceiling(mean(value)),
-            upper = ceiling(quantile(value, 0.975))) %>%
-  ggplot(aes(x = Date, y = medvalue, fill = Period, color = Period)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), color = NA, alpha = 0.2) +
-  geom_line(size = 1) +
-  geom_point(data = datadf, aes(x = Date, y = value)) +
-  facet_wrap(~variable, scales = "free_y") +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  ggtitle("With social distancing")
+            upper = ceiling(quantile(value, 0.9))) %>%
+  mutate(Scenario = "SD") %>%
+  ungroup()
+
+# %>%
+#   ggplot(aes(x = Date, y = medvalue, fill = Period, color = Period)) +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), color = NA, alpha = 0.2) +
+#   geom_line(size = 1) +
+#   geom_point(data = datadf, aes(x = Date, y = value)) +
+#   facet_wrap(~variable, scales = "free_y") +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   ggtitle("With social distancing")
 
 
 # Simulate with no social distancing
@@ -148,31 +152,48 @@ datadf <- sims %>%
 
 p2 <- sims %>%
   as_tibble() %>%
-  mutate(Period = ifelse(time < 45, "Calibration", "Forecast")) %>%
   left_join(dates_df) %>%
+  mutate(Period = ifelse(Date < Sys.Date(), "Calibration", "Forecast")) %>%
   dplyr::select(Date, Period, .id, cases, deaths) %>%
   rename("New Cases" = cases,
          "New Deaths" = deaths) %>%
   tidyr::gather(key = "variable", value = "value", -Date, -.id, -Period) %>%
   filter(.id != "data") %>%
   group_by(Date, variable, Period) %>%
-  summarise(lower = ceiling(quantile(value, 0.025)),
+  summarise(lower = ceiling(quantile(value, 0.1)),
             medvalue = ceiling(mean(value)),
-            upper = ceiling(quantile(value, 0.975))) %>%
-  ggplot(aes(x = Date, y = medvalue, fill = Period, color = Period)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), color = NA, alpha = 0.2) +
-  geom_line(size = 1) +
-  geom_point(data = datadf, aes(x = Date, y = value)) +
+            upper = ceiling(quantile(value, 0.9))) %>%
+  mutate(Scenario = "NSD") %>%
+  ungroup()
+
+simsc <- bind_rows(p1, p2) %>%
+  mutate(gr = paste0(Period, Scenario))
+
+ggplot(data = simsc, aes(x = Date, y = medvalue)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = Scenario), color = NA, alpha = 0.2) +
+  geom_line(size = 1, aes(color = Scenario, linetype = Period)) +
+  geom_point(data = datadf, aes(x = Date, y = value), color = "grey") +
   facet_wrap(~variable, scales = "free_y") +
   scale_color_brewer(type = "qual") +
   scale_fill_brewer(type = "qual") +
   theme_minimal() +
-  ylab("Number of persons") +
-  ggtitle("Without social distancing")
-  
-  
+  guides(color = FALSE, fill = FALSE, linetype = FALSE) +
+  ylab("") 
 
-pout <- cowplot::plot_grid(p1, p2, nrow = 2, align = "v")
-pout
+simscum <- simsc %>%
+  dplyr::select(Date, variable, Period, Scenario, gr, medvalue) %>%
+  spread(key = "variable", value = medvalue) %>%
+  group_by(Scenario) %>%
+  mutate(`New Cases` = cumsum(`New Cases`),
+         `New Deaths` = cumsum(`New Deaths`)) %>%
+  gather(key = "variable", value = "medvalue", -Date, -Period, -Scenario, -gr)
+
+ggplot(simscum, aes(x = Date, y = medvalue, color = Scenario, linetype = Period)) +
+  geom_line() +
+  facet_wrap(~variable, scales = "free_y")
+
+
+# pout <- cowplot::plot_grid(p1, p2, nrow = 2, align = "v")
+# pout
 # ggsave("../../Desktop/sim-plots-social-effect.pdf", pout, width = 8.5, 
 #        height = 5, units = "in")

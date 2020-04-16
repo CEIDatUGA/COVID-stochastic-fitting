@@ -93,7 +93,7 @@ sobolDesign(lower=ranges[,'min'],
             upper=ranges[,'max'],
             nseq=20) -> params
 
-params <- logliks[,4:ncol(logliks)] %>%
+params <- logliks[1,4:ncol(logliks)] %>%
   as.data.frame()
 
 # Run the simulations -----------------------------------------------------
@@ -168,12 +168,12 @@ foreach(p=iter(params,by='row'),
       loglik=logLik(pf)
     ) -> proj
   
-  bind_rows(calib,proj)
+  bind_rows(calib,proj) -> out
 } -> out
 
 out %>%
   # filter(loglik != -Inf) %>%
-  mutate(weight=exp(loglik-mean(loglik))) %>%
+  # mutate(weight=exp(loglik-mean(loglik))) %>%
   arrange(time,.id) -> sims
 
 
@@ -187,16 +187,16 @@ out %>%
 sims %>%
   # mutate(weight = ifelse(weight == Inf, 1, weight)) %>%
   group_by(time,period) %>%
-  # summarize(
-  #   lower = quantile(hosps, probs = 0.025),
-  #   median = mean(hosps),
-  #   upper = quantile(hosps, probs = 0.975)
-  # ) %>%
   summarize(
-    lower=wquant(cases,weights=weight,probs=0.025),
-    median=wquant(cases, weights=weight,probs=0.5),
-    upper=wquant(cases,weights=weight,probs=0.975)
+    lower = ceiling(quantile(hosps, probs = 0.025)),
+    median = ceiling(mean(hosps)),
+    upper = ceiling(quantile(hosps, probs = 0.975))
   ) %>%
+  # summarize(
+  #   lower=wquant(cases,weights=weight,probs=0.025),
+  #   median=wquant(cases, weights=weight,probs=0.5),
+  #   upper=wquant(cases,weights=weight,probs=0.975)
+  # ) %>%
   ungroup() -> simq
 
 # thedata <- readRDS(here("output/pomp-model.RDS"))@data

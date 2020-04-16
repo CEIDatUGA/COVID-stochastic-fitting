@@ -54,24 +54,24 @@ if (file.exists(filename_us_ct_data)) {
     dplyr::select(Date, cases, hosps, deaths) %>%
     dplyr::arrange(Date)
   
-  # Fit splines through the data
-  get_spline <- function(x) {
-    xl <- x[is.na(x) == FALSE]
-    y <- smooth.spline(seq_along(xl), xl, spar = 0.5)
-    return(c(x[is.na(x)], ceiling(y$y)))
-  }
-  
-  smooth_data <- pomp_data %>%
-    mutate(cases = get_spline(cases),
-           hosps = get_spline(hosps),
-           deaths = get_spline(deaths))
+  # # Fit splines through the data
+  # get_spline <- function(x) {
+  #   xl <- x[is.na(x) == FALSE]
+  #   y <- smooth.spline(seq_along(xl), xl, spar = 0.5)
+  #   return(c(x[is.na(x)], ceiling(y$y)))
+  # }
+  # 
+  # smooth_data <- pomp_data %>%
+  #   mutate(cases = get_spline(cases),
+  #          hosps = get_spline(hosps),
+  #          deaths = get_spline(deaths))
   
   pseudo_data <- data.frame(
     Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
     hold = NA)
   
   # Merge in the NAs to complete the time series
-  pomp_data <- smooth_data %>%
+  pomp_data <- pomp_data %>%
     right_join(pseudo_data, by = "Date") %>%
     dplyr::select(-hold) %>%
     mutate(time = 1:n()) %>%
