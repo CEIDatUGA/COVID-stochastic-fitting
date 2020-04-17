@@ -60,28 +60,15 @@ pomp_step <- Csnippet(
 
   // Time-dependent rate of movement through Isd dummy compartments
   // starts at no speedup, then increases with time up to a max
-  // ramp-up speed and max value are fitted
-  //diag_speedup = (1 + exp(log_max_diag) )* exp(log_diag_inc_rate) * (t) / (1 + exp(log_diag_inc_rate) * (t));
-  //g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
-  //g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
+  // ramp-up speed, time at which half-max is reached and max value are fitted
+  diag_speedup = (1 + exp(log_max_diag) ) *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
+  g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
+  g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
   
-  if (t<t_int) {
-      g_sd = exp(log_g_sd);  //regular time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c); //regular time in symptomatic stage with diagnosis
-  } else {
-      g_sd = exp(log_diag_speedup)*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c)/exp(log_diag_speedup); //increased time in symptomatic stage post diagnosis
-  }
-  
-
   // Time dependent fraction of those that move into detected category at the end of the E phase.
   // starts at 0 at simulation start, then ramps up to some max value (0-1). 
   // ramp-up speed and max value are fitted
-  //detect_frac = 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate) * (t) / (1 + exp(log_detect_inc_rate) * (t));
-  if (t<t_int)	  
-    detect_frac = 1/(1+exp(detect_0));
-  else	  
-    detect_frac = 1/(1+exp(detect_1));
+  detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
   
   // Compute the transition rates
   rate[1] = foi * dW/dt;                                                //infection, movement from S to E

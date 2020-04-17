@@ -76,8 +76,12 @@ ini_perts_string <- paste0(inivals_to_estimate,
 
 # this string is being fed into sw.rd inside mif 
 # below in a way suggested by Aaron
-perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
-
+if (length(pert_ini_vals) > 0) 
+{
+  perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
+} else { #if no initial values are estimated
+  perts_string <- paste0("rw.sd(",param_perts_string,")")
+}
 
 # Define function that runs the whole mif --------------------------
 # function that runs the whole mif, either in parallel or not

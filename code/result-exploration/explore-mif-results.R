@@ -23,8 +23,8 @@ library(here)
 # load results produced by mif fitting ----------------------------------------------------
 # this is a list of mif objects for each initial condition 
 # followed by pfilter objects run a specified number of times after each mif is run
-#filename = here('output/mif-results.RDS')
-filename = here('output/mif-results-ah1.RDS')
+filename = here('output/mif-results.RDS')
+#filename = here('output/mif-results-ah1.RDS')
 mif_res_list <- readRDS(filename)
 mifs = mif_res_list$mif_runs
 pfs = mif_res_list$pf_runs
@@ -131,10 +131,6 @@ transform_params <- function(param_df, param_trans)
     {
       out[j,i] <- 1+exp(x)
     }
-    if(trans == "thalf") #transforms to time at which intervention is at 1/2 strengt
-    {
-      out[j,i] <- 1/exp(x)
-    }
     if(trans == "loginv") #exponentiates log rates, turns them into time. also multiply by 4 for 4 compartments
     {
       out[j,i] <- 4/exp(x)
@@ -147,24 +143,30 @@ transform_params <- function(param_df, param_trans)
 # specify transformation for each parameter to get it into biologically meaningful units
 
 #this needs to be in the same order as the parameters in the coef_est_df computed above
-param_trans <- c("log", "logis", "logis", "logis", "logis",
+param_trans <- c("log", 
+                 "logis", "logis", "logis", "logis",
                  "loginv", "loginv", "loginv", "loginv", "loginv", "loginv",
-                 "logplus", "thalf", "logis", "thalf", 
+                 "logplus", "log", "log", 
+                 "logis", "log", "log", 
                  "logis", "logis", "logis", 
                  "log", "log", "log",
-                 "log", "log", "log", "log", "log")
+                 "log", 
+                 "log", "log", "log", "log")
 
 coef_natural_df <- transform_params(coef_est_df, param_trans)
 
 # also give some parameters new names to avoid confusion
-param_nat_names <- c("beta_s", "frac_trans_e", "frac_trans_a", "frac_trans_c", "frac_trans_h", 
-                 "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
-                 "max_diag_factor", "t_half_diag", "max_detect_frac", "t_half_detect", 
-                 "frac_asym", "frac_hosp", "frac_dead", 
-                 "theta_cases", "theta_hosps", "theta_deaths", 
-                 "sigma_dw", "E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+param_nat_names <- c("beta_s", 
+                     "frac_trans_e", "frac_trans_a", "frac_trans_c", "frac_trans_h", 
+                     "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
+                     "max_diag_factor", "diag_rampup", "t_half_diag", 
+                     "max_detect_frac", "detect_rampup", "t_half_detect",
+                     "frac_asym", "frac_hosp", "frac_dead", 
+                    "theta_cases", "theta_hosps", "theta_deaths", 
+                    "sigma_dw", 
+                    "E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
 
-colnames(coef_natural_df) <- param_nat_names  
+colnames(coef_natural_df) <- param_nat_names[1:length(coef_natural_df)]
 
 # combine this new dataframe with the ll_df as done above 
 # Also do some cleaning/renaming
@@ -226,14 +228,14 @@ for (i in 1:length(mifs))
 
   pslice <- sliceDesign(
     center=coef(mifs[[i]]),
-    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2), #the each value indicates how many replicates to do (since those are stochastic)  
-    frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
+    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2) #the each value indicates how many replicates to do (since those are stochastic)  
+    #frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
   ) 
 
   slicefit <- foreach (theta=iter(pslice,"row"),
                   .combine=rbind,.inorder=FALSE, .packages = c("pomp")) %dopar% 
               {
-                  pf <- pomp_model %>% pfilter(params=theta,Np=2000) 
+                  pf <- pomp_model %>% pfilter(params=theta,Np=200) 
                   theta$loglik <- logLik(pf)
                   return(theta)
            } 

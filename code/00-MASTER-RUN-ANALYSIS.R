@@ -30,7 +30,7 @@ library(here)
 # specifies parameters that are being fitted
 # assigns values to variables and initial conditions
 # results are written into RDS file and loaded by later scripts
-source(here("code/set-pars-and-vars-alt.R"))
+source(here("code/set-pars-and-vars.R"))
 
 # Run script to set priors
 # needs results from set-pars-and-vars.R 
@@ -53,7 +53,7 @@ if(length(thefiles) != 0) {
 # Make a pomp model 
 # loads all the previously generated RDS files and generates a pomp model that's ready for fitting
 # the resulting pomp object is saved as RDS file into the output folder
-source(here("code/make-pomp-model-alt.R"))
+source(here("code/make-pomp-model.R"))
 
 
 # Run the mif fitting routine -----------------------------------------------------

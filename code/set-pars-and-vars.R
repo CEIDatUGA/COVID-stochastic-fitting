@@ -37,32 +37,50 @@ Ntot <- sum(inivals)  # total population size - needed below
 inipars <- names(inivals)
 
 # Parameters --------------------------------------------------------------
+rev_logistic <- function(x) {
+  log((1/x)-1)
+}
 
+
+# rev_logistic(1/6)
+1 / (1 + exp(3.266602))
 #note that a lot of parameters below are transformed versions of what the meaning specifies
 #see the Google sheet for detailed definitions and explanations
-parvals <- c(log_beta_s = log(0.4/Ntot), #rate of infection of symptomatic 
-             trans_e = 2, trans_a = 0, trans_c = 1,  trans_h = 10,  #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
+parvals <- c(log_beta_s = log(0.25/Ntot), #rate of infection of symptomatic 
+             trans_e = 2, 
+             trans_a = 0, 
+             trans_c = 1,  
+             trans_h = 10,  #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
+
              log_g_e = log(4/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
              log_g_a = log(4/3.5),
              log_g_su = log(4/6),
              log_g_sd = log(4/3),
-             log_g_c = log(4/3),  
+             log_g_c = log(4/3),
              log_g_h = log(4/12),
-             #log_max_diag = 0, #max for factor by which movement through Isd happens faster (quicker diagnosis) 
-             #log_diag_inc_rate = -3, #rate at which faster diagnosis ramps up to max
-             #max_detect_par = 0,  #max fraction detected
-             #log_detect_inc_rate = -3, #speed at which fraction detected ramps up
-             log_diag_speedup = log(1),
-             detect_0 = log(2),
-             detect_1 = log(0.5),
+
+             # log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
+             # log_g_a = rev_logistic(1/3.5),
+             # log_g_su = rev_logistic(1/6),
+             # log_g_sd = rev_logistic(1/3),
+             # log_g_c = rev_logistic(1/3),  
+             # log_g_h = rev_logistic(1/12),
+
+             log_max_diag = log(1), #max for factor by which movement through Isd happens faster (quicker diagnosis) 
+             log_diag_inc_rate = log(10), #rate at which faster diagnosis ramps up to max
+             log_half_diag = log(12),  #time at which intervention is at 50%
+             
+             max_detect_par = log(1),  #max fraction detected
+             log_detect_inc_rate = log(10), #speed at which fraction detected ramps up
+             log_half_detect = log(12), #time at which intervention is at 50%
+             
              frac_asym = 1.5, #fraction asymptomatic
              frac_hosp = 3, #fraction diagnosed that go into hospital
              frac_dead = 1.2, #fraction hospitalized that die
              log_theta_cases = log(10),
              log_theta_hosps = log(10),
              log_theta_deaths = log(10),
-             log_sigma_dw = log(0.1),
-             t_int = 12
+             log_sigma_dw = log(0.1)
 )
 
 parnames <- names(parvals)
@@ -70,9 +88,6 @@ parnames <- names(parvals)
 #all parameter values, including initial conditions
 allparvals = c(parvals,inivals)
 #all names
-
-# we currently estimate all parameters
-params_to_estimate <- parnames[-which(names(parnames) == "t_int")]
 
 # Specify which initial conditions to estimate
 inivals_to_estimate <- c(                        
@@ -82,12 +97,12 @@ inivals_to_estimate <- c(
   "Isd1_0"
 )
 
-# inivals_to_estimate <- c(                        
-#   "E1_0", "E2_0", "E3_0", "E4_0",  
-#   "Ia1_0", "Ia2_0", "Ia3_0", "Ia4_0", 
-#   "Isu1_0", "Isu2_0", "Isu3_0", "Isu4_0", 
-#   "Isd1_0", "Isd2_0", "Isd3_0", "Isd4_0" 
-# )
+# select if only a subset of parameters and initial values are being estimated
+params_to_estimate <- parnames
+#params_to_estimate <- parnames[1]
+#inivals_to_estimate <- NULL
+
+
 
 par_var_list = list()
 par_var_list$params_to_estimate =  params_to_estimate
