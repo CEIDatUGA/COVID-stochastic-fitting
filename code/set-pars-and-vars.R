@@ -100,6 +100,7 @@ params_to_estimate <- parnames
 #inivals_to_estimate <- NULL
 
 
+# Create an output list to save -------------------------------------------
 
 par_var_list = list()
 par_var_list$params_to_estimate =  params_to_estimate
@@ -107,6 +108,9 @@ par_var_list$inivals_to_estimate = inivals_to_estimate
 par_var_list$varnames = varnames
 par_var_list$parnames = parnames
 par_var_list$allparvals = allparvals
+
+
+# Save the parameter lists ------------------------------------------------
 
 filename = here('output/var-par-definitions.RDS')
 saveRDS(par_var_list,filename)

@@ -3,7 +3,6 @@
 # of the stochastic SEIR model using maximization by iterated filtering.
 # The data are new daily case counts, new daily hospitalizations, and
 # new daily deaths. See the pomp_model object for details.
-#
 
 
 rm(list = ls(all.names = TRUE))
@@ -24,7 +23,7 @@ library(foreach)
 # turn on parallel running or not
 parallel_run <- TRUE
 num_cores <- parallel::detectCores() - 2  # alter as needed
-
+# num_cores <- 30  # on HPC
 
 # Turn on parallel or not --------------------------------------------------
 if (parallel_run == TRUE) {
