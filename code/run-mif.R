@@ -11,8 +11,8 @@ rm(list = ls(all.names = TRUE))
 #set file name to save results
 #either generic (which is overwritten)
 #or some unique name so it's not accidentally overwritten
-#outfile <- here('output/mif-results.RDS')
-outfile <- here('output/mif-results-ah1.RDS')
+outfile <- here('output/mif-results.RDS')
+#outfile <- here('output/mif-results-ah1.RDS')
 
 
 
@@ -132,9 +132,10 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
-#mif_num_particles <- c(200, 200)  # two rounds of MIF
-mif_num_particles <- c(4000, 4000)  # two rounds of MIF
-mif_num_iterations <- c(100, 100)  # two rounds of MIF
+mif_num_particles <- c(200, 200)  # two rounds of MIF
+mif_num_iterations <- c(20, 20)  # two rounds of MIF
+#mif_num_particles <- c(4000, 4000)  # two rounds of MIF
+#mif_num_iterations <- c(100, 100)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
 # For particle filter log likelihood estimation of MIF MLEs

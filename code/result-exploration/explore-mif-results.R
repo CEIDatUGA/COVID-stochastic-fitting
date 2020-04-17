@@ -47,7 +47,10 @@ allparnames <- names(allparvals) #includes initial conditions
 # ---------------------------------------------------------
 # take list of mifs, get traces, merge into a data frame with a column for mif_run
 mif_df <- mifs %>% purrr::map(traces) %>% purrr::map(melt) %>% dplyr::bind_rows( .id = "mif_run") 
-  
+
+#only keep those params/variables that are estimated  
+mif_df <- mif_df %>% filter(variable %in% c(params_to_estimate,inivals_to_estimate,"loglik"))
+
 #make a plot of traces for all mif runs  
 pl <- mif_df %>% ggplot(aes(x=iteration,y=value,group= mif_run, color=factor(variable)))+
   geom_line()+
@@ -55,7 +58,8 @@ pl <- mif_df %>% ggplot(aes(x=iteration,y=value,group= mif_run, color=factor(var
   facet_wrap(~variable,scales="free_y")+
   theme_bw()
 plot(pl)
-
+filename = here('output/figures/mif-traces.png')
+ggsave(filename,pl)
 
 # ---------------------------------------------------------
 # Make a data frame that contains best fit parameter estimates for each mif run, 
@@ -94,6 +98,9 @@ mif_result_df <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 print(mif_result_df)
+filename = here('output/tables/par-table.RDS')
+saveRDS(mif_result_df,filename)
+
 
 
 # ---------------------------------------------------------
@@ -170,8 +177,9 @@ mif_result_natural_df <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 print(mif_result_natural_df)
+filename = here('output/tables/par-nat-table.RDS')
+saveRDS(mif_result_natural_df,filename)
 
-browser()
 
 # ---------------------------------------------------------
 # Likelihood slices for mif results
@@ -183,12 +191,25 @@ browser()
 library(foreach)
 library(doParallel)
 library(doRNG)
+library(tidyr)
 
-registerDoParallel()
-registerDoRNG(108028909)
+# turn on parallel running or not
+parallel_run <- TRUE
+num_cores <- parallel::detectCores() - 2  # alter as needed
 
-#filename = here('output/pomp-model.RDS')
-#pomp_model <- readRDS(filename)
+# Turn on parallel or not --------------------------------------------------
+if (parallel_run == TRUE) {
+  # Set up parallel structure 
+  n_cores <- num_cores
+  cl <- makeCluster(num_cores) 
+  registerDoParallel(cl)
+} else { #if not run in parallel, set this to 1
+  n_cores <- 1
+}
+
+
+filename = here('output/pomp-model.RDS')
+pomp_model <- readRDS(filename)
 
 filename = here('output/mif-results.RDS')
 mif_res_list <- readRDS(filename)
@@ -198,26 +219,29 @@ pfs = mif_res_list$pf_runs
 #do slice for each mif so we can compare
 for (i in 1:length(mifs))
 {
+  
+  print(sprintf('Start MIF number %d',i))
   p1 = coef(mifs[[i]])["log_beta_s"]
   p2 = coef(mifs[[i]])["frac_asym"]
 
   pslice <- sliceDesign(
     center=coef(mifs[[i]]),
-    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=3), #the each value should be 
-    frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=3)
+    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2), #the each value indicates how many replicates to do (since those are stochastic)  
+    frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
   ) 
 
   slicefit <- foreach (theta=iter(pslice,"row"),
-                  .combine=rbind,.inorder=FALSE) %dopar% {
-                  library(pomp)
+                  .combine=rbind,.inorder=FALSE, .packages = c("pomp")) %dopar% 
+              {
                   pf <- pomp_model %>% pfilter(params=theta,Np=2000) 
                   theta$loglik <- logLik(pf)
                   return(theta)
            } 
 }
+stopCluster(cl)
 
 sliceplot <- slicefit %>% 
-  gather(variable,value,log_beta_s,frac_asym) %>%
+  tidyr::gather(variable,value,log_beta_s,frac_asym) %>%
   filter(variable==slice) %>%
   ggplot(aes(x=value,y=loglik,color=variable))+
   geom_point()+
@@ -227,6 +251,8 @@ sliceplot <- slicefit %>%
   theme_bw()
 
 plot(sliceplot)
+filename = here('output/figures/LL-slice.png')
+ggsave(filename,sliceplot)
 
 #for now, save all objects in workspace to a file
 #not a good way of saving things, just for now
