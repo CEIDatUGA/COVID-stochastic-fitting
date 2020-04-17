@@ -57,14 +57,16 @@ allparvals <- pf_logliks[1, -c(1,2,3)]
 
 # Simulate current social distancing
 M2 <- pomp_model
-horizon <- 7*6
+horizon <- 7*7
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
 covars <- pomp_model@covar@table
 covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+# lastsd <- as.numeric(tail(t(covars), 1))
+# covars <- c(covars, seq(lastsd, 0.35, length.out = horizon))
 covars <- as.data.frame(covars) %>%
   mutate(time = 1:n()) %>%
   rename("rel_beta_change" = covars)
-# covars$rel_beta_change <- 1
+# covars$rel_beta_change <- 0.4
 M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant"))
 
 #run simulation a number of times
@@ -119,7 +121,7 @@ p1 <- sims %>%
 
 # Simulate with no social distancing
 M2 <- pomp_model
-horizon <- 7*6
+horizon <- 7*7
 time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
 covars <- pomp_model@covar@table
 covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
@@ -163,37 +165,109 @@ p2 <- sims %>%
   summarise(lower = ceiling(quantile(value, 0.1)),
             medvalue = ceiling(mean(value)),
             upper = ceiling(quantile(value, 0.9))) %>%
-  mutate(Scenario = "NSD") %>%
+  mutate(Scenario = "ZNSD") %>%
   ungroup()
 
 simsc <- bind_rows(p1, p2) %>%
   mutate(gr = paste0(Period, Scenario))
 
-ggplot(data = simsc, aes(x = Date, y = medvalue)) +
+plotd <- simsc %>% filter(Scenario == "ZNSD")
+ggplot(data = plotd, aes(x = Date, y = medvalue)) +
   geom_ribbon(aes(ymin = lower, ymax = upper, fill = Scenario), color = NA, alpha = 0.2) +
   geom_line(size = 1, aes(color = Scenario, linetype = Period)) +
   geom_point(data = datadf, aes(x = Date, y = value), color = "grey") +
   facet_wrap(~variable, scales = "free_y") +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
+  # scale_color_brewer(type = "qual") +
+  # scale_fill_brewer(type = "qual") +
+  scale_color_manual(values = c("#beaed4"))+
+  scale_fill_manual(values = c("#beaed4"))+
   theme_minimal() +
   guides(color = FALSE, fill = FALSE, linetype = FALSE) +
-  ylab("") 
+  ylab("")
 
-simscum <- simsc %>%
-  dplyr::select(Date, variable, Period, Scenario, gr, medvalue) %>%
-  spread(key = "variable", value = medvalue) %>%
-  group_by(Scenario) %>%
-  mutate(`New Cases` = cumsum(`New Cases`),
-         `New Deaths` = cumsum(`New Deaths`)) %>%
-  gather(key = "variable", value = "medvalue", -Date, -Period, -Scenario, -gr)
-
-ggplot(simscum, aes(x = Date, y = medvalue, color = Scenario, linetype = Period)) +
-  geom_line() +
-  facet_wrap(~variable, scales = "free_y")
+# simscum <- simsc %>%
+#   dplyr::select(Date, variable, Period, Scenario, gr, medvalue) %>%
+#   spread(key = "variable", value = medvalue) %>%
+#   group_by(Scenario) %>%
+#   mutate(`New Cases` = cumsum(`New Cases`),
+#          `New Deaths` = cumsum(`New Deaths`)) %>%
+#   gather(key = "variable", value = "medvalue", -Date, -Period, -Scenario, -gr)
+# 
+# ggplot(simscum, aes(x = Date, y = medvalue, color = Scenario, linetype = Period)) +
+#   geom_line() +
+#   facet_wrap(~variable, scales = "free_y")
 
 
 # pout <- cowplot::plot_grid(p1, p2, nrow = 2, align = "v")
 # pout
 # ggsave("../../Desktop/sim-plots-social-effect.pdf", pout, width = 8.5, 
 #        height = 5, units = "in")
+
+
+
+# Hosptials
+# Simulate current social distancing
+M2 <- pomp_model
+horizon <- 7*7
+time(M2) <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
+covars <- pomp_model@covar@table
+covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
+# lastsd <- as.numeric(tail(t(covars), 1))
+# covars <- c(covars, seq(lastsd, 0.35, length.out = horizon))
+covars <- as.data.frame(covars) %>%
+  mutate(time = 1:n()) %>%
+  rename("rel_beta_change" = covars)
+# covars$rel_beta_change <- 0.4
+M2 <- pomp(M2, covar = covariate_table(covars, times = "time", order = "constant"))
+
+#run simulation a number of times
+sims <- pomp::simulate(M2, 
+                       params=allparvals, 
+                       nsim=1000, format="data.frame", 
+                       include.data=TRUE)
+
+start_date <- as.Date("2020-03-01")
+end_date <- start_date + max(sims$time) - 1
+dates <- seq.Date(start_date, end_date, "days") 
+dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
+
+datadf <- sims %>%
+  as_tibble() %>%
+  left_join(dates_df) %>%
+  dplyr::select(Date, .id, hosps) %>%
+  # rename("New Cases" = cases,
+         # "New Deaths" = deaths) %>%
+  filter(.id == "data") %>%
+  tidyr::gather(key = "variable", value = "value", -Date, -.id) %>%
+  mutate(Period = "Calibration")
+
+hospsout <- sims %>%
+  as_tibble() %>%
+  left_join(dates_df) %>%
+  mutate(Period = ifelse(Date < Sys.Date(), "Calibration", "Forecast")) %>%
+  dplyr::select(Date, Period, .id, hosps) %>%
+  tidyr::gather(key = "variable", value = "value", -Date, -.id, -Period) %>%
+  filter(.id != "data") %>%
+  group_by(Date, variable, Period) %>%
+  summarise(lower = ceiling(quantile(value, 0.025)),
+            medvalue = ceiling(mean(value)),
+            upper = ceiling(quantile(value, 0.975))) %>%
+  ungroup()
+
+ggplot(hospsout, aes(x = Date, y = medvalue, color = Period, fill = Period)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line() +
+  geom_point(data = datadf, aes(x = Date, y = value), color = "grey35") +
+  ylab("New Hospitalizations")
+
+# hospssave <- sims %>%
+#   as_tibble() %>%
+#   left_join(dates_df) %>%
+#   mutate(Period = ifelse(Date < Sys.Date(), "Calibration", "Forecast")) %>%
+#   dplyr::select(Date, Period, .id, hosps) %>%
+#   tidyr::gather(key = "variable", value = "value", -Date, -.id, -Period) %>%
+#   filter(.id != "data") %>%
+#   rename("Rep" = .id, "H_new" = value) %>%
+#   dplyr::select(Rep, Date, H_new)
+# 
+# saveRDS(object = hospssave, file = "output/2020-04-16-forecasts/hosps-forecasts-2020-04-16.RDS")

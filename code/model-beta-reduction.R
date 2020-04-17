@@ -21,7 +21,7 @@ pseudo_data <- data.frame(
 # Load the data -----------------------------------------------------------     
 
 # unacast <- read.table(here("data/unacast-ga-private.txt"), header = TRUE) %>%
-unacast <- read.csv(here("data/ga_state_raw_0413.csv"))  %>%
+unacast <- read.csv(here("data/ga_state_raw_0415.csv"))  %>%
   dplyr::select(date, daily_distance_diff) %>%
   rename("Date" = date, "rel_beta_change" = daily_distance_diff) %>%
   # separate(Date, into = c("m", "d", "y")) %>%

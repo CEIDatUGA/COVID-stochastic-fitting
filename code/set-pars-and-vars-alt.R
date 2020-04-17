@@ -37,17 +37,21 @@ Ntot <- sum(inivals)  # total population size - needed below
 inipars <- names(inivals)
 
 # Parameters --------------------------------------------------------------
-
+rev_logistic <- function(x) {
+  log((1/x)-1)
+}
+# rev_logistic(1/6)
+1 / (1 + exp(3.266602))
 #note that a lot of parameters below are transformed versions of what the meaning specifies
 #see the Google sheet for detailed definitions and explanations
 parvals <- c(log_beta_s = log(0.4/Ntot), #rate of infection of symptomatic 
              trans_e = 2, trans_a = 0, trans_c = 1,  trans_h = 10,  #parameter that determines relative infectiousness of E/Ia/C classes compared to Isu/Isd 
-             log_g_e = log(4/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
-             log_g_a = log(4/3.5),
-             log_g_su = log(4/6),
-             log_g_sd = log(4/3),
-             log_g_c = log(4/3),  
-             log_g_h = log(4/12),
+             log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
+             log_g_a = rev_logistic(1/3.5),
+             log_g_su = rev_logistic(1/6),
+             log_g_sd = rev_logistic(1/3),
+             log_g_c = rev_logistic(1/3),  
+             log_g_h = rev_logistic(1/12),
              #log_max_diag = 0, #max for factor by which movement through Isd happens faster (quicker diagnosis) 
              #log_diag_inc_rate = -3, #rate at which faster diagnosis ramps up to max
              #max_detect_par = 0,  #max fraction detected
@@ -72,7 +76,7 @@ allparvals = c(parvals,inivals)
 #all names
 
 # we currently estimate all parameters
-params_to_estimate <- parnames[-which(names(parnames) == "t_int")]
+params_to_estimate <- parnames[-which(parnames == "t_int")]
 
 # Specify which initial conditions to estimate
 inivals_to_estimate <- c(                        

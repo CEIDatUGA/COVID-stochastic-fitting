@@ -30,12 +30,12 @@ library(here)
 # specifies parameters that are being fitted
 # assigns values to variables and initial conditions
 # results are written into RDS file and loaded by later scripts
-source(here("code/set-pars-and-vars.R"))
+source(here("code/set-pars-and-vars-alt.R"))
 
 # Run script to set priors
 # needs results from set-pars-and-vars.R 
 # results are written into RDS file and loaded by later scripts
-source(here("code/set-priors.R"))
+# source(here("code/set-priors.R"))
 
 # Run data cleaning script. Then load cleaned data ready for pomp --------------------------------------------
 # results saved to data folder with time stamp in name
@@ -53,7 +53,7 @@ if(length(thefiles) != 0) {
 # Make a pomp model 
 # loads all the previously generated RDS files and generates a pomp model that's ready for fitting
 # the resulting pomp object is saved as RDS file into the output folder
-source(here("code/make-pomp-model.R"))
+source(here("code/make-pomp-model-alt.R"))
 
 
 # Run the mif fitting routine -----------------------------------------------------

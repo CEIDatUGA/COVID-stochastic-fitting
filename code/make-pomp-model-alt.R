@@ -66,11 +66,13 @@ pomp_step <- Csnippet(
   //g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
   
   if (t<t_int) {
-      g_sd = exp(log_g_sd);  //regular time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c); //regular time in symptomatic stage with diagnosis
+      g_sd = (1/(1+exp(log_g_sd))) * 4; // exp(log_g_sd);  //regular time in symptomatic stage prior to diagnosis
+      g_c = (1/(1+exp(log_g_c))) * 4; // exp(log_g_c); //regular time in symptomatic stage with diagnosis
   } else {
-      g_sd = exp(log_diag_speedup)*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
-      g_c = exp(log_g_c)/exp(log_diag_speedup); //increased time in symptomatic stage post diagnosis
+      //g_sd = exp(log_diag_speedup)*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
+      //g_c = exp(log_g_c)/exp(log_diag_speedup); //increased time in symptomatic stage post diagnosis
+      g_sd = exp(log_diag_speedup) * (1/(1+exp(log_g_sd))) * 4; 
+      g_c = (1/(1+exp(log_g_c))) / exp(log_diag_speedup) * 4; 
   }
   
 
@@ -85,22 +87,22 @@ pomp_step <- Csnippet(
   
   // Compute the transition rates
   rate[1] = foi * dW/dt;                                                //infection, movement from S to E
-  rate[2] = exp(log_g_e);                                        //movement through E compartments
-  rate[3] = exp(log_g_e) * 1/(1+exp(frac_asym));                             //from E to Ia
-  rate[4] = exp(log_g_e) * (1 - 1/(1+exp(frac_asym))) * (1 - detect_frac);  //from E to Isu
-  rate[5] = exp(log_g_e) * (1 - 1/(1+exp(frac_asym))) * detect_frac;        //from E to Isd
+  rate[2] = (1/(1+exp(log_g_e)))*4;                                        //movement through E compartments
+  rate[3] = (1/(1+exp(log_g_e)))*4 * 1/(1+exp(frac_asym));                             //from E to Ia
+  rate[4] = (1/(1+exp(log_g_e)))*4 * (1 - 1/(1+exp(frac_asym))) * (1 - detect_frac);  //from E to Isu
+  rate[5] = (1/(1+exp(log_g_e)))*4 * (1 - 1/(1+exp(frac_asym))) * detect_frac;        //from E to Isd
 
-  rate[6] = exp(log_g_a);                                                //movement through Ia stages
-  rate[7] = exp(log_g_su);                                               //movement through Isu stages
+  rate[6] = (1/(1+exp(log_g_a)))*4;                                                //movement through Ia stages
+  rate[7] = (1/(1+exp(log_g_su)))*4;                                               //movement through Isu stages
   rate[8] = g_sd;                                                        //movement through Isd stages - computed above
   rate[9] = g_c;                                                         //movement through C stages - computed above
   
   rate[10] = g_c * 1/(1+exp(frac_hosp));                                   //movement from C to H  
   rate[11] = g_c * (1 - 1/(1+exp(frac_hosp)));                             //movement from C to R  
 
-  rate[12] = exp(log_g_h);                                               //movement through H stages  
-  rate[13] = exp(log_g_h) *  1/(1+exp(frac_dead));                                  //movement from H to D  
-  rate[14] = exp(log_g_h) * (1 - 1/(1+exp(frac_dead)));                             //movement from H to R  
+  rate[12] = (1/(1+exp(log_g_h)))*4;                                               //movement through H stages  
+  rate[13] = (1/(1+exp(log_g_h)))*4 *  1/(1+exp(frac_dead));                                  //movement from H to D  
+  rate[14] = (1/(1+exp(log_g_h)))*4 * (1 - 1/(1+exp(frac_dead)));                             //movement from H to R  
   
   // ------------------------------------------
   // Compute the state transitions

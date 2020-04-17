@@ -66,9 +66,9 @@ if (file.exists(filename_us_ct_data)) {
   #          hosps = get_spline(hosps),
   #          deaths = get_spline(deaths))
   # 
-  # pseudo_data <- data.frame(
-  #   Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
-  #   hold = NA)
+  pseudo_data <- data.frame(
+    Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+    hold = NA)
   
   # Merge in the NAs to complete the time series
   pomp_data <- pomp_data %>%
