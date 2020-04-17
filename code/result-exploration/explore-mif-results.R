@@ -23,7 +23,8 @@ library(here)
 # load results produced by mif fitting ----------------------------------------------------
 # this is a list of mif objects for each initial condition 
 # followed by pfilter objects run a specified number of times after each mif is run
-filename = here('output/mif-results.RDS')
+#filename = here('output/mif-results.RDS')
+filename = here('output/mif-results-ah1.RDS')
 mif_res_list <- readRDS(filename)
 mifs = mif_res_list$mif_runs
 pfs = mif_res_list$pf_runs
@@ -170,15 +171,22 @@ mif_result_natural_df <- ll_df %>%
 
 print(mif_result_natural_df)
 
+browser()
 
 # ---------------------------------------------------------
 # Likelihood slices for mif results
 # ---------------------------------------------------------
 # take best fit parameter values for each mif, run a particle filter to compute likelihood
 # scan over various parameters (while keeping others at MLE values)
-# produce slices
-# is too computationally intensive to do for all parameters, 
-# currently experimental
+# produce likelihood slices
+# is too computationally intensive to do for all parameters, so we just do a few
+library(foreach)
+library(doParallel)
+library(doRNG)
+
+registerDoParallel()
+registerDoRNG(108028909)
+
 #filename = here('output/pomp-model.RDS')
 #pomp_model <- readRDS(filename)
 
@@ -193,26 +201,20 @@ for (i in 1:length(mifs))
   p1 = coef(mifs[[i]])["log_beta_s"]
   p2 = coef(mifs[[i]])["frac_asym"]
 
-pslice <- sliceDesign(
-  center=coef(mifs[[i]]),
-  log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=3),
-  frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=3)
-) 
+  pslice <- sliceDesign(
+    center=coef(mifs[[i]]),
+    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=3), #the each value should be 
+    frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=3)
+  ) 
 
-library(foreach)
-library(doParallel)
-library(doRNG)
-
-registerDoParallel()
-registerDoRNG(108028909)
-
-slicefit <- foreach (theta=iter(pslice,"row"),
-                .combine=rbind,.inorder=FALSE) %dopar% {
-                library(pomp)
-                pf <- pomp_model %>% pfilter(params=theta,Np=2000) 
-                theta$loglik <- logLik(pf)
-                return(theta)
-         } 
+  slicefit <- foreach (theta=iter(pslice,"row"),
+                  .combine=rbind,.inorder=FALSE) %dopar% {
+                  library(pomp)
+                  pf <- pomp_model %>% pfilter(params=theta,Np=2000) 
+                  theta$loglik <- logLik(pf)
+                  return(theta)
+           } 
+}
 
 sliceplot <- slicefit %>% 
   gather(variable,value,log_beta_s,frac_asym) %>%
@@ -228,6 +230,5 @@ plot(sliceplot)
 
 #for now, save all objects in workspace to a file
 #not a good way of saving things, just for now
->>>>>>> fd2b0499798ba6242980d92b034eabd7813b7425
 
 
