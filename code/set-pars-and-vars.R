@@ -41,9 +41,6 @@ rev_logistic <- function(x) {
   log((1/x)-1)
 }
 
-
-# rev_logistic(1/6)
-1 / (1 + exp(3.266602))
 #note that a lot of parameters below are transformed versions of what the meaning specifies
 #see the Google sheet for detailed definitions and explanations
 parvals <- c(log_beta_s = log(0.25/Ntot), #rate of infection of symptomatic 
