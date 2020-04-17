@@ -8,6 +8,13 @@
 
 rm(list = ls(all.names = TRUE))
 
+#set file name to save results
+#either generic (which is overwritten)
+#or some unique name so it's not accidentally overwritten
+outfile <- here('output/mif-results.RDS')
+#outfile <- here('output/mif-results-ah1.RDS')
+
+
 
 library(pomp)  # must be at least version 2.x
 library(here)
@@ -16,7 +23,7 @@ library(foreach)
 
 # turn on parallel running or not
 parallel_run <- TRUE
-num_cores <- parallel::detectCores() - 1  # alter as needed
+num_cores <- parallel::detectCores() - 2  # alter as needed
 
 
 # Turn on parallel or not --------------------------------------------------
@@ -125,9 +132,10 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
-#mif_num_particles <- c(200, 200)  # two rounds of MIF
-mif_num_particles <- c(2000, 2000)  # two rounds of MIF
-mif_num_iterations <- c(100, 100)  # two rounds of MIF
+mif_num_particles <- c(200, 200)  # two rounds of MIF
+mif_num_iterations <- c(20, 20)  # two rounds of MIF
+#mif_num_particles <- c(4000, 4000)  # two rounds of MIF
+#mif_num_iterations <- c(100, 100)  # two rounds of MIF
 mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
 
 # For particle filter log likelihood estimation of MIF MLEs
@@ -185,6 +193,5 @@ if (parallel_run == TRUE)
 # create a list of lists containing the mif runs 
 # and for each mif run, the subsequent pfilter runs 
 mifRets <- list(mif_runs = out_mif, pf_runs = pf)
-outfile <- here('output/mif-results.RDS')
 saveRDS(object = mifRets, file = outfile)
 

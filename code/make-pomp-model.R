@@ -330,6 +330,8 @@ covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 
 
 # Define the pomp model object --------------------------------------------
+#the last line with the cdir statement is is to try and prevent error messages doing parallel computation on windows. 
+#See here: https://kingaa.github.io/sbied/mif/mif.html#a-local-search-of-the-likelihood-surface
 pomp_model <- pomp(
   data = pomp_data, 
   times = "time",
@@ -342,7 +344,8 @@ pomp_model <- pomp(
   statenames = varnames,
   paramnames = allparnames, 
   obsnames = c("cases", "hosps", "deaths"),
-  accumvars = c("C_new", "H_new", "D_new") 
+  accumvars = c("C_new", "H_new", "D_new"),    
+  cdir=".",cfile="tmp1" 
 )
 
 # Save the pomp object ----------------------------------------------------
