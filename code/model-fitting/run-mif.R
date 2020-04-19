@@ -84,7 +84,7 @@ if (length(pert_ini_vals) > 0)
 
 # Define function that runs the whole mif --------------------------
 # function that runs the whole mif, either in parallel or not
-# does it in 2 parts. Variables set in MASTER script.
+# does it in 2 parts. 
 
 run_mif <- function(pomp_model, num_mif_iterations, params, num_particles, 
                     c_frac, param_perts, verbose) 
@@ -135,11 +135,11 @@ fixed_params <- allparvals[!(names(allparvals) %in% params_to_estimate)]
 
 
 # specify settings for mif2 procedure
-mif_num_particles <- c(100, 1000)  # two rounds of MIF
-mif_num_iterations <- c(50, 50)  # two rounds of MIF
+mif_num_particles <- c(2000, 2000)  # two rounds of MIF
+mif_num_iterations <- c(100, 100)  # two rounds of MIF
 #mif_num_particles <- c(4000, 4000)  # two rounds of MIF
 #mif_num_iterations <- c(100, 100)  # two rounds of MIF
-mif_cooling_fracs <- c(0.9, 0.75)  # two rounds of MIF
+mif_cooling_fracs <- c(0.9, 0.7)  # two rounds of MIF
 
 # For particle filter log likelihood estimation of MIF MLEs
 pf_num_particles <- 2000

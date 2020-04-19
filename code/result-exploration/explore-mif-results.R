@@ -194,7 +194,6 @@ if (1 == 2) #turn off this whole code block for now
   # is too computationally intensive to do for all parameters, so we just do a few
   library(foreach)
   library(doParallel)
-  library(doRNG)
   library(tidyr)
   
   # turn on parallel running or not

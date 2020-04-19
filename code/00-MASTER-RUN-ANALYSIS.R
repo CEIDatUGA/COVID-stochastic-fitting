@@ -19,6 +19,9 @@ library(here)
 #library(pomp)  # must be at least version 2.x
 #library(doParallel)
 #library(foreach)
+#library(purrr)
+#library(ggplot2)
+
 
 # Run script that defines parameter and variable names
 # specifies parameters that are being fitted
