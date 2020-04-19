@@ -43,7 +43,7 @@ rev_logistic <- function(x) {
 
 #note that a lot of parameters below are transformed versions of what the meaning specifies
 #see the Google sheet for detailed definitions and explanations
-parvals <- c(log_beta_s = log(0.5/Ntot), #rate of infection of symptomatic 
+parvals <- c(log_beta_s = log(0.45/Ntot), #rate of infection of symptomatic 
              trans_e = 2, 
              trans_a = 0, 
              trans_c = 1,  
@@ -72,7 +72,7 @@ parvals <- c(log_beta_s = log(0.5/Ntot), #rate of infection of symptomatic
              log_half_detect = log(12), #time at which intervention is at 50%
              
              frac_asym = 1.5, #fraction asymptomatic
-             frac_hosp = 3, #fraction diagnosed that go into hospital
+             frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))
              frac_dead = 1.2, #fraction hospitalized that die
              log_theta_cases = log(10),
              log_theta_hosps = log(10),
@@ -96,7 +96,7 @@ inivals_to_estimate <- c(
 
 # select if only a subset of parameters and initial values are being estimated
 params_to_estimate <- parnames
-#params_to_estimate <- parnames[1]
+#params_to_estimate <- c("log_beta_s", "max_detect_par")
 #inivals_to_estimate <- NULL
 
 
