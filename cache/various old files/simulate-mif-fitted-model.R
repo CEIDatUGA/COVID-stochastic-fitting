@@ -35,10 +35,6 @@ inivals_to_estimate = par_var_list$inivals_to_estimate
 
 
 
-#load values for model parameters and initial conditions
-filename = here('output/parvals.RDS')
-allparvals <- readRDS(filename)
-
 # allparvals <- coef(readRDS(here("output/2020-04-09-forecasts/pmcmc-output.RDS"))) %>%
 #   as.data.frame() %>%
 #   t() %>%

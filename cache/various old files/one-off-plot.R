@@ -185,6 +185,8 @@ ggplot(data = plotd, aes(x = Date, y = medvalue)) +
   guides(color = FALSE, fill = FALSE, linetype = FALSE) +
   ylab("")
 
+#browser()
+
 # simscum <- simsc %>%
 #   dplyr::select(Date, variable, Period, Scenario, gr, medvalue) %>%
 #   spread(key = "variable", value = medvalue) %>%

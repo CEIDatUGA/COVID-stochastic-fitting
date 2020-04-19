@@ -57,6 +57,7 @@ source(here("code/model-setup/make-pomp-model.R"))
 source(here("code/model-fitting/run-mif.R"))
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
+# all result figures are saved into the /output/figures/ and /output/tables/ folders
 source(here("code/result-exploration/explore-mif-results.R"))
 
 
@@ -69,6 +70,7 @@ source(here("code/forward-simulations/simulate-pomp-model.R"))
 
 # Explore simulation results -----------------------------------------------------
 # loads the previously generated forward simulations 
+# all result figures are saved into the appropriate /output/ sub-folders
 source(here("code/result-exploration/explore-simulation-results.R"))
 
 
