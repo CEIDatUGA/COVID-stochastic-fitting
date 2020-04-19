@@ -94,11 +94,11 @@ inivals_to_estimate <- c(
   "Isd1_0"
 )
 
-# select if only a subset of parameters and initial values are being estimated
-params_to_estimate <- parnames
-#params_to_estimate <- c("log_beta_s", "max_detect_par")
-#inivals_to_estimate <- NULL
+# select if all parameters and initial values are being estimated
+#params_to_estimate <- parnames
 
+# select if only a subset of parameters and initial values are being estimated
+params_to_estimate <- c("log_beta_s", "max_detect_par"); inivals_to_estimate <- NULL
 
 # Create an output list to save -------------------------------------------
 
