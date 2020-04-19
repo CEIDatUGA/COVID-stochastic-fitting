@@ -5,29 +5,25 @@
 # rely on parallel processing, the settings for which are defined in this
 # master script.
 
-
 # Start with a clean workspace to avoid downstream errors -----------------
-
 rm(list = ls(all.names = TRUE))
 
 
-# Load all necessary libraries --------------------------------------------
-# moved back into individual scripts
-library(tidyverse)
-#library(pomp)  # must be at least version 2.x
+# Load necessary libraries --------------------------------------------
 library(here)
+# Only libraries needed for this script, others are loaded in each code
+# so we can run various scripts independently 
+# these libraries are needed by various scripts
+#library(dplyr)
+#library(tidyr)
+#library(pomp)  # must be at least version 2.x
 #library(doParallel)
 #library(foreach)
 
-# Define global variables -------------------------------------------------
-
-# For parallel processing
-# moved back to individual files  
-#parallel_run <- FALSE
-#num_cores <- parallel::detectCores() - 2  # alter as needed
-
 # Run script that defines parameter and variable names
 # specifies parameters that are being fitted
+# adjust parameters to be fitted at the bottom of this script
+# this will then be automatically passed through all the fitting scripts
 # assigns values to variables and initial conditions
 # results are written into RDS file and loaded by later scripts
 source(here("code/set-pars-and-vars.R"))
@@ -59,6 +55,21 @@ source(here("code/make-pomp-model.R"))
 # Run the mif fitting routine -----------------------------------------------------
 # loads the previously generated pomp model 
 source(here("code/run-mif.R"))
+
+# Does post processing and exploration on the best fit mif results -----------------------------------------------------
+source(here("code/result-exploration/explore-mif-results.R"))
+
+
+# Simulate the model to predict -----------------------------------------------------
+# loads the previously generated pomp model 
+# if one wants to run simulations based on best fit
+# one needs to set those in the script and also make sure run-mif
+# as well as explore-mif (so the table with best fit parameters is generated)
+source(here("code/forward-simulations/simulate-pomp-model.R"))
+
+# Explore simulation results -----------------------------------------------------
+# loads the previously generated forward simulations 
+source(here("code/result-exploration/explore-simulation-results.R"))
 
 
 # Run the ABC-MCMC --------------------------------------------------------

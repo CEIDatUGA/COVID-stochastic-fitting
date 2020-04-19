@@ -186,77 +186,77 @@ saveRDS(mif_result_natural_df,filename)
 # ---------------------------------------------------------
 # Likelihood slices for mif results
 # ---------------------------------------------------------
-# take best fit parameter values for each mif, run a particle filter to compute likelihood
-# scan over various parameters (while keeping others at MLE values)
-# produce likelihood slices
-# is too computationally intensive to do for all parameters, so we just do a few
-library(foreach)
-library(doParallel)
-library(doRNG)
-library(tidyr)
-
-# turn on parallel running or not
-parallel_run <- TRUE
-num_cores <- parallel::detectCores() - 2  # alter as needed
-
-# Turn on parallel or not --------------------------------------------------
-if (parallel_run == TRUE) {
-  # Set up parallel structure 
-  n_cores <- num_cores
-  cl <- makeCluster(num_cores) 
-  registerDoParallel(cl)
-} else { #if not run in parallel, set this to 1
-  n_cores <- 1
-}
-
-
-filename = here('output/pomp-model.RDS')
-pomp_model <- readRDS(filename)
-
-filename = here('output/mif-results.RDS')
-mif_res_list <- readRDS(filename)
-mifs = mif_res_list$mif_runs
-pfs = mif_res_list$pf_runs
-
-#do slice for each mif so we can compare
-for (i in 1:length(mifs))
+if (1 == 2) #turn off this whole code block for now
 {
+  # take best fit parameter values for each mif, run a particle filter to compute likelihood
+  # scan over various parameters (while keeping others at MLE values)
+  # produce likelihood slices
+  # is too computationally intensive to do for all parameters, so we just do a few
+  library(foreach)
+  library(doParallel)
+  library(doRNG)
+  library(tidyr)
   
-  print(sprintf('Start MIF number %d',i))
-  p1 = coef(mifs[[i]])["log_beta_s"]
-  p2 = coef(mifs[[i]])["frac_asym"]
-
-  pslice <- sliceDesign(
-    center=coef(mifs[[i]]),
-    log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2) #the each value indicates how many replicates to do (since those are stochastic)  
-    #frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
-  ) 
-
-  slicefit <- foreach (theta=iter(pslice,"row"),
-                  .combine=rbind,.inorder=FALSE, .packages = c("pomp")) %dopar% 
-              {
-                  pf <- pomp_model %>% pfilter(params=theta,Np=200) 
-                  theta$loglik <- logLik(pf)
-                  return(theta)
-           } 
+  # turn on parallel running or not
+  parallel_run <- TRUE
+  num_cores <- parallel::detectCores() - 2  # alter as needed
+  
+  # Turn on parallel or not --------------------------------------------------
+  if (parallel_run == TRUE) {
+    # Set up parallel structure 
+    n_cores <- num_cores
+    cl <- makeCluster(num_cores) 
+    registerDoParallel(cl)
+  } else { #if not run in parallel, set this to 1
+    n_cores <- 1
+  }
+  
+  
+  filename = here('output/pomp-model.RDS')
+  pomp_model <- readRDS(filename)
+  
+  filename = here('output/mif-results.RDS')
+  mif_res_list <- readRDS(filename)
+  mifs = mif_res_list$mif_runs
+  pfs = mif_res_list$pf_runs
+  
+  #do slice for each mif so we can compare
+  for (i in 1:length(mifs))
+  {
+    
+    print(sprintf('Start MIF number %d',i))
+    p1 = coef(mifs[[i]])["log_beta_s"]
+    p2 = coef(mifs[[i]])["frac_asym"]
+    
+    pslice <- sliceDesign(
+      center=coef(mifs[[i]]),
+      log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2) #the each value indicates how many replicates to do (since those are stochastic)  
+      #frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
+    ) 
+    
+    slicefit <- foreach (theta=iter(pslice,"row"),
+                         .combine=rbind,.inorder=FALSE, .packages = c("pomp")) %dopar% 
+      {
+        pf <- pomp_model %>% pfilter(params=theta,Np=200) 
+        theta$loglik <- logLik(pf)
+        return(theta)
+      } 
+  }
+  stopCluster(cl)
+  
+  sliceplot <- slicefit %>% 
+    tidyr::gather(variable,value,log_beta_s,frac_asym) %>%
+    filter(variable==slice) %>%
+    ggplot(aes(x=value,y=loglik,color=variable))+
+    geom_point()+
+    facet_grid(~variable,scales="free_x")+
+    guides(color=FALSE)+
+    labs(x="parameter value",color="")+
+    theme_bw()
+  
+  plot(sliceplot)
+  filename = here('output/figures/LL-slice.png')
+  ggsave(filename,sliceplot)
 }
-stopCluster(cl)
-
-sliceplot <- slicefit %>% 
-  tidyr::gather(variable,value,log_beta_s,frac_asym) %>%
-  filter(variable==slice) %>%
-  ggplot(aes(x=value,y=loglik,color=variable))+
-  geom_point()+
-  facet_grid(~variable,scales="free_x")+
-  guides(color=FALSE)+
-  labs(x="parameter value",color="")+
-  theme_bw()
-
-plot(sliceplot)
-filename = here('output/figures/LL-slice.png')
-ggsave(filename,sliceplot)
-
-#for now, save all objects in workspace to a file
-#not a good way of saving things, just for now
 
 
