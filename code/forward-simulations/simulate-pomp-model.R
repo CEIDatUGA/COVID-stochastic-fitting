@@ -27,8 +27,8 @@ inivals_to_estimate = par_var_list$inivals_to_estimate
 
 #set one of these to designate where the parameter values for the simulation
 #should come from
-#parsource = "base"
-parsource = "mif"
+parsource = "base"
+#parsource = "mif"
 #parsource = "pmcmc"
 #parsource = "manual"
 
