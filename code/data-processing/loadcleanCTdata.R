@@ -15,7 +15,8 @@ loadcleanCTdata <- function(use_these_locations)
   # pull data from Covidtracking and process
   # if daily data has already been generated, don't run again
   #################################
-  if (!file.exists(filename_us_ct_data)) 
+  #if (!file.exists(filename_us_ct_data)) #stopped doing this if I want to do different states, need to overwrite
+  if (1 == 1) 
   {
     #################################
     # pull data from Covidtracking and process
