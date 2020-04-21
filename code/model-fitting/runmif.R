@@ -69,12 +69,12 @@ runmif <- function(parallel_info, mif_settings)
   
   # this string is being fed into sw.rd inside mif 
   # below in a way suggested by Aaron
-  if (length(pert_ini_vals) > 0) 
-  {
-    perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
-  } else { #if no initial values are estimated
+  if (inivals_to_estimate == "") {
     perts_string <- paste0("rw.sd(",param_perts_string,")")
+  } else {
+    perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
   }
+  
   
   # Define function that runs the whole mif --------------------------
   # function that runs the whole mif, either in parallel or not
