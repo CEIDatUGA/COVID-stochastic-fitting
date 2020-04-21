@@ -11,7 +11,7 @@
 
 
 # Clear the decks ---------------------------------------------------------
-rm(list = ls(all.names = TRUE))
+#rm(list = ls(all.names = TRUE))
 
 # Load libraries ----------------------------------------------------------
 library(dplyr)
@@ -135,6 +135,10 @@ transform_params <- function(param_df, param_trans)
     {
       out[j,i] <- 4/exp(x)
     }
+    if(trans == "lin") #no transform
+    {
+      out[j,i] <- x
+    }
   }
   }
   return(out)
@@ -142,18 +146,27 @@ transform_params <- function(param_df, param_trans)
 
 # specify transformation for each parameter to get it into biologically meaningful units
 
-#this needs to be in the same order as the parameters in the coef_est_df computed above
+#this needs to be in the same order as the parameters listed in allparvals 
 param_trans <- c("log", 
-                 "logis", "logis", "logis", "logis",
-                 "loginv", "loginv", "loginv", "loginv", "loginv", "loginv",
-                 "logplus", "log", "log", 
-                 "logis", "log", "log", 
-                 "logis", "logis", "logis", 
-                 "log", "log", "log",
-                 "log", 
-                 "log", "log", "log", "log")
+                 "logis", "logis", "logis", "logis", #trans
+                 "loginv", "loginv", "loginv", "loginv", "loginv", "loginv", #gi
+                 "logplus", "log", "log", #diag
+                 "logis", "log", "log",  #detect
+                 "logis", "logis", "logis", #frac
+                 "log", "log", "log", #theta
+                 "log", #sigma
+                 "lin", #S0 
+                 "log", "log", "log","log", #E/Ia/Isu/Isd
+                 "lin", "lin", "lin", "lin" #C/H/R/D
+                 )
 
-coef_natural_df <- transform_params(coef_est_df, param_trans)
+# do this for all parameters, even fixed ones
+coef_all <- data.frame(matrix(rep(allparvals,times = nrow(coef_est_df)) , nrow = nrow(coef_est_df), byrow = TRUE))
+colnames(coef_all) <- names(allparvals)
+
+coef_all[,c(params_to_estimate,inivals_to_estimate)] = coef_est_df
+
+coef_natural_df <- transform_params(coef_all, param_trans)
 
 # also give some parameters new names to avoid confusion
 param_nat_names <- c("beta_s", 
@@ -164,9 +177,11 @@ param_nat_names <- c("beta_s",
                      "frac_asym", "frac_hosp", "frac_dead", 
                     "theta_cases", "theta_hosps", "theta_deaths", 
                     "sigma_dw", 
-                    "E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+                    "S_0",
+                    "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
+                    "C1_0","H1_0","R_0","D_0")
 
-colnames(coef_natural_df) <- param_nat_names[1:length(coef_natural_df)]
+colnames(coef_natural_df) <- param_nat_names
 
 # combine this new dataframe with the ll_df as done above 
 # Also do some cleaning/renaming
@@ -177,6 +192,12 @@ mif_result_natural_df <- ll_df %>%
   dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
   bind_cols(coef_natural_df) %>%
   dplyr::arrange(-LogLik)
+
+is_fitted = rep("no",length(allparvals))
+is_fitted[which(names(allparvals) %in% c(params_to_estimate,inivals_to_estimate))] = "yes"
+
+mif_result_natural_df = data.frame(t(mif_result_natural_df)) #transpose
+mif_result_natural_df$is_fitted = c("no","no","no",is_fitted) #first 3 are MIF_ID, Loglik, SE
 
 print(mif_result_natural_df)
 filename = here('output/tables/par-nat-table.RDS')

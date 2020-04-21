@@ -17,6 +17,11 @@ library(here) #to simplify loading/saving into different folders
 filename <- here('output/pomp-model.RDS')
 pomp_model <- readRDS(filename)
 
+#load the data used to build the pomp model
+filename <- here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+pomp_data <- readRDS(filename)
+
+
 # load values for model parameters and initial conditions -----------------
 filename = here('output/var-par-definitions.RDS')
 par_var_list <- readRDS(filename) 
@@ -46,13 +51,11 @@ plot_dat <- sims %>%
 
 # make a data frame containing data only -----------------
 # used in plots below
-datadf <- sims %>%
+datadf <- pomp_data %>%
   as_tibble() %>%
-  dplyr::select(Date, .id, hosps, cases, deaths) %>%
   rename("New Cases" = cases, "New Mortality" = deaths, "New Hospitalizations" = hosps) %>%
   mutate(Period = "Calibration") %>%
-  tidyr::gather(key = "variable", value = "value", -Date, -.id, -Period) %>%
-  filter(.id == "data") 
+  tidyr::gather(key = "variable", value = "value", -Date, -Period, -time, -Location) 
   
 
 # plot all model compartments and data ---------------------
@@ -83,7 +86,7 @@ plh <- plot_dat %>%
   facet_wrap(~variable, scales = "free_y") 
 
 plot(plh)
-filename = here('output/figures/hosp-plot.png')
+filename = here('output/figures/fit-plot.png')
 ggsave(filename,plh)
 
 
