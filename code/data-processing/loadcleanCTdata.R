@@ -1,4 +1,4 @@
-loadcleanCTdata <- function(use_these_locations)
+loadcleanCTdata <- function(use_these_locations, start_date = "2020-03-01")
 {
 
   # load and clean/process covid tracking data so it is ready for fitting
@@ -47,12 +47,19 @@ loadcleanCTdata <- function(use_these_locations)
              deaths = Daily_Deaths) %>%
       dplyr::select(Date, Location, cases, hosps, deaths) 
     
+    pseudo_data <- data.frame(
+      Date = seq.Date(from = as.Date(start_date), to = Sys.Date(), by = "day"),
+      hold = NA)
+    
     pomp_data <- us_ct_clean %>% 
       group_by(Location) %>% 
       arrange(Date) %>%
-      mutate(time = 1:n()) %>% 
       ungroup() %>%
-      filter(Location == use_these_locations)
+      filter(Location == use_these_locations) %>%
+      right_join(pseudo_data, by = "Date") %>%
+      mutate(Location = use_these_locations) %>%
+      dplyr::select(-hold) %>%
+      mutate(time = 1:n())
     
     saveRDS(pomp_data,filename_us_ct_data)
   }

@@ -32,9 +32,9 @@ source(here("code/model-setup/setparsvars.R"))
 #is passed to setparsvars function. 
 #If set to "all", all params are estimated
 est_these_pars = c("log_beta_s", "max_detect_par", "frac_hosp", 
-                   "frac_dead", "log_sigma_dw", "log_theta_cases",
+                   "frac_dead", "log_theta_cases", "log_sigma_dw",
                    "log_theta_hosps", "log_theta_deaths")
-# est_these_inivals = c("E1_0")
+# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
 est_these_inivals = ""
 
 # run function that sets variables and parameters 
@@ -79,17 +79,17 @@ makepompmodel()
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 # parallel_info$num_cores <- parallel::detectCores() - 4  # alter as needed
-parallel_info$num_cores <- 30  # on HPC
+parallel_info$num_cores <- 3  # on HPC
 
 # specify settings for mif2 procedure
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(100,100)
+mif_settings$mif_num_particles  <- c(200,200)
+mif_settings$mif_num_iterations <- c(10,10)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$pf_num_particles <- 2000
-mif_settings$pf_reps <- 10
+mif_settings$pf_num_particles <- 200
+mif_settings$pf_reps <- 2
 
 # loads the previously generated pomp model 
 source(here("code/model-fitting/runmif.R"))
