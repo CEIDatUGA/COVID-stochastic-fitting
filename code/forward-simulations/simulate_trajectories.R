@@ -4,6 +4,7 @@ simulate_trajectories <- function(
   pomp_model,
   start_date = "2020-03-01",
   covar_action = "status_quo",
+  max_beta_change = NULL,
   param_vals, 
   forecast_horizon_wks = 6,
   nsims = 100) {
@@ -31,7 +32,7 @@ simulate_trajectories <- function(
   
   if(covar_action == "linear" & !is.null(max_beta_change)) {
     covars <- pomp_model@covar@table
-    covars <- c(covars, seq(tail(t(covars), 1), 
+    covars <- c(covars, seq(as.numeric(tail(t(covars), 1)), 
                             max_beta_change, 
                             length.out = horizon))
     covars <- as.data.frame(covars) %>%
@@ -56,13 +57,13 @@ simulate_trajectories <- function(
                             format="data.frame")
   
   # pomp runs with internal time units, add real time to results
-  end_date <- start_date + max(sim_out$time) - 1
-  dates <- seq.Date(start_date, end_date, "days") 
+  end_date <- as.Date(start_date) + max(sim_out$time) - 1
+  dates <- seq.Date(as.Date(start_date), end_date, "days") 
   dates_df <- data.frame(time = c(1:length(dates)), Date = dates)
   
   # Combine pomp simulations with dates
   sims <- sim_out %>% 
-    left_join(dates_df) %>%
+    left_join(dates_df, by = "time") %>%
     mutate(Period = ifelse(Date > Sys.Date(), "Projection", "Calibration"))
   
   return(sims)
