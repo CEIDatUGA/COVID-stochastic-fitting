@@ -85,7 +85,8 @@ coef_est_df <- data.frame(matrix(unlist(sapply(mifs, coef)),
 colnames(coef_est_df) <- names(coef(mifs[[1]]))  
 
 #only keep those parameters that are being estimated
-coef_est_df = select(coef_est_df, params_to_estimate, inivals_to_estimate)
+# coef_est_df = select(coef_est_df, params_to_estimate, inivals_to_estimate)
+coef_est_df = select(coef_est_df, params_to_estimate)
 
 # combine the ll_df and coef_est_df data frames. 
 # Also do some cleaning/renaming
@@ -164,7 +165,8 @@ param_trans <- c("log",
 coef_all <- data.frame(matrix(rep(allparvals,times = nrow(coef_est_df)) , nrow = nrow(coef_est_df), byrow = TRUE))
 colnames(coef_all) <- names(allparvals)
 
-coef_all[,c(params_to_estimate,inivals_to_estimate)] = coef_est_df
+# coef_all[,c(params_to_estimate,inivals_to_estimate)] = coef_est_df
+coef_all[,c(params_to_estimate)] = coef_est_df
 
 coef_natural_df <- transform_params(coef_all, param_trans)
 

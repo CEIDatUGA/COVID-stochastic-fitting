@@ -46,27 +46,70 @@ pf_logliks <- ll_df %>%
   dplyr::arrange(-LogLik)
 
 mles <- pf_logliks %>%
-  filter(LogLik == max(LogLik)) %>%
+  # filter(LogLik == max(LogLik)) %>%
+  slice(1) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 
 # Run simulations ---------------------------------------------------------
-weeks_ahead <- 2
-num_sims <- 50
+weeks_ahead <- 4
+num_sims <- 100
 
 sim_sq <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                 covar_action = "status_quo", param_vals = mles,
                                 forecast_horizon_wks = weeks_ahead, 
-                                nsims = num_sims)
+                                nsims = num_sims) %>%
+  mutate(SimType = "status_quo")
 
 sim_na <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                 covar_action = "no_intervention", 
                                 param_vals = mles,
                                 forecast_horizon_wks = weeks_ahead,
-                                nsims = num_sims)
+                                nsims = num_sims) %>%
+  mutate(SimType = "no_intervention")
 
 sim_sd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                covar_action = "linear", max_beta_change = 0.4,
+                                covar_action = "linear", max_beta_change = 0.3,
                                 param_vals = mles, 
-                                forecast_horizon_wks = weeks_head,
-                                nsims = num_sims)
+                                forecast_horizon_wks = weeks_ahead,
+                                nsims = num_sims) %>%
+  mutate(SimType = "linear_increase_sd")
+
+
+
+# Combine the simulations -------------------------------------------------
+
+all_sims <- bind_rows(sim_sq, sim_na, sim_sd) %>%
+  dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
+  filter(SimType != "no_intervention") %>%
+  gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
+  group_by(SimType, Period, Date, Variable) %>%
+  summarise(lower = quantile(Value, 0.025),
+            ptvalue = quantile(Value, 0.5),
+            upper = quantile(Value, 0.975))
+
+
+# Make a data data frame for plotting -------------------------------------
+
+filename <- here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
+pomp_data <- readRDS(filename) %>%
+  dplyr::select(-Location, -time) %>%
+  gather(key = "Variable", value = "Value", -Date) %>%
+  mutate(SimType = "obs", Period = "Calibration")
+
+
+
+# Make the plots ----------------------------------------------------------
+
+ggplot(all_sims, aes(x = Date, color = SimType, 
+                     fill = SimType, linetype = Period)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue), size = 1) +
+  facet_wrap(~Variable, scales = "free", ncol = 1) +
+  scale_linetype_manual(values = c(1,1)) +
+  scale_color_brewer(type = "qual") +
+  scale_fill_brewer(type = "qual") +
+  theme_minimal() +
+  ylab("Number of persons") +
+  theme_minimal()
+ggsave("./output/figures/scenario-sims.png")

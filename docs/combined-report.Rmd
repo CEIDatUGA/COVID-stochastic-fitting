@@ -190,6 +190,12 @@ This plot shows just those variables which are fit.
 knitr::include_graphics(here('output/figures/fit-plot.png'))
 ```
 
+We can also look at scenarios.
+
+
+```{r scen-plot,  fig.cap=''}
+knitr::include_graphics(here('output/figures/scenario-sims.png'))
+```
 
 
 ## Likelihood slice
