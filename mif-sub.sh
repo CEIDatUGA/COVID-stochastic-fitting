@@ -1,9 +1,9 @@
 #PBS -S /bin/bash
 #PBS -q covid19_q
-#PBS -N fitcovid
+#PBS -N fitcovidbeta1
 #PBS -l nodes=1:ppn=30
 #PBS -l walltime=24:00:00
-#PBS -l mem=2gb
+#PBS -l mem=60gb
 #PBS -M atredennick@west-inc.com
 #PBS -m abe
 
