@@ -50,7 +50,7 @@ setpriors()
 # results will be loaded by later files
 source(here("code/data-processing/loadcleanCTdata.R"))
 # define which location(s) (states) one wants to use. Needs to agree with Location variable in the data
-use_these_locations = c("Texas")
+use_these_locations = c("Georgia")
 loadcleanCTdata(use_these_locations = use_these_locations)
 
 # ANDREW: NEED TO MAKE THIS SO WE CAN CHANGE STATES

@@ -11,7 +11,8 @@ modelbetareduction <- function()
   #       access to the private data. The derived model values,
   #       however, are stored on the repo for modeling.
   # ************************************************************
-  
+  library(tidyr)
+  library(dplyr)
   
   # Create full time series of NAs to make sure pomp_data
   # starts at the time of model initialization
@@ -23,7 +24,9 @@ modelbetareduction <- function()
   # Load the data -----------------------------------------------------------     
   
   # unacast <- read.table(here("data/unacast-ga-private.txt"), header = TRUE) %>%
-  unacast <- read.csv(here("data/ga_state_raw_0415.csv"))  %>%
+  filename <- list.files(path = here("data/"), pattern = "ga_state_raw")
+  filename <- paste0("data/", filename)
+  unacast <- read.csv(here(filename))  %>%
     dplyr::select(date, daily_distance_diff) %>%
     rename("Date" = date, "rel_beta_change" = daily_distance_diff) %>%
     # separate(Date, into = c("m", "d", "y")) %>%
