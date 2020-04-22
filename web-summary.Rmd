@@ -1,0 +1,158 @@
+---
+title: "Scenario analysis for the transmission of COVID-19 in Georgia"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+header-includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(here)
+```
+
+## Introduction
+
+The epidemiology of COVID-19 is poorly understood.
+To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated to regionally specific conditions in Georgia and observations of the number of reported cases, hospitalizations, and deaths.
+This model supercedes prior models published on this website.
+
+## Data
+
+At the time of this report, Georgia is reporting $r format(sum(data$new_cases), big.mark=",")$ cases, INSERT HOSPITALIZATIONS,  and $r format(sum(data$new_fatalities), big.mark=",")$ deaths.
+
+[INSERT BARPLOTS OF CASES, HOSPITALIZATIONS, AND DEATHS]
+
+To date, the primary intervention has been the adoption of social distancing behaviors and improved hygiene.
+We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps.
+We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0 (complete cessation of movements) to 1 (no difference from baseline).
+
+[INSERT UNACAST SPLINE PLOT]
+
+The fit of our model to observed data is shown below.
+
+[INSERT FIT MODEL TIME SERIES]
+
+## Scenarios
+
+Here we explore a range of scenarios for transmission in Georgia.
+All simulations start on 1 March.
+The model is fit to data on reported cases, hospitalizations, and deaths to r format(Sys.time(), '%B %d, %Y') and propagated six weeks into the future.
+
+Key dates for the control COVID-19 in Georgia include:
+
+* March 14, 2020: Declaration of a public health state of emergency in Georgia
+* March 23, 2020: Executive order limiting large gatherings statewide and ordering "shelter in place"
+* April 20, 2020: Executive order moving certain businesses to minimum operations
+
+In what follows we consider five scenarios
+
+1. **Increased social distancing.** Social distancing reduces movements from the current level to ????, which is the reduction observed in New York City that enabled transmission to decline there.
+2. **Status quo.** Social distancing continues at the last observed level of human movement patterns.
+3. **Relax social distancing.** Social distancing returns to a level of human movement equivalent to 80% of baseline.
+4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
+5. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
+
+The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
+Note that all three measures of epidemic size are believed to be under-reported so the true epidemic size is likely to be considerably larger.
+
+[INSET SUMMARY PLOT]
+
+The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+
+**Increased social distancing.**
+
+[INSERT PLOT]
+
+**Status quo.**
+
+[INSERT PLOT]
+
+**Relax social distanciong.**
+
+[INSERT PLOT]
+
+**Return to normal.**
+
+[INSERT PLOT]
+
+**No intervention.**
+
+[INSERT PLOT]
+
+## Model details
+
+Key features of this model include:
+
+* Stochastic transmission process. Stochastic models are models with a realistic level of random variation. Stochastic models are essential for proper modeling of systems that start with a small number of infections.
+* Realistic interval distributions for presymptomatic and symptomatic periods.
+* Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.[^1]
+* Time varying rates of case detection, isolation, and case notification.
+* Realistic intervention scenarios.
+
+This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered persons. 
+The following compartments are included:  
+
+* **S** - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* **E** - Individuals who hae been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* **I~a~** - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* **I~su~** - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* **I~sd~** - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to **C**.
+* **C** - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* **H** - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder dies.
+* **R** - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
+* **D** - Individuals who *died* from the infection. 
+
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
+
+* **E** - 4 compartments
+* **I~a~** - 4 compartments 
+* **I~su~** - 4 compartments
+* **I~sd~** - 4 compartments
+* **C** - 4 compartments
+* **H** - 4 compartments
+
+### Interventions
+
+The following interventions are implemented:
+
+* Social distancing is assumed to reduce all transmission rates by some factor. This is provided as covariate based on mobility data.
+* Improving detection, which is assumed to increase sigmoidally up to a maximum value.
+* Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.
+
+The flow diagram for this model shown below.
+
+```{r pomp-model,  fig.cap='Compartmental model for COVID-19'}
+knitr::include_graphics(here("docs",'pomp-model.png'))
+```
+
+### Parameterization
+
+This model was initially parameterized using clinical outcome reports from the epidemic in Hubei province, China and further calibrated with information about COVID-19 elsewhere in China and the United States.
+
+The model is created for a population of 10.6 million people, approximately the population size of Georgia, and simulated forward from March 1.
+Transmissibility of the virus is assumed to be proportional to the level of human movement.
+
+Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, and fatality rate among hospitalized cases. 
+Auxiliary parameters estimated using MIF include the intensity of the parameter random walk and dispersion parameters for observables.
+
+[SHOULD WE GIVE RATIONALE/REFERENCES FOR FIXED PARAMETERS? IF YES, INSERT HERE]
+
+### Disclaimer
+
+The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
+Accordingly, these results are preliminary, provisional, and subject to change.
+These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event.
+
+
+[^1]:[Rong et al. 2020](https://wwwnc.cdc.gov/eid/article/26/5/20-0198_article?deliveryName=DM20712), [Du et al. 2020](https://www.medrxiv.org/content/10.1101/2020.02.19.20025452v3)
+
+[^2]:[Hurtado & Kirosingh 2019](https://link.springer.com/article/10.1007/s00285-019-01412-w)
+
+[^3]:[Ionides et al. 2006](https://www.pnas.org/content/103/49/18438)
+
+
+
