@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2020-04-21" />
+<meta name="date" content="2020-04-22" />
 
 <title>Scenario analysis for the transmission of COVID-19 in Georgia</title>
 
@@ -1578,14 +1578,14 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Scenario analysis for the transmission of COVID-19 in Georgia</h1>
-<h4 class="date"><em>April 21, 2020</em></h4>
+<h4 class="date"><em>April 22, 2020</em></h4>
 
 </div>
 
 
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
-<p>The epidemiology of COVID-19 is poorly understood. To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated to regionally specific conditions in Georgia and observations of the number of reported cases, hospitalizations, and deaths. This model supercedes prior models published on this website.</p>
+<p>The epidemiology of COVID-19 is poorly understood. To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated it to regionally specific conditions in Georgia as well as observations of the number of reported cases, hospitalizations, and deaths. This model supersedes prior models published on this website.</p>
 </div>
 <div id="data" class="section level2">
 <h2>Data</h2>
@@ -1613,14 +1613,14 @@ $(document).ready(function () {
 <li><strong>Return to normal.</strong> Social distancing returns to a level of human movement equivalent to baseline.</li>
 <li><strong>No intervention.</strong> To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.</li>
 </ol>
-<p>The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario. Note that all three measures of epidemic size are believed to be under-reported so the true epidemic size is likely to be considerably larger.</p>
+<p>The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario. Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger.</p>
 <p>[INSET SUMMARY PLOT]</p>
 <p>The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.</p>
 <p><strong>Increased social distancing.</strong></p>
 <p>[INSERT PLOT]</p>
 <p><strong>Status quo.</strong></p>
 <p>[INSERT PLOT]</p>
-<p><strong>Relax social distanciong.</strong></p>
+<p><strong>Relax social distancing.</strong></p>
 <p>[INSERT PLOT]</p>
 <p><strong>Return to normal.</strong></p>
 <p>[INSERT PLOT]</p>
@@ -1637,15 +1637,15 @@ $(document).ready(function () {
 <li>Time varying rates of case detection, isolation, and case notification.</li>
 <li>Realistic intervention scenarios.</li>
 </ul>
-<p>This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered persons. The following compartments are included:</p>
+<p>This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. The following compartments are included:</p>
 <ul>
 <li><strong>S</strong> - Uninfected and <em>susceptible</em> individuals. Susceptible individuals can become infected by individuals in the <span class="math inline">\(E\)</span>, <span class="math inline">\(I_a\)</span>, <span class="math inline">\(I_s\)</span>, <span class="math inline">\(I_d\)</span>, <span class="math inline">\(C\)</span>, and <span class="math inline">\(H\)</span> stages. Rates of transmission from these stages can be adjusted individually.</li>
-<li><strong>E</strong> - Individuals who hae been <em>exposed</em>, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the <span class="math inline">\(E\)</span> stage, a fraction moves into the <span class="math inline">\(I_a\)</span> stage, another fraction moves into the <span class="math inline">\(I_{su}\)</span> stage, and the remainder into the <span class="math inline">\(I_{sd}\)</span> stage.</li>
+<li><strong>E</strong> - Individuals who have been <em>exposed</em>, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the <span class="math inline">\(E\)</span> stage, a fraction moves into the <span class="math inline">\(I_a\)</span> stage, another fraction moves into the <span class="math inline">\(I_{su}\)</span> stage, and the remainder into the <span class="math inline">\(I_{sd}\)</span> stage.</li>
 <li><strong>I<sub>a</sub></strong> - Individuals who are infected and <em>asymptomatic</em>. Those individuals are likely infectious, but the model allows to adjust this.</li>
 <li><strong>I<sub>su</sub></strong> - Individuals who are infected and <em>symptomatic</em>, but are <em>undetected</em>. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.</li>
 <li><strong>I<sub>sd</sub></strong> - Individuals who are infected and <em>symptomatic</em>, and are <em>detected</em>. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to <strong>C</strong>.</li>
 <li><strong>C</strong> - Individuals who have been diagnosed as <em>cases</em>. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the <span class="math inline">\(C\)</span> stage will naturally recover, without the need for hospitalization. The remainder moves into the <span class="math inline">\(H\)</span> stage.</li>
-<li><strong>H</strong> - Individuals who have been <em>hospitalized</em>. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the <span class="math inline">\(H\)</span> stage will recover, the remainder dies.</li>
+<li><strong>H</strong> - Individuals who have been <em>hospitalized</em>. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the <span class="math inline">\(H\)</span> stage will recover, the remainder will die.</li>
 <li><strong>R</strong> - <em>Recovered/removed</em> individuals. Those individuals have recovered and are immune.</li>
 <li><strong>D</strong> - Individuals who <em>died</em> from the infection.</li>
 </ul>
@@ -1662,7 +1662,7 @@ $(document).ready(function () {
 <h3>Interventions</h3>
 <p>The following interventions are implemented:</p>
 <ul>
-<li>Social distancing is assumed to reduce all transmission rates by some factor. This is provided as covariate based on mobility data.</li>
+<li>Social distancing is assumed to reduce all transmission rates by some factor. This is provided as a covariate based on mobility data.</li>
 <li>Improving detection, which is assumed to increase sigmoidally up to a maximum value.</li>
 <li>Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the <span class="math inline">\(I_{sd}\)</span> compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.</li>
 </ul>
