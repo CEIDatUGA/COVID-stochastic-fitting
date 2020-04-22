@@ -34,15 +34,49 @@ data <- readRDS(here(fullpath)) %>%
   mutate()
 ```
 
-At the time of this report, Georgia is reporting $r format(sum(data$new_cases), big.mark=",")$ cases, INSERT HOSPITALIZATIONS,  and $r format(sum(data$new_fatalities), big.mark=",")$ deaths.
+At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
 
-[INSERT BARPLOTS OF CASES, HOSPITALIZATIONS, AND DEATHS]
+```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5} 
+datlong <- data %>%
+  rename("Acases" = new_cases,
+         "Bhosps" = new_hospitalizations,
+         "Cdeaths" = new_fatalities) %>%
+  dplyr::select(-Location) %>%
+  gather("variable", "value", -Date)
+
+variable_names <- c(
+  "Acases" = 'New cases',
+  "Bhosps" ='New hospitalizations',
+  "Cdeaths" = 'New deaths'
+)
+
+ggplot(datlong, aes(x = Date, y = value)) +
+  geom_col() +
+  facet_wrap(~variable, ncol = 3, scales = "free_y", 
+             labeller = labeller(variable = variable_names)) +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma)+
+  theme_minimal()
+```
 
 To date, the primary intervention has been the adoption of social distancing behaviors and improved hygiene.
 We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps.
 We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0 (complete cessation of movements) to 1 (no difference from baseline).
 
-[INSERT UNACAST SPLINE PLOT]
+```{r unacast, message=FALSE, warning=FALSE, fig.width=5, fig.height=3}
+covar <- readRDS(here("output/rel-beta-change-covar.RDS"))
+start_date <- as.Date("2020-03-01")
+dates <- seq(start_date, start_date + nrow(covar) - 1, by = 1)
+date_df <- data.frame(Date = dates, time = 1:nrow(covar))
+covar <- covar %>%
+  left_join(date_df, by = "time")
+
+ggplot(covar, aes(x = Date, y = rel_beta_change)) +
+  geom_line() +
+  ylab("Deviation from baseline tranmissibility") +
+  theme_minimal() +
+  scale_y_continuous(limits = c(0,1))
+```
 
 The fit of our model to observed data is shown below.
 
