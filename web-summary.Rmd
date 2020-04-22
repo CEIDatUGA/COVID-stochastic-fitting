@@ -12,6 +12,7 @@ header-includes: \usepackage{amsmath}
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(here)
+library(tidyverse)
 ```
 
 ## Introduction
@@ -21,6 +22,17 @@ To better understand the potential range of epidemic outcomes in the state of Ge
 This model supercedes prior models published on this website.
 
 ## Data
+
+```{r read-data}
+filename <- tail(list.files(path = here("data/"), pattern = "us-ct-clean"), 1)
+fullpath <- paste0("data/", filename)
+data <- readRDS(here(fullpath)) %>%
+  dplyr::select(-time) %>%
+  rename("new_cases" = cases,
+         "new_hospitalizations" = hosps,
+         "new_fatalities" = deaths) %>%
+  mutate()
+```
 
 At the time of this report, Georgia is reporting $r format(sum(data$new_cases), big.mark=",")$ cases, INSERT HOSPITALIZATIONS,  and $r format(sum(data$new_fatalities), big.mark=",")$ deaths.
 

@@ -34,7 +34,8 @@ simulate_trajectories <- function(
   if(covar_action == "more_sd") {
     covars <- pomp_model@covar@table
     lastval <- as.numeric(tail(t(covars), 1))
-    minval <- min(covars)
+    # minval <- min(covars)
+    minval <- 0.3  # max observed in NY
     dec <- seq(lastval, minval, length.out = 7)
     final <- rep(minval, times = (horizon - length(dec)))
     covars <- c(covars, dec, final)
@@ -47,6 +48,18 @@ simulate_trajectories <- function(
     covars <- pomp_model@covar@table
     lastval <- as.numeric(tail(t(covars), 1))
     maxval <- 0.8
+    inc <- seq(lastval, maxval, length.out = 7)
+    final <- rep(maxval, times = (horizon - length(inc)))
+    covars <- c(covars, inc, final)
+    covars <- as.data.frame(covars) %>%
+      mutate(time = 1:n()) %>%
+      rename("rel_beta_change" = covars)
+  }
+  
+  if(covar_action == "normal") {
+    covars <- pomp_model@covar@table
+    lastval <- as.numeric(tail(t(covars), 1))
+    maxval <- 1
     inc <- seq(lastval, maxval, length.out = 7)
     final <- rep(maxval, times = (horizon - length(inc)))
     covars <- c(covars, inc, final)
