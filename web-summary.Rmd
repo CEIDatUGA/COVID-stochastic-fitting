@@ -46,7 +46,10 @@ We summarize the effectiveness of social distancing behaviors as the average dev
 
 The fit of our model to observed data is shown below.
 
-[INSERT FIT MODEL TIME SERIES]
+
+```{r fits,  fig.cap='Fitted model trajectory compared to the observed data. Shaded regions are the 95% confidence intervals.'}
+knitr::include_graphics(here("output/figures",'fits-to-data.png'))
+```
 
 ## Scenarios
 
@@ -62,7 +65,7 @@ Key dates for the control COVID-19 in Georgia include:
 
 In what follows we consider five scenarios
 
-1. **Increased social distancing.** Social distancing reduces movements from the current level to ????, which is the reduction observed in New York City that enabled transmission to decline there.
+1. **Increased social distancing.** Social distancing reduces movements from the current level to 0.3, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Status quo.** Social distancing continues at the last observed level of human movement patterns.
 3. **Relax social distancing.** Social distancing returns to a level of human movement equivalent to 80% of baseline.
 4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
@@ -71,29 +74,41 @@ In what follows we consider five scenarios
 The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
 Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger.
 
-[INSET SUMMARY PLOT]
+```{r cumsums,  fig.cap='Summary of model projections for different scenarios for six weeks from today.'}
+knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
+```
 
 The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
 
 **Increased social distancing.**
 
-[INSERT PLOT]
+```{r scen1}
+knitr::include_graphics(here("output/figures",'increased-sd-traj.png'))
+```
 
 **Status quo.**
 
-[INSERT PLOT]
+```{r scen2}
+knitr::include_graphics(here("output/figures",'status-quo-traj.png'))
+```
 
 **Relax social distancing.**
 
-[INSERT PLOT]
+```{r scen3}
+knitr::include_graphics(here("output/figures",'relax-sd-traj.png'))
+```
 
 **Return to normal.**
 
-[INSERT PLOT]
+```{r scen4}
+knitr::include_graphics(here("output/figures",'return-normal-traj.png'))
+```
 
 **No intervention.**
 
-[INSERT PLOT]
+```{r scen5}
+knitr::include_graphics(here("output/figures",'no-intervention-traj.png'))
+```
 
 ## Model details
 
