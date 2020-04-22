@@ -17,8 +17,8 @@ library(here)
 ## Introduction
 
 The epidemiology of COVID-19 is poorly understood.
-To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated to regionally specific conditions in Georgia and observations of the number of reported cases, hospitalizations, and deaths.
-This model supercedes prior models published on this website.
+To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated it to regionally specific conditions in Georgia as well as observations of the number of reported cases, hospitalizations, and deaths.
+This model supersedes prior models published on this website.
 
 ## Data
 
@@ -57,7 +57,7 @@ In what follows we consider five scenarios
 5. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
 
 The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
-Note that all three measures of epidemic size are believed to be under-reported so the true epidemic size is likely to be considerably larger.
+Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger.
 
 [INSET SUMMARY PLOT]
 
@@ -71,7 +71,7 @@ The following plots show the observed and projected daily number of recorded cas
 
 [INSERT PLOT]
 
-**Relax social distanciong.**
+**Relax social distancing.**
 
 [INSERT PLOT]
 
@@ -93,16 +93,16 @@ Key features of this model include:
 * Time varying rates of case detection, isolation, and case notification.
 * Realistic intervention scenarios.
 
-This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered persons. 
+This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
 * **S** - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* **E** - Individuals who hae been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* **E** - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
 * **I~a~** - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
 * **I~su~** - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
 * **I~sd~** - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to **C**.
 * **C** - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
-* **H** - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder dies.
+* **H** - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
 * **R** - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
 * **D** - Individuals who *died* from the infection. 
 
@@ -119,7 +119,7 @@ To allow more realistic distributions of movement through compartments, several 
 
 The following interventions are implemented:
 
-* Social distancing is assumed to reduce all transmission rates by some factor. This is provided as covariate based on mobility data.
+* Social distancing is assumed to reduce all transmission rates by some factor. This is provided as a covariate based on mobility data.
 * Improving detection, which is assumed to increase sigmoidally up to a maximum value.
 * Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.
 
