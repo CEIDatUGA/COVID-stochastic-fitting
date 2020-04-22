@@ -73,15 +73,15 @@ covar <- covar %>%
 
 ggplot(covar, aes(x = Date, y = rel_beta_change)) +
   geom_line() +
-  ylab("Deviation from baseline tranmissibility") +
+  ylab("Social distancing\n(human movement as % of baseline)") +
   theme_minimal() +
-  scale_y_continuous(limits = c(0,1))
+  scale_y_continuous(limits=c(0,1), labels = scales::percent)
 ```
 
 The fit of our model to observed data is shown below.
 
 
-```{r fits,  fig.cap='Fitted model trajectory compared to the observed data. Shaded regions are the 95% confidence intervals.'}
+```{r fits}
 knitr::include_graphics(here("output/figures",'fits-to-data.png'))
 ```
 
@@ -89,7 +89,7 @@ knitr::include_graphics(here("output/figures",'fits-to-data.png'))
 
 Here we explore a range of scenarios for transmission in Georgia.
 All simulations start on 1 March.
-The model is fit to data on reported cases, hospitalizations, and deaths to r format(Sys.time(), '%B %d, %Y') and propagated six weeks into the future.
+The model is fit to data on reported cases, hospitalizations, and deaths to `r format(Sys.time(), '%B %d, %Y')` and propagated six weeks into the future.
 
 Key dates for the control COVID-19 in Georgia include:
 
@@ -114,31 +114,26 @@ knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
 
 The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
 
-**Increased social distancing.**
 
 ```{r scen1}
 knitr::include_graphics(here("output/figures",'increased-sd-traj.png'))
 ```
 
-**Status quo.**
 
 ```{r scen2}
 knitr::include_graphics(here("output/figures",'status-quo-traj.png'))
 ```
 
-**Relax social distancing.**
 
 ```{r scen3}
 knitr::include_graphics(here("output/figures",'relax-sd-traj.png'))
 ```
 
-**Return to normal.**
 
 ```{r scen4}
 knitr::include_graphics(here("output/figures",'return-normal-traj.png'))
 ```
 
-**No intervention.**
 
 ```{r scen5}
 knitr::include_graphics(here("output/figures",'no-intervention-traj.png'))
@@ -176,6 +171,12 @@ To allow more realistic distributions of movement through compartments, several 
 * **C** - 4 compartments
 * **H** - 4 compartments
 
+The flow diagram for this model shown below.
+
+```{r pomp-model}
+knitr::include_graphics(here("docs",'pomp-model.png'))
+```
+
 ### Interventions
 
 The following interventions are implemented:
@@ -183,12 +184,6 @@ The following interventions are implemented:
 * Social distancing is assumed to reduce all transmission rates by some factor. This is provided as a covariate based on mobility data.
 * Improving detection, which is assumed to increase sigmoidally up to a maximum value.
 * Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.
-
-The flow diagram for this model shown below.
-
-```{r pomp-model,  fig.cap='Compartmental model for COVID-19'}
-knitr::include_graphics(here("docs",'pomp-model.png'))
-```
 
 ### Parameterization
 

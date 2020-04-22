@@ -168,7 +168,7 @@ fits <- sim_summs %>%
   filter(SimType == "status_quo") %>%
   filter(Period == "Calibration")
 ggplot(fits, aes(x = Date)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  # geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   geom_point(data = pomp_data, aes(x = Date, y = Value)) +
   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
@@ -217,7 +217,8 @@ ggplot(sim_summs %>%
   scale_fill_brewer(type = "qual") +
   theme_minimal() +
   ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
   theme_minimal() +
   ggtitle("1. Increased social distancing")
 ggsave("./output/figures/increased-sd-traj.png", width = 8.5, height = 3, 
@@ -236,7 +237,8 @@ ggplot(sim_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
   ggtitle("2. Status quo")
 ggsave("./output/figures/status-quo-traj.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
@@ -254,7 +256,8 @@ ggplot(sim_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
   ggtitle("3. Relax social distancing")
 ggsave("./output/figures/relax-sd-traj.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
@@ -272,7 +275,8 @@ ggplot(sim_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
   ggtitle("4. Return to normal")
 ggsave("./output/figures/return-normal-traj.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
@@ -290,7 +294,8 @@ ggplot(sim_summs %>%
   theme_minimal() +
   ylab("Number of persons") +
   theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
   ggtitle("5. No intervention")
 ggsave("./output/figures/no-intervention-traj.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
