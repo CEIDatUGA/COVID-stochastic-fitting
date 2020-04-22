@@ -4,6 +4,7 @@ simulate_trajectories <- function(
   pomp_model,
   start_date = "2020-03-01",
   covar_action = "status_quo",
+  covar_no_action = NULL,
   param_vals, 
   forecast_horizon_wks = 6,
   nsims = 100) {
@@ -27,7 +28,7 @@ simulate_trajectories <- function(
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
-    covars$rel_beta_change <- maxval
+    covars$rel_beta_change <- covar_no_action
   }
   
   if(covar_action == "more_sd") {

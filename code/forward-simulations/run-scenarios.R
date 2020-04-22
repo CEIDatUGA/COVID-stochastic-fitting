@@ -66,6 +66,7 @@ for(i in 1:nrow(all_mles)){
   
   sim_na <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "no_intervention", 
+                                  covar_no_action = 1,
                                   param_vals = mles,
                                   forecast_horizon_wks = weeks_ahead,
                                   nsims = num_sims) %>%
@@ -124,35 +125,35 @@ pomp_data <- readRDS(filename) %>%
 
 # Make the plots ----------------------------------------------------------
 
-ggplot(sim_summs, aes(x = Date, color = SimType, 
-                     fill = SimType, linetype = Period)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue), size = 1) +
-  facet_wrap(~Variable, scales = "free", ncol = 1) +
-  scale_linetype_manual(values = c(1,1)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal()
-ggsave("./output/figures/scenario-sims.png")
+# ggplot(sim_summs, aes(x = Date, color = SimType, 
+#                      fill = SimType, linetype = Period)) +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue), size = 1) +
+#   facet_wrap(~Variable, scales = "free", ncol = 1) +
+#   scale_linetype_manual(values = c(1,1)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal()
+# ggsave("./output/figures/scenario-sims.png")
 
 
 
 
 
-rel_beta_change = seq(0.1, 2, by = 0.01)
-log_beta_s <- -16.9
-Isd_tot = 14*4
-Isu_tot = 90*4
-E_tot = 40*4
-Ia_tot = 22*4
-C_tot = 2*4
-H_tot = 2*4
-trans_e = 2
-trans_a = 0
-trans_c = 1
-trans_h = 10
-foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-plot(foi)
+# rel_beta_change = seq(0.1, 2, by = 0.01)
+# log_beta_s <- -16.9
+# Isd_tot = 14*4
+# Isu_tot = 90*4
+# E_tot = 40*4
+# Ia_tot = 22*4
+# C_tot = 2*4
+# H_tot = 2*4
+# trans_e = 2
+# trans_a = 0
+# trans_c = 1
+# trans_h = 10
+# foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+# plot(foi)
 
