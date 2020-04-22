@@ -45,48 +45,71 @@ pf_logliks <- ll_df %>%
   bind_cols(mif_coefs) %>%
   dplyr::arrange(-LogLik)
 
-mles <- pf_logliks %>%
-  # filter(LogLik == max(LogLik)) %>%
-  slice(1) %>%
+all_mles <- pf_logliks %>%
+  filter(LogLik > (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 
 # Run simulations ---------------------------------------------------------
-weeks_ahead <- 4
-num_sims <- 100
+weeks_ahead <- 7
+num_sims <- 10
 
-sim_sq <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                covar_action = "status_quo", param_vals = mles,
-                                forecast_horizon_wks = weeks_ahead, 
-                                nsims = num_sims) %>%
-  mutate(SimType = "status_quo")
+out_sims <- tibble()
+for(i in 1:nrow(all_mles)){
+  mles <- all_mles[i, ]
+  
+  sim_sq <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+                                  covar_action = "status_quo", param_vals = mles,
+                                  forecast_horizon_wks = weeks_ahead, 
+                                  nsims = num_sims) %>%
+    mutate(SimType = "status_quo")
+  
+  sim_na <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+                                  covar_action = "no_intervention", 
+                                  param_vals = mles,
+                                  forecast_horizon_wks = weeks_ahead,
+                                  nsims = num_sims) %>%
+    mutate(SimType = "no_intervention")
+  
+  sim_msd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+                                  covar_action = "more_sd",
+                                  param_vals = mles, 
+                                  forecast_horizon_wks = weeks_ahead,
+                                  nsims = num_sims) %>%
+    mutate(SimType = "linear_increase_sd")
+  
+  sim_lsd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+                                  covar_action = "less_sd",
+                                  param_vals = mles, 
+                                  forecast_horizon_wks = weeks_ahead,
+                                  nsims = num_sims) %>%
+    mutate(SimType = "linear_decrease_sd")
+  
+  all_sims <- bind_rows(sim_sq, sim_na, sim_msd, sim_lsd) %>%
+    mutate(mle_id = i)
+  out_sims <- bind_rows(out_sims, all_sims)
+}
 
-sim_na <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                covar_action = "no_intervention", 
-                                param_vals = mles,
-                                forecast_horizon_wks = weeks_ahead,
-                                nsims = num_sims) %>%
-  mutate(SimType = "no_intervention")
-
-sim_sd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
-                                covar_action = "linear", max_beta_change = 0.3,
-                                param_vals = mles, 
-                                forecast_horizon_wks = weeks_ahead,
-                                nsims = num_sims) %>%
-  mutate(SimType = "linear_increase_sd")
-
-
-
-# Combine the simulations -------------------------------------------------
-
-all_sims <- bind_rows(sim_sq, sim_na, sim_sd) %>%
+ sim_summs <- out_sims %>%
   dplyr::select(SimType, Period, Date, cases, hosps, deaths) %>%
-  filter(SimType != "no_intervention") %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
-  summarise(lower = quantile(Value, 0.025),
-            ptvalue = quantile(Value, 0.5),
-            upper = quantile(Value, 0.975))
+  summarise(lower = ceiling(quantile(Value, 0.025)),
+            ptvalue = ceiling(quantile(Value, 0.5)),
+            upper = ceiling(quantile(Value, 0.975))) %>%
+   ungroup()
+ 
+ cumulative_summs <- out_sims %>%
+   dplyr::select(SimType, Date, cases, hosps, deaths) %>%
+   gather(key = "Variable", value = "Value", -SimType, -Date) %>%
+   group_by(SimType, Date, Variable) %>%
+   mutate(Value = cumsum(Value)) %>%
+   summarise(lower = ceiling(quantile(Value, 0.025)),
+             ptvalue = ceiling(quantile(Value, 0.5)),
+             upper = ceiling(quantile(Value, 0.975))) %>%
+   ungroup() %>%
+   filter(Date == max(Date)) %>%
+   filter(Variable == "cases")
 
 
 # Make a data data frame for plotting -------------------------------------
@@ -101,7 +124,7 @@ pomp_data <- readRDS(filename) %>%
 
 # Make the plots ----------------------------------------------------------
 
-ggplot(all_sims, aes(x = Date, color = SimType, 
+ggplot(sim_summs, aes(x = Date, color = SimType, 
                      fill = SimType, linetype = Period)) +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue), size = 1) +
@@ -113,3 +136,23 @@ ggplot(all_sims, aes(x = Date, color = SimType,
   ylab("Number of persons") +
   theme_minimal()
 ggsave("./output/figures/scenario-sims.png")
+
+
+
+
+
+rel_beta_change = seq(0.1, 2, by = 0.01)
+log_beta_s <- -16.9
+Isd_tot = 14*4
+Isu_tot = 90*4
+E_tot = 40*4
+Ia_tot = 22*4
+C_tot = 2*4
+H_tot = 2*4
+trans_e = 2
+trans_a = 0
+trans_c = 1
+trans_h = 10
+foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+plot(foi)
+

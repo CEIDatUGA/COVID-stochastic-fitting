@@ -4,7 +4,6 @@ simulate_trajectories <- function(
   pomp_model,
   start_date = "2020-03-01",
   covar_action = "status_quo",
-  max_beta_change = NULL,
   param_vals, 
   forecast_horizon_wks = 6,
   nsims = 100) {
@@ -23,18 +22,33 @@ simulate_trajectories <- function(
   
   if(covar_action == "no_intervention") {
     covars <- pomp_model@covar@table
+    maxval <- covars[1]
     covars <- c(covars, rep(as.numeric(tail(t(covars), 1)), times = horizon))
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
-    covars$rel_beta_change <- 1
+    covars$rel_beta_change <- maxval
   }
   
-  if(covar_action == "linear" & !is.null(max_beta_change)) {
+  if(covar_action == "more_sd") {
     covars <- pomp_model@covar@table
-    covars <- c(covars, seq(as.numeric(tail(t(covars), 1)), 
-                            max_beta_change, 
-                            length.out = horizon))
+    lastval <- as.numeric(tail(t(covars), 1))
+    minval <- min(covars)
+    dec <- seq(lastval, minval, length.out = 7)
+    final <- rep(minval, times = (horizon - length(dec)))
+    covars <- c(covars, dec, final)
+    covars <- as.data.frame(covars) %>%
+      mutate(time = 1:n()) %>%
+      rename("rel_beta_change" = covars)
+  }
+  
+  if(covar_action == "less_sd") {
+    covars <- pomp_model@covar@table
+    lastval <- as.numeric(tail(t(covars), 1))
+    maxval <- 0.8
+    inc <- seq(lastval, maxval, length.out = 7)
+    final <- rep(maxval, times = (horizon - length(inc)))
+    covars <- c(covars, inc, final)
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
