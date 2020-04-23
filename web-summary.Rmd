@@ -15,13 +15,15 @@ library(here)
 library(tidyverse)
 ```
 
-## Introduction
+# {.tabset .tabset-fade}
+
+## Overview
 
 The epidemiology of COVID-19 is poorly understood.
 To better understand the potential range of epidemic outcomes in the state of Georgia, we developed a model based on the accumulation of knowledge from various locations and calibrated it to regionally specific conditions in Georgia as well as observations of the number of reported cases, hospitalizations, and deaths.
 This model supersedes prior models published on this website.
 
-## Data
+### Data
 
 ```{r read-data}
 filename <- tail(list.files(path = here("data/"), pattern = "us-ct-clean"), 1)
@@ -85,7 +87,7 @@ The fit of our model to observed data is shown below.
 knitr::include_graphics(here("output/figures",'fits-to-data.png'))
 ```
 
-## Scenarios
+## Scenarios {.tabset .tabset-fade}
 
 Here we explore a range of scenarios for transmission in Georgia.
 All simulations start on 1 March.
