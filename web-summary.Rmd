@@ -202,24 +202,24 @@ Key features of this model include:
 This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
-* **S** - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* **E** - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
-* **I~a~** - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
-* **I~su~** - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
-* **I~sd~** - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to **C**.
-* **C** - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
-* **H** - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
-* **R** - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
-* **D** - Individuals who *died* from the infection. 
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_su$, $I_sd$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{E}$ - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
+* $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
+* $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
+* $\boldsymbol{D}$ - Individuals who *died* from the infection. 
 
 To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
 
-* **E** - 4 compartments
-* **I~a~** - 4 compartments 
-* **I~su~** - 4 compartments
-* **I~sd~** - 4 compartments
-* **C** - 4 compartments
-* **H** - 4 compartments
+* $\boldsymbol{E}$ - 4 compartments
+* $\boldsymbol{I_a}$ - 4 compartments 
+* $\boldsymbol{I_{su}}$ - 4 compartments
+* $\boldsymbol{I_{sd}}$ - 4 compartments
+* $\boldsymbol{C}$ - 4 compartments
+* $\boldsymbol{H}$ - 4 compartments
 
 The flow diagram for this model shown below.
 
@@ -247,11 +247,9 @@ Auxiliary parameters estimated using MIF include the intensity of the parameter 
 
 For more details, see the [public GitHub repository](https://github.com/CEIDatUGA/COVID-stochastic-fitting).
 
-### Disclaimer
-
-The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
+<small>**Disclaimer:** The COVID-19 epidemic is changing rapidly, and information that was used in the construction of this model may be incomplete or contain errors.
 Accordingly, these results are preliminary, provisional, and subject to change.
-These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event.
+These results have not been peer-reviewed, but have been prepared to a professional standard with the intention of providing useful interpretation of a rapidly developing event.</small>
 
 
 [^1]:[Rong et al. 2020](https://wwwnc.cdc.gov/eid/article/26/5/20-0198_article?deliveryName=DM20712), [Du et al. 2020](https://www.medrxiv.org/content/10.1101/2020.02.19.20025452v3)
