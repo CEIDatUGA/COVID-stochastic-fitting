@@ -52,10 +52,11 @@ setpriors()
 # results saved to data folder with time stamp in name
 # results will be loaded by later files
 source(here("code/data-processing/loadcleanCTdata.R"))
+source(here("code/data-processing/loadcleanGDPHdata.R"))
 # define which location(s) (states) one wants to use. Needs to agree with Location variable in the data
 use_these_locations = c("Georgia")
-loadcleanCTdata(use_these_locations = use_these_locations, 
-                start_date = "2020-03-01")
+loadcleanCTdata(use_these_locations = use_these_locations, start_date = "2020-03-01")
+loadcleanGDPHdata(start_date = "2020-03-01")
 
 # ANDREW: NEED TO MAKE THIS SO WE CAN CHANGE STATES
 # Make the unacast covariate table ----------------------------------------
