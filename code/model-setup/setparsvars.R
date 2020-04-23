@@ -109,10 +109,6 @@ setparsvars <- function(est_these_pars, est_these_inivals)
   par_var_list$varnames = varnames
   par_var_list$parnames = parnames
   par_var_list$allparvals = allparvals
-  
-  
-  # Save the parameter lists ------------------------------------------------
-  
-  filename = here('output/var-par-definitions.RDS')
-  saveRDS(par_var_list,filename)
+
+  return(par_var_list)
 } #finish function that defines and writes variables and parameters

@@ -1,23 +1,16 @@
-makepompmodel <- function()
+makepompmodel <- function(par_var_list, pomp_data, covar_table)
 {
 
-  # make-pomp-newmodel.R
-  #
-  # This script generates a pomp object for an SEIR model of COVID 19. 
-  # Running this script saves an RDS object: pomp-model.RDS.
+  # This generates a pomp object for an SEIR model of COVID 19. 
   # The pomp object can be used for simulating trajectories and fitting.
   #
   # Authors: John Drake
   #          Andreas Handel
   #          Andrew Tredennick
   
-  # Clear the decks ---------------------------------------------------------
-  #rm(list = ls(all.names = TRUE))
-  
   # Load libraries ----------------------------------------------------------
    library(dplyr)
    library(pomp)
-   library(here) #to simplify loading/saving into different folders
   
   ############################################################################
   # Code to define  process model -------------------------------------------
@@ -329,27 +322,18 @@ makepompmodel <- function()
   
   
   ############################################################################
-  # load values for model parameters and initial conditions -----------------
+  # assign values for model parameters and initial conditions -----------------
   ############################################################################
-  filename <- here('output/var-par-definitions.RDS')
-  par_var_list <- readRDS(filename) 
   allparvals <- par_var_list$allparvals
   params_to_estimate <- par_var_list$params_to_estimate
   inivals_to_estimate <- par_var_list$inivals_to_estimate
   varnames <- par_var_list$varnames
   allparnames <- names(allparvals)  # includes initial conditions
   
-  #load data
-  filename <- here('data',paste0("us-ct-cleandata-",Sys.Date(),'.rds'))
-  pomp_data <- readRDS(filename)
   # remove any column in data that's not time or the fitted variables
   # otherwise pomp might get indigestion
   dat_for_pomp <- pomp_data %>% select(time, cases, hosps, deaths)
   
-  # Load unacast covariate table ----------------------------------------
-  covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
-  
-  #browser()
   
   # Define the pomp model object --------------------------------------------
   # the last line with the cdir statement is to try and prevent error messages 

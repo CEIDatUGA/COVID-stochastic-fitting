@@ -21,6 +21,16 @@ library(here)
 #library(purrr)
 #library(ggplot2)
 
+# --------------------------------------------------
+# Set state, data source and a time-stamp variable
+# --------------------------------------------------
+location = c("Georgia")
+datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+stamp = Sys.Date() #might need to include time if we want finer resolution
+
+filename_label = paste(location,datasource,stamp,sep="_") #this will be appended to each saved file 
+
+
 # Define parameter and variable names --------------------------------
 # assigns values to variables and initial conditions
 # specifies parameters that are being fitted
@@ -39,40 +49,45 @@ est_these_inivals = ""
 
 # run function that sets variables and parameters 
 # functions doesn't return anything, results are written to file
-setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals)
- 
+par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals)
 
 # Set priors --------------------------
 # needs results from setparsvars 
-# results are written into RDS file and loaded by later scripts
 source(here("code/model-setup/setpriors.R"))
-setpriors()
+prior_dens <- setpriors(par_var_list)
 
-# Run data cleaning script. Then load cleaned data ready for pomp --------------------------------------------
-# results saved to data folder with time stamp in name
-# results will be loaded by later files
+
+# Run data cleaning script. Return data ready for pomp --------------------------------------------
 source(here("code/data-processing/loadcleanCTdata.R"))
 source(here("code/data-processing/loadcleanGDPHdata.R"))
-# define which location(s) (states) one wants to use. Needs to agree with Location variable in the data
-use_these_locations = c("Georgia")
-loadcleanCTdata(use_these_locations = use_these_locations, start_date = "2020-03-01")
-loadcleanGDPHdata(start_date = "2020-03-01")
 
-# ANDREW: NEED TO MAKE THIS SO WE CAN CHANGE STATES
+if (datasource == "COV")
+{
+  pomp_data <- loadcleanCTdata(use_these_locations = location, start_date = "2020-03-01")
+}
+if (datasource == "GAD")
+{  
+  pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
+}
+
+
+# ANDREW: NEED TO MAKE THIS SO WE CAN PASS STATE TO FUNCTION AND 
+# GET UNACAST COVARIATE FOR SPECIFIED STATE
 # Make the unacast covariate table ----------------------------------------
 # results are saved to data folder with time stamp in name
 # results will be loaded by later files
-thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
-if(length(thefiles) != 0) {
-  source(here("code/model-setup/modelbetareduction.R"))
-  modelbetareduction() #run function. No return, saves results to file
-}
+# thefiles <- list.files(path = here("data/"), pattern = "ga_state_raw")
+# if(length(thefiles) != 0) {
+#   source(here("code/model-setup/modelbetareduction.R"))
+# covar_table <-  modelbetareduction() #run function. No return, saves results to file
+# }
+covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 
-# Make a pomp model 
-# loads all the previously generated RDS files and generates a pomp model that's ready for fitting
-# the resulting pomp object is saved as RDS file into the output folder
+
+# Make a pomp model -----------------------------------------------------
+# use data, covariate and parameter information to make a pomp model that's ready for fitting
 source(here("code/model-setup/makepompmodel.R"))
-makepompmodel()
+pomp_model <- makepompmodel(par_var_list = par_var_list, pomp_data = pomp_data, covar_table = covar_table)
 
 
 # Run the mif fitting routine -----------------------------------------------------
@@ -96,8 +111,14 @@ mif_settings$pf_reps <- 10
 # loads the previously generated pomp model 
 source(here("code/model-fitting/runmif.R"))
 
-#supply 2 lists containing info for parallel and mif settings
-runmif(parallel_info = parallel_info, mif_settings = mif_settings) 
+#supply all info to mif and run it 
+#output is list containing an object of mif runs and an object of pfilter runs for each mif
+mif_list <- runmif(parallel_info = parallel_info, 
+                   mif_settings = mif_settings, 
+                   pomp_model = pomp_model, 
+                   par_var_list = par_var_list)
+
+saveRDS(object = mif_list, file = paste0(filename_label,'_mif.rds'))
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
 # all result figures are saved into the /output/figures/ and /output/tables/ folders

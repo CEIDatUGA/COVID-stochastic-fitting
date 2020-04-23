@@ -1,21 +1,16 @@
-runmif <- function(parallel_info, mif_settings)
+runmif <- function(parallel_info, mif_settings, pomp_model, par_var_list)
 {
 
-  # run-mif.R
-  # This script uses the pomp::mif2() function to estimate parameters
+  # This uses the pomp::mif2() function to estimate parameters
   # of the stochastic SEIR model using maximization by iterated filtering.
   # The data are new daily case counts, new daily hospitalizations, and
   # new daily deaths. See the pomp_model object for details.
-  #rm(list = ls(all.names = TRUE))
   
   #set file name to save results
   #either generic (which is overwritten)
   #or some unique name so it's not accidentally overwritten
-  outfile <- here('output/mif-results.RDS')
-  #outfile <- here('output/mif-results-ah1.RDS')
   
   library(pomp)  # must be at least version 2.x
-  library(here)
   library(doParallel)
   library(foreach)
   
@@ -31,13 +26,6 @@ runmif <- function(parallel_info, mif_settings)
     n_cores <- 1
   }
   
-  # Load the pomp object ----------------------------------------------------
-  filename <- here('output/pomp-model.RDS')
-  pomp_model <- readRDS(filename)
-  
-  # load values for model parameters and initial conditions -----------------
-  filename = here('output/var-par-definitions.RDS')
-  par_var_list <- readRDS(filename) 
   allparvals <- par_var_list$allparvals
   params_to_estimate = par_var_list$params_to_estimate
   inivals_to_estimate = par_var_list$inivals_to_estimate
@@ -188,10 +176,9 @@ runmif <- function(parallel_info, mif_settings)
   tdiff=tend-tstart;
   print(sprintf('MIF took %f minutes using %d particles and %d MIF iterations',tdiff[[3]]/60,mif_num_particles[1],sum(mif_num_iterations)))
   
-  
   # Save output -------------------------------------------------------------
   # create a list of lists containing the mif runs 
   # and for each mif run, the subsequent pfilter runs 
   mifRets <- list(mif_runs = out_mif, pf_runs = pf)
-  saveRDS(object = mifRets, file = outfile)
+  return(mifRets)
 }

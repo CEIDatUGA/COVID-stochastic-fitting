@@ -1,10 +1,8 @@
-setpriors <- function()
+setpriors <- function(par_var_list)
 {
 
   # make-priors.R
-  # library(here)
-   library(pomp)
-  # rm(list = ls(all.names = TRUE))
+  library(pomp)
   
   #values for priors are explained in a separate spreadsheet:
   #https://docs.google.com/spreadsheets/d/10K_3bPck0GOCAfuUQtyZ-KEmwf6FQE3CcpSe36HtL4c/edit#gid=478517635
@@ -13,10 +11,7 @@ setpriors <- function()
   # mean/central values for parameters, as specified by spreadsheet
   # for meaning of parameters, see spreadhseet
   
-  #load values for model parameters and initial conditions
-  #use those as mean/central value for prior definition
-  filename = here('output/var-par-definitions.RDS')
-  x <- readRDS(filename) #for ease of notation, assign parameter values to x
+  x <- par_var_list
   
   param_sds <- 3
   prior_par_list = list()
@@ -43,8 +38,7 @@ setpriors <- function()
   prior_dens <- pomp::Csnippet(
     prior_dens_text
   )
-  filename = here('output/prior-dens-object.RDS')
-  saveRDS(prior_dens,filename)
-
+  #
+  return(prior_dens)
 }
 
