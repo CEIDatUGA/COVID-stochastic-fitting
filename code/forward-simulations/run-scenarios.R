@@ -150,7 +150,7 @@ cumulative_summs <- out_sims %>%
    filter(Date == max(Date)) %>%
    mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
           SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-          SimType2 = ifelse(SimType == "lowest_sd", "5Best social distancing", SimType2),
+          SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
           SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
           SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
           SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
@@ -168,11 +168,14 @@ pomp_data <- readRDS(fullpath) %>%
          "Bhosps" = hosps,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -Date) %>%
-  mutate(SimType = "obs", Period = "Calibration")
+  mutate(SimType = "obs", Period = "Past")
 
 
 
 # Make the plots ----------------------------------------------------------
+
+mycols <- c("#a11c3e", "#5798d1", "#252525", "#319045",
+            "#5e2b7b", "#e2908c", "#226e83")
 
 variable_names <- c(
   "Acases" = 'New cases',
@@ -218,18 +221,19 @@ ggsave(filename = here("output/figures/fits-to-data.png"), width = 8.5, height =
 
 
 # Cumulative min/maxes 6 weeks out
-scen_labs <- c("Increased social distancing",
-               "Status quo",
-               "Relax social distancing",
-               "Return to normal",
-               "Best social distancing to date",
-               "No intervention")
+scen_labs <- c("1. Increased social distancing",
+               "2. Status quo",
+               "3. Relax social distancing",
+               "4. Return to normal",
+               "5. Continuously improving social distancing",
+               "6. No intervention")
 title <- paste("Range of projections by", max(cumulative_summs$Date))
 ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
   facet_wrap(~Variable) +
-  scale_colour_viridis_d(end = 0.8) +
+  # scale_colour_viridis_d(end = 0.8) +
+  scale_color_manual(values = mycols) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
@@ -239,7 +243,7 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   guides(color = FALSE) +
   coord_flip() +
-  ggtitle(title, subtitle = "scenarios are described above")
+  ggtitle(title, subtitle = "scenarios are described above") 
 ggsave(filename = here("output/figures/cumulative-forecasts.png"), width = 8.5, height = 4, 
        units = "in", dpi = 300)
 
@@ -247,7 +251,8 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
   geom_point(aes(y=ptvalue), color = "white", size = 1) +
   facet_wrap(~Variable) +
-  scale_colour_viridis_d(end = 0.8) +
+  # scale_colour_viridis_d(end = 0.8) +
+  scale_color_manual(values = mycols) +
   facet_wrap(~Variable, ncol = 3, scales = "free_x", labeller = labeller(Variable = variable_names_cum)) +
   ylab("Number of persons") +
   xlab("") +
@@ -266,32 +271,457 @@ ggsave(filename = here("output/figures/cumulative-forecasts-log.png"), width = 8
 all_summs <- sim_summs %>%
   mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
          SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Best social distancing", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
          SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
   dplyr::select(-SimType2)
 
-labs <- c("Increased social distancing",
-          "Status quo",
-          "Relax social distancing",
-          "Return to normal",
-          "Best social distancing to date",
-          "No intervention")
+labs <- c("1. Increased social distancing",
+          "2. Status quo",
+          "3. Relax social distancing",
+          "4. Return to normal",
+          "5. Continuously improving social distancing",
+          "6. No intervention")
 # All scenarios - line, natural
 ggplot(all_summs, aes(x = Date, color = SimType)) +
   geom_line(aes(y = ptvalue)) +
   geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
   facet_wrap(~Variable, ncol = 3, scales = "free_y", 
              labeller = labeller(Variable = variable_names)) +
-  scale_colour_viridis_d(end = 0.8, name = "", labels= labs) +
+  scale_color_manual(values = mycols, name = "", labels= labs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma) +
-  theme_minimal()
-ggsave("./output/figures/all-projs-line-nat.png", width = 8.5, height = 3, 
+  theme_minimal() +
+  theme(legend.position = "top")
+ggsave("./output/figures/all-projs-line-nat.png", width = 8.5, height = 4, 
        units = "in", dpi = 300)
+
+
+# All scenarios - line, log
+ggplot(all_summs, aes(x = Date,  color = SimType)) +
+  geom_line(aes(y = ptvalue)) +
+  geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
+  facet_wrap(~Variable, ncol = 3, scales = "free_y", 
+             labeller = labeller(Variable = variable_names)) +
+  scale_color_manual(values = mycols, name = "", labels= labs) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,100000), breaks = c(10,100,1000,10000,100000))+
+  theme_minimal() +
+  theme(legend.position = "top")
+ggsave("./output/figures/all-projs-line-log.png", width = 8.5, height = 4, 
+       units = "in", dpi = 300)
+
+
+
+scen_labs <- c("1Increased social distancing" = "1. Increased\nsocial distancing",
+               "2Status quo" = "2. Status quo",
+               "3Relax social distancing" = "3. Relax\nsocial distancing",
+               "4Return to normal" = "4. Return to normal",
+               "5Continuously improving social distancing" = "5. Continuously\nimproving\nsocial distancing",
+               "6No intervention" = "6. No intervention")
+
+## NATURAL SCALE
+# Cases
+ggplot(all_summs %>%
+         filter(Variable == "Acases"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Acases") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma)+
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily cases")
+ggsave("./output/figures/cases-trajs-nat.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+# Hosps
+ggplot(all_summs %>%
+         filter(Variable == "Bhosps"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Bhosps") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma)+
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily hospitalizations")
+ggsave("./output/figures/hosps-trajs-nat.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+# Deaths
+ggplot(all_summs %>%
+         filter(Variable == "Cdeaths"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Cdeaths") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma)+
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily deaths")
+ggsave("./output/figures/deaths-trajs-nat.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+
+## LOG SCALE
+# Cases
+ggplot(all_summs %>%
+         filter(Variable == "Acases"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Acases") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000)) +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily cases")
+ggsave("./output/figures/cases-trajs-log.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+# Hosps
+ggplot(all_summs %>%
+         filter(Variable == "Bhosps"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Bhosps") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,100000), breaks = c(10,100,1000,10000,100000)) +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily hospitalizations")
+ggsave("./output/figures/hosps-trajs-log.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+# Deaths
+ggplot(all_summs %>%
+         filter(Variable == "Cdeaths"),
+       aes(x = Date, color = Period, fill = Period)) +
+  geom_point(data = pomp_data %>%
+               filter(Variable == "Cdeaths") %>%
+               dplyr::select(-SimType),
+             aes(x = Date, y = Value), size = 1, color = "grey35") +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+  geom_line(aes(y = ptvalue)) +
+  facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
+  scale_color_brewer(type = "qual", name = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  ylab("Number of persons") +
+  scale_y_continuous(labels = scales::comma, trans = "log", 
+                     limits = c(1,20000), breaks = c(10,100,1000,10000,100000)) +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("New daily deaths")
+ggsave("./output/figures/deaths-trajs-log.png", width = 8.5, height = 3, 
+       units = "in", dpi = 300)
+
+
+
+
+# Increase social distancing trajectory
+# ggplot(sim_summs %>%
+#          filter(SimType == "linear_increase_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   theme_minimal() +
+#   ggtitle("1. Increased social distancing")
+# ggsave("./output/figures/increased-sd-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # sim_summs %>%
+# #   filter(SimType == "linear_increase_sd") %>%
+# #   filter(Period == "Future") %>%
+# #   filter(Date == min(Date))
+# # sim_summs %>%
+# #   filter(SimType == "linear_increase_sd") %>%
+# #   filter(Period == "Past") %>%
+# #   filter(Date == max(Date))
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "linear_increase_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   scale_y_continuous(labels = scales::comma)+
+#   theme_minimal() +
+#   ggtitle("1. Increased social distancing")
+# ggsave("./output/figures/increased-sd-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # Status quo trajectory
+# ggplot(sim_summs %>%
+#          filter(SimType == "status_quo"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   ggtitle("2. Status quo")
+# ggsave("./output/figures/status-quo-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "status_quo"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma)+
+#   ggtitle("2. Status quo")
+# ggsave("./output/figures/status-quo-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # Relax social distancing trajectory
+# ggplot(sim_summs %>%
+#          filter(SimType == "linear_decrease_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   ggtitle("3. Relax social distancing")
+# ggsave("./output/figures/relax-sd-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "linear_decrease_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma)+
+#   ggtitle("3. Relax social distancing")
+# ggsave("./output/figures/relax-sd-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # Return to normal
+# ggplot(sim_summs %>%
+#          filter(SimType == "return_normal"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   ggtitle("4. Return to normal")
+# ggsave("./output/figures/return-normal-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "return_normal"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma)+
+#   ggtitle("4. Return to normal")
+# ggsave("./output/figures/return-normal-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # No intervention
+# ggplot(sim_summs %>%
+#          filter(SimType == "no_intervention"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   ggtitle("6. No intervention")
+# ggsave("./output/figures/no-intervention-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "no_intervention"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma)+
+#   ggtitle("6. No intervention")
+# ggsave("./output/figures/no-intervention-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# # Best SD to date
+# ggplot(sim_summs %>%
+#          filter(SimType == "lowest_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma, trans = "log", 
+#                      limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
+#   ggtitle("5. Continuously improving social distancing")
+# ggsave("./output/figures/lowest-sd-traj-log.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+# 
+# ggplot(sim_summs %>%
+#          filter(SimType == "lowest_sd"), 
+#        aes(x = Date, color = Period, fill = Period)) +
+#   geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
+#   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
+#   geom_line(aes(y = ptvalue)) +
+#   facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
+#   scale_color_brewer(type = "qual") +
+#   scale_fill_brewer(type = "qual") +
+#   theme_minimal() +
+#   ylab("Number of persons") +
+#   theme_minimal() +
+#   scale_y_continuous(labels = scales::comma)+
+#   ggtitle("5. Continuously improving social distancing")
+# ggsave("./output/figures/lowest-sd-traj.png", width = 8.5, height = 3, 
+#        units = "in", dpi = 300)
+
+
+# nada <- sim_summs %>%
+#   filter(SimType == "no_intervention") %>%
+#   filter(Variable == "cases")
+# 
+# par(mfrow = c(1,2))
+# plot(cumsum(ptvalue)~Date, data = nada, type = "h", ylab = "Cumulative cases")
+# plot(ptvalue~Date, data = nada, type = "l", ylab = "New cases")
+
+
+# rel_beta_change = seq(0.1, 2, by = 0.01)
+# log_beta_s <- -16.9
+# Isd_tot = 14*4
+# Isu_tot = 90*4
+# E_tot = 40*4
+# Ia_tot = 22*4
+# C_tot = 2*4
+# H_tot = 2*4
+# trans_e = 2
+# trans_a = 0
+# trans_c = 1
+# trans_h = 10
+# foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+# plot(foi)
+
 
 # all_cumms <- all_summs %>%
 #   dplyr::select(SimType, Variable, Date, ptvalue) %>%
@@ -310,21 +740,6 @@ ggsave("./output/figures/all-projs-line-nat.png", width = 8.5, height = 3,
 # plot(test$ptvalue)
 # plot(cumsum(test$ptvalue))
 
-
-# All scenarios - line, log
-ggplot(all_summs, aes(x = Date,  color = SimType)) +
-  geom_line(aes(y = ptvalue)) +
-  geom_vline(aes(xintercept = Sys.Date()), color = "grey35", linetype = 2) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", 
-             labeller = labeller(Variable = variable_names)) +
-  scale_colour_viridis_d(end = 0.8, name = "", labels= labs) +
-  theme_minimal() +
-  ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,100000), breaks = c(10,100,1000,10000,100000))+
-  theme_minimal()
-ggsave("./output/figures/all-projs-line-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
 
 # All scenarios, ribbon nat
 # ggplot(all_summs, aes(x = Date,  fill = SimType)) +
@@ -358,255 +773,3 @@ ggsave("./output/figures/all-projs-line-log.png", width = 8.5, height = 3,
 #   theme_minimal()
 # ggsave("./output/figures/all-projs-ribbon-log.png", width = 8.5, height = 3, 
 #        units = "in", dpi = 300)
-
-
-# Increase social distancing trajectory
-ggplot(sim_summs %>%
-         filter(SimType == "linear_increase_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  theme_minimal() +
-  ggtitle("1. Increased social distancing")
-ggsave("./output/figures/increased-sd-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# sim_summs %>%
-#   filter(SimType == "linear_increase_sd") %>%
-#   filter(Period == "Projection") %>%
-#   filter(Date == min(Date))
-# sim_summs %>%
-#   filter(SimType == "linear_increase_sd") %>%
-#   filter(Period == "Calibration") %>%
-#   filter(Date == max(Date))
-
-ggplot(sim_summs %>%
-         filter(SimType == "linear_increase_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  scale_y_continuous(labels = scales::comma)+
-  theme_minimal() +
-  ggtitle("1. Increased social distancing")
-ggsave("./output/figures/increased-sd-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# Status quo trajectory
-ggplot(sim_summs %>%
-         filter(SimType == "status_quo"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  ggtitle("2. Status quo")
-ggsave("./output/figures/status-quo-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-ggplot(sim_summs %>%
-         filter(SimType == "status_quo"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
-  ggtitle("2. Status quo")
-ggsave("./output/figures/status-quo-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# Relax social distancing trajectory
-ggplot(sim_summs %>%
-         filter(SimType == "linear_decrease_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  ggtitle("3. Relax social distancing")
-ggsave("./output/figures/relax-sd-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-ggplot(sim_summs %>%
-         filter(SimType == "linear_decrease_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
-  ggtitle("3. Relax social distancing")
-ggsave("./output/figures/relax-sd-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# Return to normal
-ggplot(sim_summs %>%
-         filter(SimType == "return_normal"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  ggtitle("4. Return to normal")
-ggsave("./output/figures/return-normal-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-ggplot(sim_summs %>%
-         filter(SimType == "return_normal"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
-  ggtitle("4. Return to normal")
-ggsave("./output/figures/return-normal-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# No intervention
-ggplot(sim_summs %>%
-         filter(SimType == "no_intervention"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  ggtitle("6. No intervention")
-ggsave("./output/figures/no-intervention-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-ggplot(sim_summs %>%
-         filter(SimType == "no_intervention"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
-  ggtitle("6. No intervention")
-ggsave("./output/figures/no-intervention-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-# Best SD to date
-ggplot(sim_summs %>%
-         filter(SimType == "lowest_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma, trans = "log", 
-                     limits = c(1,200000), breaks = c(10,100,1000,10000,100000))+
-  ggtitle("5. Best social distancing to date")
-ggsave("./output/figures/lowest-sd-traj-log.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-ggplot(sim_summs %>%
-         filter(SimType == "lowest_sd"), 
-       aes(x = Date, color = Period, fill = Period)) +
-  geom_point(data = pomp_data, aes(x = Date, y = Value), size = 1, color = "grey35") +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
-  geom_line(aes(y = ptvalue)) +
-  facet_wrap(~Variable, ncol = 3, scales = "free_y", labeller = labeller(Variable = variable_names)) +
-  scale_color_brewer(type = "qual") +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal() +
-  ylab("Number of persons") +
-  theme_minimal() +
-  scale_y_continuous(labels = scales::comma)+
-  ggtitle("5. Best social distancing to date")
-ggsave("./output/figures/lowest-sd-traj.png", width = 8.5, height = 3, 
-       units = "in", dpi = 300)
-
-
-# nada <- sim_summs %>%
-#   filter(SimType == "no_intervention") %>%
-#   filter(Variable == "cases")
-# 
-# par(mfrow = c(1,2))
-# plot(cumsum(ptvalue)~Date, data = nada, type = "h", ylab = "Cumulative cases")
-# plot(ptvalue~Date, data = nada, type = "l", ylab = "New cases")
-
-
-# rel_beta_change = seq(0.1, 2, by = 0.01)
-# log_beta_s <- -16.9
-# Isd_tot = 14*4
-# Isu_tot = 90*4
-# E_tot = 40*4
-# Ia_tot = 22*4
-# C_tot = 2*4
-# H_tot = 2*4
-# trans_e = 2
-# trans_a = 0
-# trans_c = 1
-# trans_h = 10
-# foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-# plot(foi)
-

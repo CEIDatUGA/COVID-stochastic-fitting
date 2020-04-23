@@ -61,7 +61,7 @@ ggplot(datlong, aes(x = Date, y = value)) +
 
 To date, the primary intervention has been the adoption of social distancing behaviors and improved hygiene.
 We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps.
-We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0 (complete cessation of movements) to 1 (no difference from baseline).
+We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0% (complete cessation of movements) to 100% (no difference from baseline).
 
 ```{r unacast, message=FALSE, warning=FALSE, fig.width=5, fig.height=3}
 covar <- readRDS(here("output/rel-beta-change-covar.RDS"))
@@ -100,6 +100,7 @@ Key dates for the control COVID-19 in Georgia include:
 In what follows we consider six scenarios.
 The first four scenarios are projections of possible futures based on what has already happened in the past.
 The final two scenarios are simulations of the epidemic starting from March 1, 2020 showing the effectiveness of different interventions and behaviors.
+These two counterfactual scenarios explore what might have occurred if different actions had been taken in the past.
 
 *Possible futures scenarios*
 
@@ -110,10 +111,10 @@ The final two scenarios are simulations of the epidemic starting from March 1, 2
 
 *Effectiveness scenarios (past and future)*
 
-5. **Best social distancing to date.** Social distancing remains at the lowest observed level to date. 
+5. **Continuously improving social distancing.** Human movement patterns show that social distancing began to relax around April 10. In this scenario, we explore how the epidemic would have developed if social distancing had continued to decline until it reached the level observed in New York. 
 6. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
 
-The following plot shows the range (80% coverage of simulations) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
+The following plot shows the range (80% of simulations fall in this range) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
 The white dots indicate the median projection across simulations. 
 Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
 
@@ -123,7 +124,7 @@ Note that all three measures of epidemic size are believed to be under-reported,
 knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
 ```
 
-Resulting trajectories from all scenarios.
+Average of trajectories for each scenario.
 
 ```{r allnl}
 knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
@@ -133,35 +134,23 @@ knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
 knitr::include_graphics(here("output/figures",'all-projs-ribbon-nat.png'))
 ```
 
-The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
 Shaded regions represent the area within which 80% of the model simulations fall.
 
-```{r scen1}
-knitr::include_graphics(here("output/figures",'increased-sd-traj.png'))
+```{r cases}
+knitr::include_graphics(here("output/figures",'cases-trajs-nat.png'))
 ```
 
 
-```{r scen2}
-knitr::include_graphics(here("output/figures",'status-quo-traj.png'))
+```{r hosps}
+knitr::include_graphics(here("output/figures",'hosps-trajs-nat.png'))
 ```
 
 
-```{r scen3}
-knitr::include_graphics(here("output/figures",'relax-sd-traj.png'))
+```{r deaths}
+knitr::include_graphics(here("output/figures",'deaths-trajs-nat.png'))
 ```
 
-
-```{r scen4}
-knitr::include_graphics(here("output/figures",'return-normal-traj.png'))
-```
-
-```{r scen5}
-knitr::include_graphics(here("output/figures",'lowest-sd-traj.png'))
-```
-
-```{r scen6}
-knitr::include_graphics(here("output/figures",'no-intervention-traj.png'))
-```
 
 ### Log scale
 
@@ -180,35 +169,21 @@ knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png'))
 ```
 
 
-The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
 Shaded regions represent the area within which 80% of the model simulations fall.
-
-```{r scen1l}
-knitr::include_graphics(here("output/figures",'increased-sd-traj-log.png'))
+ 
+```{r casesl}
+knitr::include_graphics(here("output/figures",'cases-trajs-log.png'))
 ```
 
 
-```{r scen2l}
-knitr::include_graphics(here("output/figures",'status-quo-traj-log.png'))
+```{r hospsl}
+knitr::include_graphics(here("output/figures",'hosps-trajs-log.png'))
 ```
 
 
-```{r scen3l}
-knitr::include_graphics(here("output/figures",'relax-sd-traj-log.png'))
-```
-
-
-```{r scen4l}
-knitr::include_graphics(here("output/figures",'return-normal-traj-log.png'))
-```
-
-
-```{r scen5l}
-knitr::include_graphics(here("output/figures",'lowest-sd-traj-log.png'))
-```
-
-```{r scen6l}
-knitr::include_graphics(here("output/figures",'no-intervention-traj-log.png'))
+```{r deathsl}
+knitr::include_graphics(here("output/figures",'deaths-trajs-log.png'))
 ```
 
 ## Model details

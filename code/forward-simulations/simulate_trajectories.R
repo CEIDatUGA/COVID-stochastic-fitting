@@ -46,14 +46,16 @@ simulate_trajectories <- function(
     # Combine pomp simulations with dates
     sims_ret <- sim_out %>% 
       left_join(dates_df, by = "time") %>%
-      mutate(Period = ifelse(Date > Sys.Date(), "Projection", "Calibration"))
+      mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
     
   } else if(covar_action == "lowest_sd") {
     covars <- pomp_model@covar@table
     minval <- min(covars)
     id <- which.min(covars)
-    covars[id:length(covars)] <- minval
-    covars <- c(covars, rep(as.numeric(minval), times = horizon))
+    news <- seq(minval, 0.3, length.out = 7)
+    covars[id:(id+7-1)] <- news
+    covars[(id+7):length(covars)] <- 0.3
+    covars <- c(covars, rep(0.3, times = horizon))
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
@@ -82,7 +84,7 @@ simulate_trajectories <- function(
     # Combine pomp simulations with dates
     sims_ret <- sim_out %>% 
       left_join(dates_df, by = "time") %>%
-      mutate(Period = ifelse(Date > Sys.Date(), "Projection", "Calibration"))
+      mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
   } else {
     
     last_time <- obs_sim %>%
@@ -187,7 +189,7 @@ simulate_trajectories <- function(
     # Combine pomp simulations with dates
     sims <- sim_out %>% 
       left_join(dates_df, by = "time") %>%
-      mutate(Period = "Projection")
+      mutate(Period = "Future")
     
     
     fits <- obs_sim %>%
@@ -203,12 +205,12 @@ simulate_trajectories <- function(
     # calib_out <- obs_sim %>%
     #   filter(.id == init_id) %>%
     #   left_join(dates_df, by = "time") %>%
-    #   mutate(Period = "Calibration")
+    #   mutate(Period = "Past")
     calib_rep <- tibble()
     for(i in 1:length(unique(sims$.id))) {
       tmp <- fits %>%
         mutate(.id = as.character(i)) %>%
-        mutate(Period = "Calibration")
+        mutate(Period = "Past")
       calib_rep <- bind_rows(calib_rep, tmp)
     }
     
