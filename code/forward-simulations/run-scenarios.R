@@ -111,9 +111,13 @@ for(i in 1:nrow(all_mles)){
   
   all_sims <- bind_rows(sim_sq, sim_na, sim_minsd, sim_msd, sim_lsd, sim_nor) %>%
     mutate(mle_id = i,
-           rep_id = paste0(.id, mle_id))
+           rep_id =  paste(.id, mle_id, sep = "-"))
   out_sims <- bind_rows(out_sims, all_sims)
 }
+
+# Save the simulations
+fname <- paste0("output/simulation-scenarios/simulation-scenarios-", Sys.Date(), ".rds")
+saveRDS(object = out_sims, file = here(fname))
 
 # out_sims %>%
 #   filter(SimType == "return_normal") %>%
