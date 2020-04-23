@@ -37,7 +37,7 @@ data <- readRDS(here(fullpath)) %>%
 ```
 
 At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
-These data are from (covidtracking.com)[https://covidtracking.com/].
+These data are from <a href="https://covidtracking.com/" target="_blank">covidtracking.com</a>.
 
 ```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5} 
 datlong <- data %>%
@@ -88,7 +88,7 @@ The fit of our model to observed data is shown below.
 knitr::include_graphics(here("output/figures",'fits-to-data.png'))
 ```
 
-## Scenarios {.tabset .tabset-fade}
+## Scenarios
 
 Here we explore a range of scenarios for transmission in Georgia.
 All simulations start on 1 March.
@@ -121,69 +121,95 @@ The following plot shows the range (80% of simulations fall in this range) of pr
 The white dots indicate the median projection across simulations. 
 Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
 
-### Natural scale
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+#### Natural scale
 
 ```{r cumsums}
 knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
 ```
 
-Average of trajectories for each scenario.
+#### Log scale
+
+```{r cumsumsl}
+knitr::include_graphics(here("output/figures",'cumulative-forecasts-log.png'))
+```
+
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+**Average of trajectories for each scenario.**
+
+#### Natural scale
 
 ```{r allnl}
 knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
 ```
 
-```{r allnr, eval = FALSE}
-knitr::include_graphics(here("output/figures",'all-projs-ribbon-nat.png'))
-```
-
-The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
-Shaded regions represent the area within which 80% of the model simulations fall.
-
-```{r cases}
-knitr::include_graphics(here("output/figures",'cases-trajs-nat.png'))
-```
-
-
-```{r hosps}
-knitr::include_graphics(here("output/figures",'hosps-trajs-nat.png'))
-```
-
-
-```{r deaths}
-knitr::include_graphics(here("output/figures",'deaths-trajs-nat.png'))
-```
-
-
-### Log scale
-
-```{r cumsumsl,  fig.cap='Summary of model projections for different scenarios for six weeks from today.'}
-knitr::include_graphics(here("output/figures",'cumulative-forecasts-log.png'))
-```
-
-Resulting trajectories from all scenarios.
+#### Log scale
 
 ```{r allll}
 knitr::include_graphics(here("output/figures",'all-projs-line-log.png'))
 ```
 
-```{r alllr, eval = FALSE}
-knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png'))
+
+<!-- ```{r allnr, eval = FALSE} -->
+<!-- knitr::include_graphics(here("output/figures",'all-projs-ribbon-nat.png')) -->
+<!-- ``` -->
+
+<!-- ```{r alllr, eval = FALSE} -->
+<!-- knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png')) -->
+<!-- ``` -->
+
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+**The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
+Shaded regions represent the area within which 80% of the model simulations fall.**
+
+#### Natural scale
+
+```{r cases}
+knitr::include_graphics(here("output/figures",'cases-trajs-nat.png'))
 ```
 
+#### Log scale
 
-The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the six scenarios.
-Shaded regions represent the area within which 80% of the model simulations fall.
- 
 ```{r casesl}
 knitr::include_graphics(here("output/figures",'cases-trajs-log.png'))
 ```
 
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+#### Natural scale
+
+```{r hosps}
+knitr::include_graphics(here("output/figures",'hosps-trajs-nat.png'))
+```
+
+#### Log scale
 
 ```{r hospsl}
 knitr::include_graphics(here("output/figures",'hosps-trajs-log.png'))
 ```
 
+### {.tabset .tabset-fade .tabset-pills}
+
+***
+
+#### Natural scale
+
+```{r deaths}
+knitr::include_graphics(here("output/figures",'deaths-trajs-nat.png'))
+```
+
+#### Log scale
 
 ```{r deathsl}
 knitr::include_graphics(here("output/figures",'deaths-trajs-log.png'))
