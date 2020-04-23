@@ -97,16 +97,25 @@ Key dates for the control COVID-19 in Georgia include:
 * March 23, 2020: Executive order limiting large gatherings statewide and ordering "shelter in place"
 * April 20, 2020: Executive order moving certain businesses to minimum operations
 
-In what follows we consider five scenarios
+In what follows we consider six scenarios.
+The first four scenarios are projections of possible futures based on what has already happened in the past.
+The final two scenarios are simulations of the epidemic starting from March 1, 2020 showing the effectiveness of different interventions and behaviors.
+
+*Possible futures scenarios*
 
 1. **Increased social distancing.** Social distancing reduces movements from the current level to 0.3, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Status quo.** Social distancing continues at the last observed level of human movement patterns.
 3. **Relax social distancing.** Social distancing returns to a level of human movement equivalent to 80% of baseline.
 4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
-5. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
 
-The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
-Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger.
+*Effectiveness scenarios (past and future)*
+
+5. **Best social distancing to date.** Social distancing remains at the lowest observed level to date. 
+6. **No intervention.** To assess the effectiveness of the March 14 and March 23 interventions, we simulate forward from March 1 assuming that no social distancing had been enacted.
+
+The following plot shows the range (80% coverage of simulations) of projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
+The white dots indicate the median projection across simulations. 
+Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger (e.g., the true number of cumulative infections is likely to be 10 to 12 times larger than the numbers reported in these figures).
 
 ### Natural scale
 
@@ -120,11 +129,12 @@ Resulting trajectories from all scenarios.
 knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
 ```
 
-```{r allnr}
+```{r allnr, eval = FALSE}
 knitr::include_graphics(here("output/figures",'all-projs-ribbon-nat.png'))
 ```
 
 The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+Shaded regions represent the area within which 80% of the model simulations fall.
 
 ```{r scen1}
 knitr::include_graphics(here("output/figures",'increased-sd-traj.png'))
@@ -145,8 +155,11 @@ knitr::include_graphics(here("output/figures",'relax-sd-traj.png'))
 knitr::include_graphics(here("output/figures",'return-normal-traj.png'))
 ```
 
-
 ```{r scen5}
+knitr::include_graphics(here("output/figures",'lowest-sd-traj.png'))
+```
+
+```{r scen6}
 knitr::include_graphics(here("output/figures",'no-intervention-traj.png'))
 ```
 
@@ -162,12 +175,13 @@ Resulting trajectories from all scenarios.
 knitr::include_graphics(here("output/figures",'all-projs-line-log.png'))
 ```
 
-```{r alllr}
+```{r alllr, eval = FALSE}
 knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png'))
 ```
 
 
 The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+Shaded regions represent the area within which 80% of the model simulations fall.
 
 ```{r scen1l}
 knitr::include_graphics(here("output/figures",'increased-sd-traj-log.png'))
@@ -190,6 +204,10 @@ knitr::include_graphics(here("output/figures",'return-normal-traj-log.png'))
 
 
 ```{r scen5l}
+knitr::include_graphics(here("output/figures",'lowest-sd-traj-log.png'))
+```
+
+```{r scen6l}
 knitr::include_graphics(here("output/figures",'no-intervention-traj-log.png'))
 ```
 
