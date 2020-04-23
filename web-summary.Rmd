@@ -37,6 +37,7 @@ data <- readRDS(here(fullpath)) %>%
 ```
 
 At the time of this report, Georgia is reporting `r format(sum(data$new_cases, na.rm = TRUE), big.mark=",")` cases, `r format(sum(data$new_hospitalizations, na.rm = TRUE), big.mark=",")` hospitalizations,  and `r format(sum(data$new_fatalities, na.rm = TRUE), big.mark=",")` deaths.
+These data are from (covidtracking.com)[https://covidtracking.com/].
 
 ```{r data-plot, warning=FALSE, message=FALSE, fig.height=3, fig.width=8.5} 
 datlong <- data %>%
@@ -106,7 +107,7 @@ These two counterfactual scenarios explore what might have occurred if different
 
 *Possible futures scenarios*
 
-1. **Increased social distancing.** Social distancing reduces movements from the current level to 0.3, which is the reduction observed in New York City that enabled transmission to decline there.
+1. **Increased social distancing.** Social distancing reduces movements from the current level to 30%, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Status quo.** Social distancing continues at the last observed level of human movement patterns.
 3. **Relax social distancing.** Social distancing returns to a level of human movement equivalent to 80% of baseline.
 4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
@@ -122,7 +123,7 @@ Note that all three measures of epidemic size are believed to be under-reported,
 
 ### Natural scale
 
-```{r cumsums,  fig.cap='Summary of model projections for different scenarios for six weeks from today.'}
+```{r cumsums}
 knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
 ```
 

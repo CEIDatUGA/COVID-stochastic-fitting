@@ -58,7 +58,7 @@ obs_sim <- simulate(pomp_model,
 
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6
-num_sims <- 10
+num_sims <- 100
 
 out_sims <- tibble()
 for(i in 1:nrow(all_mles)){
@@ -162,7 +162,7 @@ cumulative_summs <- out_sims %>%
 
 filename <- tail(list.files(path = here("data/"), pattern = "us-ct-clean"), 1)
 fullpath <- paste0("data/", filename)
-pomp_data <- readRDS(fullpath) %>%
+pomp_data <- readRDS(here(fullpath)) %>%
   dplyr::select(-Location, -time) %>%
   rename("Acases" = cases,
          "Bhosps" = hosps,
@@ -276,7 +276,8 @@ all_summs <- sim_summs %>%
          SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
          SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
   mutate(SimType = SimType2) %>%
-  dplyr::select(-SimType2)
+  dplyr::select(-SimType2) %>%
+  mutate(Period = ifelse(Period == "Past", "APast", "BFuture"))
 
 labs <- c("1. Increased social distancing",
           "2. Status quo",
@@ -327,6 +328,9 @@ scen_labs <- c("1Increased social distancing" = "1. Increased\nsocial distancing
 
 ## NATURAL SCALE
 # Cases
+pomp_data <- pomp_data %>%
+  mutate(Period = "APast")
+collabs <- c("Past", "Future")
 ggplot(all_summs %>%
          filter(Variable == "Acases"),
        aes(x = Date, color = Period, fill = Period)) +
@@ -337,15 +341,16 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma)+
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggtitle("New daily cases")
+  ggtitle("New daily cases") +
+  coord_cartesian(ylim = c(0, 30000))
 ggsave("./output/figures/cases-trajs-nat.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
 
@@ -360,15 +365,16 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma)+
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggtitle("New daily hospitalizations")
+  ggtitle("New daily hospitalizations") +
+  coord_cartesian(ylim = c(0, 10000))
 ggsave("./output/figures/hosps-trajs-nat.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
 
@@ -383,15 +389,16 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma)+
   theme_minimal() +
   theme(legend.position = "top") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  ggtitle("New daily deaths")
+  ggtitle("New daily deaths") +
+  coord_cartesian(ylim = c(0, 6000))
 ggsave("./output/figures/deaths-trajs-nat.png", width = 8.5, height = 3, 
        units = "in", dpi = 300)
 
@@ -408,8 +415,8 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log", 
@@ -432,8 +439,8 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log", 
@@ -456,8 +463,8 @@ ggplot(all_summs %>%
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, color = NA) +
   geom_line(aes(y = ptvalue)) +
   facet_grid(~SimType, labeller = labeller(SimType = scen_labs)) +
-  scale_color_brewer(type = "qual", name = NULL) +
-  scale_fill_brewer(type = "qual", name = NULL) +
+  scale_color_brewer(type = "qual", name = NULL, labels = collabs) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = collabs) +
   theme_minimal() +
   ylab("Number of persons") +
   scale_y_continuous(labels = scales::comma, trans = "log", 
