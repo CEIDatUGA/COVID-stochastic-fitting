@@ -108,12 +108,23 @@ In what follows we consider five scenarios
 The following plot shows the minimum and maximum projected cumulative number of recorded cases, hospitalizations, and deaths six weeks from today for each scenario.
 Note that all three measures of epidemic size are believed to be under-reported, so the true epidemic size is likely to be considerably larger.
 
+### Natural scale
+
 ```{r cumsums,  fig.cap='Summary of model projections for different scenarios for six weeks from today.'}
 knitr::include_graphics(here("output/figures",'cumulative-forecasts.png'))
 ```
 
-The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+Resulting trajectories from all scenarios.
 
+```{r allnl}
+knitr::include_graphics(here("output/figures",'all-projs-line-nat.png'))
+```
+
+```{r allnr}
+knitr::include_graphics(here("output/figures",'all-projs-ribbon-nat.png'))
+```
+
+The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
 
 ```{r scen1}
 knitr::include_graphics(here("output/figures",'increased-sd-traj.png'))
@@ -137,6 +148,49 @@ knitr::include_graphics(here("output/figures",'return-normal-traj.png'))
 
 ```{r scen5}
 knitr::include_graphics(here("output/figures",'no-intervention-traj.png'))
+```
+
+### Log scale
+
+```{r cumsumsl,  fig.cap='Summary of model projections for different scenarios for six weeks from today.'}
+knitr::include_graphics(here("output/figures",'cumulative-forecasts-log.png'))
+```
+
+Resulting trajectories from all scenarios.
+
+```{r allll}
+knitr::include_graphics(here("output/figures",'all-projs-line-log.png'))
+```
+
+```{r alllr}
+knitr::include_graphics(here("output/figures",'all-projs-ribbon-log.png'))
+```
+
+
+The following plots show the observed and projected daily number of recorded cases, hospitalizations, and deaths for the five scenarios.
+
+```{r scen1l}
+knitr::include_graphics(here("output/figures",'increased-sd-traj-log.png'))
+```
+
+
+```{r scen2l}
+knitr::include_graphics(here("output/figures",'status-quo-traj-log.png'))
+```
+
+
+```{r scen3l}
+knitr::include_graphics(here("output/figures",'relax-sd-traj-log.png'))
+```
+
+
+```{r scen4l}
+knitr::include_graphics(here("output/figures",'return-normal-traj-log.png'))
+```
+
+
+```{r scen5l}
+knitr::include_graphics(here("output/figures",'no-intervention-traj-log.png'))
 ```
 
 ## Model details
@@ -192,10 +246,10 @@ This model was initially parameterized using clinical outcome reports from the e
 The model is created for a population of 10.6 million people, approximately the population size of Georgia, and simulated forward from March 1.
 Transmissibility of the virus is assumed to be proportional to the level of human movement.
 
-Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, and fatality rate among hospitalized cases. 
+Key parameters estimated using maximum likelihood by iterated filtering (MIF)[^3] include baseline transmissibility ($\beta_0$), maximum ascertainment (i.e. maximum fraction of cases detected), fraction of known cases that are hospitalized, fatality rate among hospitalized cases, and observation errors. 
 Auxiliary parameters estimated using MIF include the intensity of the parameter random walk and dispersion parameters for observables.
 
-[SHOULD WE GIVE RATIONALE/REFERENCES FOR FIXED PARAMETERS? IF YES, INSERT HERE]
+For more details, see the [public GitHub repository](https://github.com/CEIDatUGA/COVID-stochastic-fitting).
 
 ### Disclaimer
 

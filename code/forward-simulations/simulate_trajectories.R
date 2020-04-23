@@ -7,7 +7,49 @@ simulate_trajectories <- function(
   covar_no_action = NULL,
   param_vals, 
   forecast_horizon_wks = 6,
-  nsims = 100) {
+  nsims = 100,
+  obs_sim) {
+  
+  # Simulate observed trajectory
+  # obs_sim <- simulate(pomp_model, 
+  #                     params = param_vals,
+  #                     nsim = nsims, 
+  #                     format="data.frame",
+  #                     include.data = TRUE)
+  last_time <- obs_sim %>%
+    filter(time == max(time)) %>%
+    dplyr::select(.id, cases, hosps, deaths)
+  dat <- last_time %>%
+    filter(.id == "data")
+  init_id <- last_time %>%
+    filter(.id != "data") %>%
+    mutate(obs_cases = dat$cases,
+           obs_hosps = dat$hosps,
+           obs_deaths = dat$deaths) %>%
+    mutate(dif1 = (obs_cases - cases)^2,
+           dif2 = (obs_hosps - hosps)^2,
+           dif3 = (obs_deaths - deaths)^2) %>%
+    group_by(.id) %>%
+    mutate(totdif = mean(c(dif1, dif2, dif3))) %>%
+    ungroup() %>%
+    filter(totdif == min(totdif)) %>%
+    pull(.id) 
+  
+  inits <- obs_sim %>%
+    filter(.id == init_id) %>%
+    tail(1) %>%
+    dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
+    summarise(S_0=S,
+           E1_0=log(E1), 
+           Ia1_0=log(Ia1), 
+           Isu1_0=log(Isu1), 
+           Isd1_0=log(Isd1),
+           C1_0 = C1, 
+           H1_0 = H1,
+           R_0=R, D_0 = D)
+  
+  param_vals[which(names(param_vals) %in% names(inits))] <- inits
+  
   
   # Number of days to project into the future
   horizon <- 7*forecast_horizon_wks # length of time (days to extend covariate)
@@ -69,14 +111,12 @@ simulate_trajectories <- function(
   }
   
   # Update the pomp model with new covariates
-  newtimes <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
-  M2 <- pomp(
-    pomp_model,
-    time = newtimes, # update time of pomp object 
-    covar = covariate_table(covars, 
-                            times = "time",
-                            order = "constant") # update covariate
-  )
+  M2 <- pomp_model
+  time(M2) <- max(time(pomp_model))+seq_len(horizon)
+  timezero(M2) <- max(time(pomp_model))
+  newcovars <- covars %>%
+    tail(horizon+1)
+  M2@covar <- covariate_table(newcovars, times = "time", order = "constant")
   
   # Run the simulations
   sim_out <- pomp::simulate(M2, 
@@ -92,7 +132,34 @@ simulate_trajectories <- function(
   # Combine pomp simulations with dates
   sims <- sim_out %>% 
     left_join(dates_df, by = "time") %>%
-    mutate(Period = ifelse(Date > Sys.Date(), "Projection", "Calibration"))
+    mutate(Period = "Projection")
   
-  return(sims)
+  fits <- obs_sim %>%
+    left_join(dates_df, by = "time") %>%
+    filter(.id != "data") %>%
+    dplyr::select(Date, cases, hosps, deaths) %>%
+    gather(key = "Variable", value = "Value", -Date) %>%
+    group_by(Date, Variable) %>%
+    summarise(ptvalue = ceiling(quantile(Value, 0.5))) %>%
+    ungroup() %>%
+    spread(Variable, ptvalue)
+  
+  # calib_out <- obs_sim %>%
+  #   filter(.id == init_id) %>%
+  #   left_join(dates_df, by = "time") %>%
+  #   mutate(Period = "Calibration")
+  calib_rep <- tibble()
+  for(i in 1:length(unique(sims$.id))) {
+    tmp <- fits %>%
+      mutate(.id = as.character(i)) %>%
+      mutate(Period = "Calibration")
+    calib_rep <- bind_rows(calib_rep, tmp)
+  }
+  
+  sims_ret <- sims %>%
+    mutate(.id = as.character(.id)) %>%
+    bind_rows(calib_rep) %>%
+    arrange(.id, Date)
+  
+  return(sims_ret)
 }
