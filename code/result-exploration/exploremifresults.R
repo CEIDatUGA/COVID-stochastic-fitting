@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(mif_list, par_var_list, pomp_data)
+exploremifresults <- function(mif_res, par_var_list, pomp_data)
 {
   
   #  ---------------------------------------------------------
@@ -25,9 +25,9 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
   # take results produced by mif fitting ----------------------------------------------------
   # this is a list of mif objects for each initial condition 
   # followed by pfilter objects run a specified number of times after each mif is run
-  mif_res_list <- readRDS(filename)
-  mifs = mif_list$mif_runs
-  pfs = mif_list$pf_runs
+  #mif_res_list <- readRDS(filename)
+  mifs = mif_res$mif_runs
+  pfs = mif_res$pf_runs
   
   ############################################################################
   # take values for model parameters and initial conditions -----------------

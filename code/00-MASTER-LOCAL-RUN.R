@@ -92,6 +92,8 @@ covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 source(here("code/model-setup/makepompmodel.R"))
 pomp_model <- makepompmodel(par_var_list = par_var_list, pomp_data = pomp_data, covar_table = covar_table)
 
+#saveRDS(pomp_model,file = here('output/pomp-model.RDS'))
+
 
 # Run the mif fitting routine -----------------------------------------------------
 
@@ -116,25 +118,34 @@ source(here("code/model-fitting/runmif.R"))
 
 #supply all info to mif and run it 
 #output is list containing an object of mif runs and an object of pfilter runs for each mif
-mif_list <- runmif(parallel_info = parallel_info, 
+mif_res <- runmif(parallel_info = parallel_info, 
                    mif_settings = mif_settings, 
                    pomp_model = pomp_model, 
                    par_var_list = par_var_list)
 
 filename = here('output',paste0(filename_label,'_mif.rds'))
-saveRDS(object = mif_list, file = filename)
+saveRDS(object = mif_res, file = filename)
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
-# all result figures are saved into the /output/figures/ and /output/tables/ folders
-source(here("code/result-exploration/explore-mif-results.R"))
-
+source(here("code/result-exploration/exploremifresults.R"))
 #currently returns a trace plot figure (as ggplot object)
 #and 2 parameter tables. optional if turned on a likelihood slice plot
-mif_res <- exploremifresults(mif_list = mif_list, par_var_list = par_var_list, pomp_data = pomp_data)
 
-# 
-# 
-# # Simulate the model to predict -----------------------------------------------------
+#could load data manually or run as full workflow
+mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
+
+mif_res <- exploremifresults(mif_res = mif_res, par_var_list = par_var_list, pomp_data = pomp_data)
+
+
+# Simulate the model to predict -----------------------------------------------------
+mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
+
+#first function is used by runscenario function
+source(here("code/forward-simulations/simulate_trajectories.R"))
+source(here("code/forward-simulations/runscenarios.R"))
+
+scenario_res <- runscenarios(mif_res = mif_res, pomp_model = pomp_model, pomp_data = pomp_data, filename_label = filename_label )
+
 # # loads the previously generated pomp model 
 # # if one wants to run simulations based on best fit
 # # one needs to set those in the script and also make sure run-mif
