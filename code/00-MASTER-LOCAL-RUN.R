@@ -12,6 +12,7 @@ rm(list = ls(all.names = TRUE))
 # We only libraries needed for this script, others are loaded in each code
 # so we can run various scripts independently 
 # these libraries are needed by various scripts
+#library(lubridate) #needs to be present/is used below, but don't load since it messes with 'here'
 library(here)
 #library(dplyr)
 #library(tidyr)
@@ -27,18 +28,13 @@ library(here)
 location = c("Georgia")
 datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
 #datasource = c("GAD") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
-stamp = Sys.Date() #might need to include time if we want finer resolution
-
+t = Sys.time() #time stamp with date, hours, minutes
+stamp = paste(lubridate::date(t),lubridate::hour(t),lubridate::minute(t),sep='-')
 filename_label = paste(location,datasource,stamp,sep="_") #this will be appended to each saved file 
 
-
+# --------------------------------------------------
 # Define parameter and variable names --------------------------------
-# assigns values to variables and initial conditions
-# specifies parameters that are being fitted
-# results are written into RDS file and loaded by later scripts
-# source function
-source(here("code/model-setup/setparsvars.R"))
-
+# --------------------------------------------------
 #define parameters to be estimated
 #is passed to setparsvars function. 
 #If set to "all", all params are estimated
@@ -50,17 +46,25 @@ est_these_pars = c("log_beta_s",
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
 est_these_inivals = ""
 
+# source function which assigns values to variables and initial conditions
+# specifies parameters that are being fitted
+source(here("code/model-setup/setparsvars.R"))
+
 # run function that sets variables and parameters 
 # functions doesn't return anything, results are written to file
 par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals)
 
+# --------------------------------------------------
 # Set priors --------------------------
+# --------------------------------------------------
 # needs results from setparsvars 
 source(here("code/model-setup/setpriors.R"))
 prior_dens <- setpriors(par_var_list)
 
 
+# --------------------------------------------------
 # Run data cleaning script. Return data ready for pomp --------------------------------------------
+# --------------------------------------------------
 source(here("code/data-processing/loadcleanCTdata.R"))
 source(here("code/data-processing/loadcleanGDPHdata.R"))
 
@@ -87,15 +91,17 @@ if (datasource == "GAD")
 covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
 
 
+# --------------------------------------------------
 # Make a pomp model -----------------------------------------------------
+# --------------------------------------------------
 # use data, covariate and parameter information to make a pomp model that's ready for fitting
 source(here("code/model-setup/makepompmodel.R"))
 pomp_model <- makepompmodel(par_var_list = par_var_list, pomp_data = pomp_data, covar_table = covar_table)
 
-#saveRDS(pomp_model,file = here('output/pomp-model.RDS'))
 
-
+# --------------------------------------------------
 # Run the mif fitting routine -----------------------------------------------------
+# --------------------------------------------------
 
 # turn on parallel running or not
 parallel_info = list()
@@ -113,9 +119,8 @@ mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 2000
 mif_settings$pf_reps <- 10
 
-# loads the previously generated pomp model 
+# source the mif function
 source(here("code/model-fitting/runmif.R"))
-
 #supply all info to mif and run it 
 #output is list containing an object of mif runs and an object of pfilter runs for each mif
 mif_res <- runmif(parallel_info = parallel_info, 
@@ -123,28 +128,48 @@ mif_res <- runmif(parallel_info = parallel_info,
                    pomp_model = pomp_model, 
                    par_var_list = par_var_list)
 
-filename = here('output',paste0(filename_label,'_mif.rds'))
-saveRDS(object = mif_res, file = filename)
+#add all parts used for mif result to this list
+#this now includes the complete information for a given mif run
+#not saving the prior object since it's not used by mif
+
+mif_res$pomp_model = pomp_model 
+mif_res$pomp_data = pomp_data 
+mif_res$par_var_list = par_var_list 
+mif_res$location = location 
+mif_res$covar_table = covar_table 
+mif_res$datasource = datasource
+mif_res$filename_label = filename_label
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
-source(here("code/result-exploration/exploremifresults.R"))
 #currently returns a trace plot figure (as ggplot object)
 #and 2 parameter tables. optional if turned on a likelihood slice plot
 
-#could load data manually or run as full workflow
-mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
+source(here("code/result-exploration/exploremifresults.R"))
+mif_explore <- exploremifresults(mif_res = mif_res)
+#add results from mif exploration to mif_res object
+mif_res$traceplot = mif_explore$traceplot
+mif_res$partable = mif_explore$partable
+mif_res$partable_natural = mif_explore$partable_natural
 
-mif_res <- exploremifresults(mif_res = mif_res, par_var_list = par_var_list, pomp_data = pomp_data)
+#save the complete mif object and all information used to create it to a file
+#saved in a permanent file with time-stamp
+filename = here('output',paste0(filename_label,'_mif.rds'))
+saveRDS(object = mif_res, file = filename)
+#also saved into a file with generic name, so it can easily be loaded by all
+#downstream scripts
+filename_temp = here('output','output_mif.rds')
+saveRDS(object = mif_res, file = filename_temp)
+
 
 
 # Simulate the model to predict -----------------------------------------------------
-mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
+#mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
 
 #first function is used by runscenario function
-source(here("code/forward-simulations/simulate_trajectories.R"))
-source(here("code/forward-simulations/runscenarios.R"))
+#source(here("code/forward-simulations/simulate_trajectories.R"))
+#source(here("code/forward-simulations/runscenarios.R"))
 
-scenario_res <- runscenarios(mif_res = mif_res, pomp_model = pomp_model, pomp_data = pomp_data, filename_label = filename_label )
+#scenario_res <- runscenarios(mif_res = mif_res, pomp_model = pomp_model, pomp_data = pomp_data, filename_label = filename_label )
 
 # # loads the previously generated pomp model 
 # # if one wants to run simulations based on best fit
