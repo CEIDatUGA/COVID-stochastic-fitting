@@ -49,6 +49,14 @@ all_mles <- pf_logliks %>%
   filter(LogLik > (max(LogLik)-2)) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
+### NOTE: THIS IS JUST TO MATCH THE POMP MODEL TO PREVIOUS WEB RESULTS ###
+### UPDATE AND IGNORE ONCE WE ARE ARCHIVING WEB POMP MODELS ###
+### CAN ALSO REMOVE IF RUNNING SCENARIO FOR NEW RESULTS ###
+pomp_model2 <- pomp_model
+pomp_model2@data <- pomp_model@data[ , 1:52]
+pomp_model2@times <- 1:ncol(pomp_model2@data)
+pomp_model <- pomp_model2
+
 
 obs_sim <- simulate(pomp_model, 
                     params = all_mles[1, ],
@@ -58,66 +66,97 @@ obs_sim <- simulate(pomp_model,
 
 # Run simulations ---------------------------------------------------------
 weeks_ahead <- 6
-num_sims <- 100
+num_sims <- 10
 
-out_sims <- tibble()
+out_sims <- tibble()  # empty storage object
+covar_scens <- tibble()  # empty storage object
 for(i in 1:nrow(all_mles)){
 # for(i in 1:1){
   mles <- all_mles[i, ]
   
-  sim_sq <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_sql <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "status_quo", param_vals = mles,
                                   forecast_horizon_wks = weeks_ahead, 
-                                  nsims = num_sims, obs_sim = obs_sim) %>%
+                                  nsims = num_sims, obs_sim = obs_sim) 
+  sim_sq <- sim_sql$sims_ret %>%
     mutate(SimType = "status_quo")
   
-  sim_na <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_nal <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "no_intervention", 
                                   covar_no_action = 1,
                                   param_vals = mles,
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim) %>%
+                                  nsims = num_sims, obs_sim = obs_sim)
+  sim_na <- sim_nal$sims_ret %>%
     mutate(SimType = "no_intervention") %>%
-    mutate(.id = as.character(.id))
+    mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
   
-  sim_minsd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_minsdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                      covar_action = "lowest_sd", 
                                      param_vals = mles,
                                      forecast_horizon_wks = weeks_ahead,
-                                     nsims = num_sims, obs_sim = obs_sim) %>%
+                                     nsims = num_sims, obs_sim = obs_sim)
+  sim_minsd <- sim_minsdl$sims_ret %>%
     mutate(SimType = "lowest_sd") %>%
-    mutate(.id = as.character(.id))
+    mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
   
-  sim_msd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_msdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "more_sd",
                                   param_vals = mles, 
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim) %>%
+                                  nsims = num_sims, obs_sim = obs_sim) 
+  sim_msd <- sim_msdl$sims_ret %>%
     mutate(SimType = "linear_increase_sd")
   
-  sim_lsd <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_lsdl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                   covar_action = "less_sd",
                                   param_vals = mles, 
                                   forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs_sim) %>%
+                                  nsims = num_sims, obs_sim = obs_sim)
+  sim_lsd <- sim_lsdl$sims_ret %>%
     mutate(SimType = "linear_decrease_sd")
   
-  sim_nor <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
+  sim_norl <- simulate_trajectories(pomp_model, start_date = "2020-03-01",
                                    covar_action = "normal",
                                    param_vals = mles, 
                                    forecast_horizon_wks = weeks_ahead,
-                                   nsims = num_sims, obs_sim = obs_sim) %>%
+                                   nsims = num_sims, obs_sim = obs_sim)
+  sim_nor <- sim_norl$sims_ret %>%
     mutate(SimType = "return_normal")
   
-  all_sims <- bind_rows(sim_sq, sim_na, sim_minsd, sim_msd, sim_lsd, sim_nor) %>%
+  all_sims <- bind_rows(sim_sq, sim_na, sim_minsd, 
+                        sim_msd, sim_lsd, sim_nor) %>%
     mutate(mle_id = i,
            rep_id =  paste(.id, mle_id, sep = "-"))
   out_sims <- bind_rows(out_sims, all_sims)
+  
+  # Collate the covariate scenarios
+  cov_sq <- sim_sql$covars %>%
+    mutate(SimType = "status_quo")
+  cov_na <- sim_nal$covars %>%
+    mutate(SimType = "no_intervention")
+  cov_minsd <- sim_minsdl$covars %>%
+    mutate(SimType = "lowest_sd") 
+  cov_msd <- sim_msdl$covars %>%
+    mutate(SimType = "linear_increase_sd")
+  cov_lsd <- sim_lsdl$covars %>%
+    mutate(SimType = "linear_decrease_sd")
+  cov_nor <- sim_norl$covars %>%
+    mutate(SimType = "return_normal")
+  all_covars <- bind_rows(cov_sq, cov_na, cov_minsd, cov_msd, cov_lsd, cov_nor)
+  covar_scens <- bind_rows(covar_scens, all_covars)
 }
 
 # Save the simulations
 fname <- paste0("output/simulation-scenarios/simulation-scenarios-", Sys.Date(), ".rds")
 saveRDS(object = out_sims, file = here(fname))
+
+# Save the covariates
+fname2 <- paste0("output/simulation-scenarios/simulation-covariates-", Sys.Date(), ".rds")
+saveRDS(object = covar_scens, file = here(fname2))
+
+out_sims <- readRDS(here("output/simulation-scenarios/simulation-scenarios-2020-04-23.rds"))
+covar_scens <- readRDS(here("output/simulation-scenarios/simulation-covariates-2020-04-23.rds"))
 
 # out_sims %>%
 #   filter(SimType == "return_normal") %>%
@@ -180,6 +219,7 @@ pomp_data <- readRDS(here(fullpath)) %>%
 
 mycols <- c("#a11c3e", "#5798d1", "#252525", "#319045",
             "#5e2b7b", "#e2908c", "#226e83")
+mycols <- c()
 
 variable_names <- c(
   "Acases" = 'New cases',
@@ -223,6 +263,99 @@ ggplot(fits, aes(x = Date)) +
 ggsave(filename = here("output/figures/fits-to-data.png"), width = 8.5, height = 3, 
        units = "in", dpi = 300)
 
+all_summs <- sim_summs %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2) %>%
+  dplyr::select(-SimType2) %>%
+  mutate(Period = ifelse(Period == "Past", "APast", "BFuture"))
+
+scen_labs <- c("1. Increased social distancing",
+               "2. Status quo",
+               "3. Relax social distancing",
+               "4. Return to normal",
+               "5. Continuously improving social distancing",
+               "6. No intervention")
+
+# OVERVIEW FIGURE
+foredate <- all_summs %>%
+  filter(Period == "APast") %>%
+  filter(Date == max(Date)) %>%
+  pull(Date) %>%
+  unique() - 1
+cum_summs_traj <- out_sims %>%
+  dplyr::select(SimType, Date, cases, rep_id) %>%
+  rename("Acases" = cases) %>%
+  gather(key = "Variable", value = "Value", -SimType, -Date, -rep_id) %>%
+  group_by(SimType, Variable, rep_id) %>%
+  mutate(Value = cumsum(Value)) %>%
+  group_by(SimType, Variable, Date) %>%
+  summarise(ptvalue = ceiling(quantile(Value, 0.5))) %>%
+  ungroup() %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2) %>%
+  dplyr::select(-SimType2)
+lp <- ggplot(cum_summs_traj, aes(x = Date, color = SimType)) +
+  geom_line(aes(y = ptvalue), size = 1) +
+  geom_vline(aes(xintercept = foredate), color = "grey35", linetype = 2) +
+  scale_color_manual(values = mycols, name = "", labels= scen_labs) +
+  theme_minimal() +
+  ylab("Total number of\nconfirmed cases") +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000))+
+  theme_minimal() +
+  guides(color = FALSE)
+
+rp <- ggplot(cumulative_summs %>%
+         filter(Variable == "Acases"), 
+       aes(x = SimType, color = SimType)) +
+  geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
+  geom_point(aes(y=ptvalue), color = "white", size = 1) +
+  scale_color_manual(values = mycols) +
+  ylab("") +
+  xlab("") +
+  scale_y_continuous(labels = scales::comma, limits = c(0, 2000000))+
+  scale_x_discrete(labels = rep("", 6)) +
+  theme_void() +
+  guides(color = FALSE)
+
+dates_df <- cum_summs_traj %>%
+  dplyr::select(Date) %>%
+  distinct() %>%
+  mutate(time = 1:n())
+covar_scensp <- covar_scens %>%
+  left_join(dates_df, by = "time") %>%
+  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
+         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
+         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
+         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
+         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
+         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
+  mutate(SimType = SimType2)
+cp <- ggplot(covar_scensp, aes(x = Date, y = rel_beta_change, color = SimType)) +
+  geom_line(size = 1) +
+  geom_vline(aes(xintercept = foredate), color = "grey35", linetype = 2) +
+  scale_color_manual(values = mycols, name = "", labels = scen_labs) +
+  ylab("Social distancing\n(human movement\nas % of baseline)")+
+  xlab("")+
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  theme_minimal() +
+  theme(legend.position = "top") +
+  guides(color = guide_legend(nrow=3))
+
+plots <- cowplot::align_plots(cp, lp, align = "v", axis = "l")
+bottom_row <- cowplot::plot_grid(plots[[2]], rp, align = "h", rel_widths = c(1, 0.1))
+top_row <- cowplot::plot_grid(plots[[1]], NULL, rel_widths = c(1,0.1))
+landfig <- cowplot::plot_grid(top_row, bottom_row, ncol = 1)
+landfig
 
 # Cumulative min/maxes 6 weeks out
 scen_labs <- c("1. Increased social distancing",
@@ -231,6 +364,7 @@ scen_labs <- c("1. Increased social distancing",
                "4. Return to normal",
                "5. Continuously improving social distancing",
                "6. No intervention")
+
 title <- paste("Range of projections by", max(cumulative_summs$Date))
 ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
   geom_segment(aes(xend = SimType, y = min, yend = max), size = 3) +
@@ -271,17 +405,6 @@ ggplot(cumulative_summs, aes(x = SimType, color = SimType)) +
 ggsave(filename = here("output/figures/cumulative-forecasts-log.png"), width = 8.5, height = 4, 
        units = "in", dpi = 300)
 
-
-all_summs <- sim_summs %>%
-  mutate(SimType2 = ifelse(SimType == "linear_decrease_sd", "3Relax social distancing", SimType),
-         SimType2 = ifelse(SimType == "no_intervention", "6No intervention", SimType2),
-         SimType2 = ifelse(SimType == "lowest_sd", "5Continuously improving social distancing", SimType2),
-         SimType2 = ifelse(SimType == "status_quo", "2Status quo", SimType2),
-         SimType2 = ifelse(SimType == "linear_increase_sd", "1Increased social distancing", SimType2),
-         SimType2 = ifelse(SimType == "return_normal", "4Return to normal", SimType2)) %>%
-  mutate(SimType = SimType2) %>%
-  dplyr::select(-SimType2) %>%
-  mutate(Period = ifelse(Period == "Past", "APast", "BFuture"))
 
 labs <- c("1. Increased social distancing",
           "2. Status quo",

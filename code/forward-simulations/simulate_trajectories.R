@@ -221,5 +221,5 @@ simulate_trajectories <- function(
   }
   
   
-  return(sims_ret)
+  return(list(sims_ret=sims_ret, covars=covars))
 }
