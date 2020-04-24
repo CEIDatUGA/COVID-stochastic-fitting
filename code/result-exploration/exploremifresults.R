@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(mif_list, par_var_list, pomp_data)
+exploremifresults <- function(mif_res)
 {
   
   #  ---------------------------------------------------------
@@ -11,27 +11,26 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
   #  ---------------------------------------------------------
   
   res_list=list() #this will contain all results produced here and returned 
-  
-  # Clear the decks ---------------------------------------------------------
-  #rm(list = ls(all.names = TRUE))
-  
+
   # Load libraries ----------------------------------------------------------
   library(dplyr)
   library(pomp)
   library(purrr)
   library(ggplot2)
-  #library(here)
-  
-  # take results produced by mif fitting ----------------------------------------------------
+
+  # pull out individual pieces from mif_res super-list ----------------------------------------------------
   # this is a list of mif objects for each initial condition 
   # followed by pfilter objects run a specified number of times after each mif is run
-  mif_res_list <- readRDS(filename)
-  mifs = mif_list$mif_runs
-  pfs = mif_list$pf_runs
-  
+  mifs = mif_res$mif_runs
+  pfs = mif_res$pf_runs
+
+  pomp_model = mif_res$pomp_model
+  pomp_data = mif_res$pomp_data   
+    
   ############################################################################
   # take values for model parameters and initial conditions -----------------
   ############################################################################
+  par_var_list = mif_res$par_var_list
   allparvals <- par_var_list$allparvals
   params_to_estimate = par_var_list$params_to_estimate
   inivals_to_estimate = par_var_list$inivals_to_estimate
@@ -45,7 +44,9 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
   mif_df <- mifs %>% purrr::map(traces) %>% purrr::map(melt) %>% dplyr::bind_rows( .id = "mif_run") 
   
   #only keep those params/variables that are estimated  
-  mif_df <- mif_df %>% filter(variable %in% c(params_to_estimate,inivals_to_estimate,"loglik"))
+  mif_df <- mif_df %>% filter(variable %in% tidyselect::all_of(c(params_to_estimate,inivals_to_estimate,"loglik")))
+  
+  #browser()
   
   #make a plot of traces for all mif runs  
   pl1 <- mif_df %>% ggplot(aes(x=iteration,y=value,group= mif_run, color=factor(variable)))+
@@ -55,9 +56,6 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
     theme_bw()
   
   res_list$traceplot = pl1 #save trace plot to list
-  #plot(pl1)
-  #filename = here('output/figures/mif-traces.png')
-  #ggsave(filename,pl)
   
   # ---------------------------------------------------------
   # Make a data frame that contains best fit parameter estimates for each mif run, 
@@ -201,14 +199,10 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
   mif_result_natural_df = data.frame(t(mif_result_natural_df)) #transpose
   mif_result_natural_df$is_fitted = c("no","no","no",is_fitted) #first 3 are MIF_ID, Loglik, SE
   
-  res_list$partable_natural = mif_result_natural_df
+  res_list$partable_natural <- mif_result_natural_df %>% 
+                               dplyr::select(is_fitted, everything())  
   
-  
-  #print(mif_result_natural_df)
-  #filename = here('output/tables/par-nat-table.RDS')
-  #saveRDS(mif_result_natural_df,filename)
-  
-  
+ 
   # ---------------------------------------------------------
   # Likelihood slices for mif results
   # ---------------------------------------------------------
@@ -236,14 +230,6 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
       n_cores <- 1
     }
     
-    
-    filename = here('output/pomp-model.RDS')
-    pomp_model <- readRDS(filename)
-    
-    filename = here('output/mif-results.RDS')
-    mif_res_list <- readRDS(filename)
-    mifs = mif_res_list$mif_runs
-    pfs = mif_res_list$pf_runs
     
     #do slice for each mif so we can compare
     for (i in 1:length(mifs))
@@ -285,5 +271,8 @@ exploremifresults <- function(mif_list, par_var_list, pomp_data)
     #filename = here('output/figures/LL-slice.png')
     #ggsave(filename,sliceplot)
   }
+  
+  return(res_list)
+  
 }
 

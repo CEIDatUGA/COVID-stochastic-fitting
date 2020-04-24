@@ -13,6 +13,7 @@ simulate_trajectories <- function(
   # Number of days to project into the future
   horizon <- 7*forecast_horizon_wks # length of time (days to extend covariate)
   
+
   if(covar_action == "no_intervention") {
     covars <- pomp_model@covar@table
     # maxval <- 1
@@ -21,6 +22,7 @@ simulate_trajectories <- function(
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
     covars$rel_beta_change <- covar_no_action
+    
     
     # Update the pomp model with new covariates
     newtimes <- c(time(pomp_model), max(time(pomp_model))+seq_len(horizon))
@@ -37,6 +39,7 @@ simulate_trajectories <- function(
                               params = param_vals,
                               nsim = nsims, 
                               format="data.frame")
+    
     
     # pomp runs with internal time units, add real time to results
     end_date <- as.Date(start_date) + max(sim_out$time) - 1
@@ -87,6 +90,9 @@ simulate_trajectories <- function(
       mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
   } else {
     
+    browser()
+    
+    
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
       dplyr::select(.id, cases, hosps, deaths)
@@ -120,6 +126,7 @@ simulate_trajectories <- function(
                 R_0=R, D_0 = D)
     
     param_vals[which(names(param_vals) %in% names(inits))] <- inits
+    
     
     # Update pomp covariate table
     if(covar_action == "status_quo") {
@@ -166,6 +173,8 @@ simulate_trajectories <- function(
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
     }
+    
+    
     
     # Update the pomp model with new covariates
     M2 <- pomp_model
