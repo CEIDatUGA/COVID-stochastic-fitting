@@ -90,7 +90,7 @@ simulate_trajectories <- function(
       mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
   } else {
     
-    browser()
+    # browser()
     
     
     last_time <- obs_sim %>%
