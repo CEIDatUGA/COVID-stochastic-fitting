@@ -67,14 +67,16 @@ prior_dens <- setpriors(par_var_list)
 # --------------------------------------------------
 source(here("code/data-processing/loadcleanCTdata.R"))
 source(here("code/data-processing/loadcleanGDPHdata.R"))
+source(here("code/data-processing/loadcleanGDPHdata_v2.R"))
 
 if (datasource == "COV")
 {
-  pomp_data <- loadcleanCTdata(use_these_locations = location, start_date = "2020-03-01")
+  pomp_data <- loadcleanCTdata(use_these_locations = location)
 }
 if (datasource == "GAD")
 {  
-  pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01")
+  #pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01") #this is Liliana's data curation
+  pomp_data <- loadcleanGDPHdata_v2(start_date = "2020-02-01") #this is Eamon's data curation
 }
 
 
