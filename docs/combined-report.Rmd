@@ -134,7 +134,7 @@ Data is retrieved and processed by scripts in the `data-processing` folder and s
 ```{r data, fig.height=2.5}
 # Plot the data to date
 pl <- pomp_data %>%
-  dplyr::select(-time, -Location) %>%
+  dplyr::select(-time) %>%
   gather(key = "Observation", value = "Persons", -Date) %>%
   ggplot(aes(x = Date, y = Persons)) +
   geom_line() +

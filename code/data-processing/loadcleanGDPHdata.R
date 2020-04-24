@@ -14,6 +14,11 @@ loadcleanGDPHdata <- function(use_these_locations, start_date = "2020-03-01")
              cases = new_cases,
              hosps = new_hospitalizations, 
              deaths = new_fatalities) 
+             
+    
+    us_clean[us_clean < 0] <- 0 #set negative values to 0
+    
+    us_clean$hosps <- NA #set to NA    
     
     pseudo_data <- data.frame(
       Date = seq.Date(from = as.Date(start_date), to = Sys.Date(), by = "day"),

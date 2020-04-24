@@ -46,7 +46,7 @@ loadcleanCTdata <- function(use_these_locations, start_date = "2020-03-01")
       filter(Location == use_these_locations) %>%
       right_join(pseudo_data, by = "Date") %>%
       mutate(Location = use_these_locations) %>%
-      dplyr::select(-hold) %>%
+      dplyr::select(-hold, -Location) %>%
       mutate(time = 1:n())
     
     return(pomp_data)
