@@ -127,11 +127,11 @@ runmif <- function(parallel_info, mif_settings, pomp_model, par_var_list)
   # Run MIF from different starting points ----------------------------------
   # Run MIF not-parallel
   
-  tstart=proc.time(); #capture current time, for benchmarking
+  tstart=Sys.time(); #capture current time, for benchmarking
   
   if (parallel_run == FALSE)
   {
-    print('Starting MIF2 + pfilter non-parallel')
+    print(sprintf('Starting MIF2 + pfilter non-parallel at time %s',as.character(tstart)))
     out_mif = list()
     pf = list()
     for (i in 1:n_ini_cond) 
@@ -154,7 +154,7 @@ runmif <- function(parallel_info, mif_settings, pomp_model, par_var_list)
   # Run MIF parallel
   if (parallel_run == TRUE)
   {
-    print('Starting MIF2 + pfilter parallel')
+    print(sprintf('Starting MIF2 + pfilter parallel at time %s',as.character(tstart)))
     out_mif <- foreach(i=1:n_ini_cond, .packages = c("pomp")) %dopar% 
       {
         run_mif(pomp_model, num_mif_iterations = mif_num_iterations, 
@@ -172,9 +172,10 @@ runmif <- function(parallel_info, mif_settings, pomp_model, par_var_list)
     stopCluster(cl)
   } # end code section that does mif followed by pfilter for parallel setup
   
-  tend=proc.time(); #capture current time
-  tdiff=tend-tstart;
-  print(sprintf('MIF took %f minutes using %d particles and %d MIF iterations',tdiff[[3]]/60,mif_num_particles[1],sum(mif_num_iterations)))
+  tend=Sys.time(); #capture current time
+  tdiff=as.numeric(difftime(tend,tstart,units='mins'))
+  print(sprintf('Finished MIF2 + pfilter at time %s',as.character(tend)))
+  print(sprintf('MIF took %f minutes using %d particles and %d MIF iterations',tdiff,mif_num_particles[1],sum(mif_num_iterations)))
   
   # Save output -------------------------------------------------------------
   # create a list of lists containing the mif runs 
