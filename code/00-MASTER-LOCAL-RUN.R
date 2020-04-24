@@ -25,8 +25,8 @@ library(here)
 # Set state, data source and a time-stamp variable
 # --------------------------------------------------
 location = c("Georgia")
-#datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
-datasource = c("GAD") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+#datasource = c("GAD") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
 stamp = Sys.Date() #might need to include time if we want finer resolution
 
 filename_label = paste(location,datasource,stamp,sep="_") #this will be appended to each saved file 
@@ -42,9 +42,11 @@ source(here("code/model-setup/setparsvars.R"))
 #define parameters to be estimated
 #is passed to setparsvars function. 
 #If set to "all", all params are estimated
-est_these_pars = c("log_beta_s", "max_detect_par", "frac_hosp", 
-                   "frac_dead", "log_theta_cases", "log_sigma_dw",
-                   "log_theta_hosps", "log_theta_deaths")
+est_these_pars = c("log_beta_s", 
+                   "frac_hosp", "frac_dead", 
+                   "max_detect_par", "log_detect_inc_rate", "log_half_detect",
+                   "log_sigma_dw", 
+                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
 # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
 est_these_inivals = ""
 
@@ -124,7 +126,12 @@ saveRDS(object = mif_list, file = filename)
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
 # all result figures are saved into the /output/figures/ and /output/tables/ folders
-# source(here("code/result-exploration/explore-mif-results.R"))
+source(here("code/result-exploration/explore-mif-results.R"))
+
+#currently returns a trace plot figure (as ggplot object)
+#and 2 parameter tables. optional if turned on a likelihood slice plot
+mif_res <- exploremifresults(mif_list = mif_list, par_var_list = par_var_list, pomp_data = pomp_data)
+
 # 
 # 
 # # Simulate the model to predict -----------------------------------------------------
