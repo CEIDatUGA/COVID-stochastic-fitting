@@ -17,7 +17,7 @@ modelbetareduction <- function()
   # Create full time series of NAs to make sure pomp_data
   # starts at the time of model initialization
   pseudo_data <- data.frame(
-    Date = seq.Date(from = as.Date("2020-03-01"), to = Sys.Date(), by = "day"),
+    Date = seq.Date(from = as.Date("2020-02-01"), to = Sys.Date(), by = "day"),
     hold = NA)
   
   
@@ -43,7 +43,8 @@ modelbetareduction <- function()
     dplyr::select(time, rel_beta_change) %>%
     mutate(rel_beta_change = ifelse(sign(rel_beta_change) == 1, 
                                     rel_beta_change + 1, 
-                                    1 - abs(rel_beta_change)))
+                                    1 - abs(rel_beta_change))) %>%
+    mutate(rel_beta_change = ifelse(is.na(rel_beta_change), 1, rel_beta_change))
   
   mod <- smooth.spline(x = unacast$time, y = unacast$rel_beta_change, spar = 0.6)
   pred <- predict(mod)
@@ -54,7 +55,8 @@ modelbetareduction <- function()
   # Save the output for pomp ------------------------------------------------     
   
   covar_table <- data.frame(time = pred$x,
-                            rel_beta_change = pred$y)
+                            rel_beta_change = pred$y) %>%
+    mutate(rel_beta_change = ifelse(rel_beta_change > 1, 1, rel_beta_change))
   saveRDS(covar_table, file = here("output/rel-beta-change-covar.RDS"))
 
 }

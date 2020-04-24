@@ -1,4 +1,4 @@
-setparsvars <- function(est_these_pars, est_these_inivals)
+setparsvars <- function(est_these_pars, est_these_inivals, tint)
 {
 
   #this is a simple script that specifies model parameters, and variable names
@@ -64,11 +64,11 @@ setparsvars <- function(est_these_pars, est_these_inivals)
                
                log_max_diag = log(1), #max for factor by which movement through Isd happens faster (quicker diagnosis) 
                log_diag_inc_rate = log(10), #rate at which faster diagnosis ramps up to max
-               log_half_diag = log(12),  #time at which intervention is at 50%
+               log_half_diag = log(tint),  #time at which intervention is at 50%
                
                max_detect_par = log(1),  #max fraction detected
                log_detect_inc_rate = log(10), #speed at which fraction detected ramps up
-               log_half_detect = log(12), #time at which intervention is at 50%
+               log_half_detect = log(tint), #time at which intervention is at 50%
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))

@@ -142,7 +142,7 @@ runmif <- function(parallel_info, mif_settings, pomp_model, par_var_list)
                               num_particles = mif_num_particles, 
                               c_frac = mif_cooling_fracs, param_perts,
                               verbose = FALSE
-                              )
+                              ) -> test
   
       # Use particle filter to get the likelihood at the end of each MIF run
       pf[[i]] <- replicate(n = pf_reps, pfilter(out_mif[[i]], 
