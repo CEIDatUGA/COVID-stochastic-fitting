@@ -25,7 +25,8 @@ library(here)
 # Set state, data source and a time-stamp variable
 # --------------------------------------------------
 location = c("Georgia")
-datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+#datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+datasource = c("GAD") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
 stamp = Sys.Date() #might need to include time if we want finer resolution
 
 filename_label = paste(location,datasource,stamp,sep="_") #this will be appended to each saved file 
@@ -118,7 +119,8 @@ mif_list <- runmif(parallel_info = parallel_info,
                    pomp_model = pomp_model, 
                    par_var_list = par_var_list)
 
-saveRDS(object = mif_list, file = paste0(filename_label,'_mif.rds'))
+filename = here('output',paste0(filename_label,'_mif.rds'))
+saveRDS(object = mif_list, file = filename)
 
 # Does post processing and exploration on the best fit mif results -----------------------------------------------------
 # all result figures are saved into the /output/figures/ and /output/tables/ folders

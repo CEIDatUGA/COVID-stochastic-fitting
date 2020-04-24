@@ -23,7 +23,7 @@ library(here)
 # load results produced by mif fitting ----------------------------------------------------
 # this is a list of mif objects for each initial condition 
 # followed by pfilter objects run a specified number of times after each mif is run
-filename = here('output/mif-results.RDS')
+filename = here('output/Georgia_GAD_2020-04-23_mif.rds')
 #filename = here('output/mif-results-ah1.RDS')
 mif_res_list <- readRDS(filename)
 mifs = mif_res_list$mif_runs

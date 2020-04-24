@@ -356,9 +356,6 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     cfile="tmp1" 
   )
   
-  
-  # Save the pomp object ----------------------------------------------------
-  filename = here('output/pomp-model.RDS')
-  saveRDS(pomp_model, filename)
+  return(pomp_model)
 
 }
