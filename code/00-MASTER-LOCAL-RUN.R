@@ -52,7 +52,7 @@ source(here("code/model-setup/setparsvars.R"))
 
 # run function that sets variables and parameters 
 # functions doesn't return anything, results are written to file
-par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals, tint = 41)
+par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals, tint = 12)
 
 # --------------------------------------------------
 # Set priors --------------------------
@@ -75,8 +75,8 @@ if (datasource == "COV")
 }
 if (datasource == "GAD")
 {  
-  #pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01") #this is Liliana's data curation
-  pomp_data <- loadcleanGDPHdata_v2(start_date = "2020-02-01") #this is Eamon's data curation
+  pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01") #this is Liliana's data curation
+  #pomp_data <- loadcleanGDPHdata_v2(start_date = "2020-02-01") #this is Eamon's data curation
 }
 
 
@@ -107,18 +107,18 @@ pomp_model <- makepompmodel(par_var_list = par_var_list, pomp_data = pomp_data, 
 
 # turn on parallel running or not
 parallel_info = list()
-parallel_info$parallel_run <- FALSE
-parallel_info$num_cores <- parallel::detectCores() - 2  # alter as needed
-#parallel_info$num_cores <- 20  # on HPC
+parallel_info$parallel_run <- TRUE
+#parallel_info$num_cores <- parallel::detectCores() - 2  # alter as needed
+parallel_info$num_cores <- 40  # on HPC
 
 # specify settings for mif2 procedure
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(100,100)
-#mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(10,10)
-#mif_settings$mif_num_iterations <- c(100,100)
+#mif_settings$mif_num_particles  <- c(100,100)
+mif_settings$mif_num_particles  <- c(2000,2000)
+#mif_settings$mif_num_iterations <- c(10,10)
+mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 2000
 mif_settings$pf_reps <- 10
