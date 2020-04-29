@@ -26,8 +26,7 @@ library(here)
 # Set state, data source and a time-stamp variable
 # --------------------------------------------------
 location = c("Georgia")
-#datasource = c("COV") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
-datasource = c("GAD") #one of CovidTracker (COV), Ga DPH (GAD), NYT (NYT), JHU (JHU)
+datasource = c("COV") #one of CovidTracker (COV), NYT (NYT), JHU (JHU), USAFacts (USF)
 tm = Sys.time() #time stamp with date, hours, minutes
 stamp = paste(lubridate::date(tm),lubridate::hour(tm),lubridate::minute(tm),sep='-')
 filename_label = paste(location,datasource,stamp,sep="_") #this will be appended to each saved file 
@@ -52,7 +51,7 @@ source(here("code/model-setup/setparsvars.R"))
 
 # run function that sets variables and parameters 
 # functions doesn't return anything, results are written to file
-par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals, tint = 12)
+par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals)
 
 # --------------------------------------------------
 # Set priors --------------------------
@@ -64,20 +63,12 @@ prior_dens <- setpriors(par_var_list)
 
 # --------------------------------------------------
 # Run data cleaning script. Return data ready for pomp --------------------------------------------
+# specify which source and location (state)
+# is done above
 # --------------------------------------------------
-source(here("code/data-processing/loadcleanCTdata.R"))
-source(here("code/data-processing/loadcleanGDPHdata.R"))
-source(here("code/data-processing/loadcleanGDPHdata_v2.R"))
+source(here("code/data-processing/loadcleandata.R"))
 
-if (datasource == "COV")
-{
-  pomp_data <- loadcleanCTdata(use_these_locations = location)
-}
-if (datasource == "GAD")
-{  
-  pomp_data <- loadcleanGDPHdata(start_date = "2020-03-01") #this is Liliana's data curation
-  #pomp_data <- loadcleanGDPHdata_v2(start_date = "2020-02-01") #this is Eamon's data curation
-}
+pomp_data <- loadcleandata(datasource = datasource, location = location)
 
 
 # ANDREW: NEED TO MAKE THIS SO WE CAN PASS STATE TO FUNCTION AND 
