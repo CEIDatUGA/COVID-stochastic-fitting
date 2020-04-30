@@ -90,9 +90,12 @@ simulate_trajectories <- function(
       mutate(Period = ifelse(Date > Sys.Date(), "Future", "Past"))
   } else {
     
+    # browser()
+    
+    
     last_time <- obs_sim %>%
       filter(time == max(time)) %>%
-      dplyr::select(.id, mle_id, cases, hosps, deaths)
+      dplyr::select(.id, cases, hosps, deaths)
     dat <- last_time %>%
       filter(.id == "data")
     init_id <- last_time %>%
@@ -103,15 +106,14 @@ simulate_trajectories <- function(
       mutate(dif1 = (obs_cases - cases)^2,
              dif2 = (obs_hosps - hosps)^2,
              dif3 = (obs_deaths - deaths)^2) %>%
-      group_by(.id, mle_id) %>%
-      mutate(totdif = mean(c(dif1, dif2, dif3), na.rm = TRUE)) %>%
+      group_by(.id) %>%
+      mutate(totdif = mean(c(dif1, dif2, dif3))) %>%
       ungroup() %>%
       filter(totdif == min(totdif)) %>%
-      dplyr::select(.id, mle_id)
+      pull(.id) 
     
     inits <- obs_sim %>%
-      filter(mle_id == init_id$mle_id) %>%
-      filter(.id == init_id$.id) %>%
+      filter(.id == init_id) %>%
       tail(1) %>%
       dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
       summarise(S_0=S,
@@ -200,14 +202,12 @@ simulate_trajectories <- function(
     
     
     fits <- obs_sim %>%
-      # filter(mle_id == init_id$mle_id) %>%
-      # filter(.id == init_id$.id) %>%
       dplyr::select(-rel_beta_change) %>%
       left_join(dates_df, by = "time") %>%
       filter(.id != "data") %>%
       gather(key = "Variable", value = "Value", -Date, -time, -.id) %>%
       group_by(Date, time, Variable) %>%
-      summarise(ptvalue = ceiling(mean(Value))) %>%
+      summarise(ptvalue = ceiling(quantile(Value, 0.5))) %>%
       ungroup() %>%
       spread(Variable, ptvalue)
     
