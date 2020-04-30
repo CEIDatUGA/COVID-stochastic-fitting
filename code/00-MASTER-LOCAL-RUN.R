@@ -68,9 +68,8 @@ prior_dens <- setpriors(par_var_list)
 # --------------------------------------------------
 source(here("code/data-processing/loadcleandata.R"))
 
-pomp_data <- loadcleandata(datasource = datasource, location = location)
-
-
+pomp_data <- loadcleandata(datasource = datasource, location = location) 
+             
 # ANDREW: NEED TO MAKE THIS SO WE CAN PASS STATE TO FUNCTION AND 
 # GET UNACAST COVARIATE FOR SPECIFIED STATE
 # Make the unacast covariate table ----------------------------------------
@@ -81,7 +80,16 @@ pomp_data <- loadcleandata(datasource = datasource, location = location)
 #   source(here("code/model-setup/modelbetareduction.R"))
 # covar_table <-  modelbetareduction() #run function. No return, saves results to file
 # }
-covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
+#covar_table <- readRDS(here("output/rel-beta-change-covar.RDS"))
+
+#get covariate for transmission parameter from apple mobility data
+#supply start and end dates so it agrees with data
+#if covariate does not span data range, the missing is filled by repeating 1st/last value
+
+source(here("code/data-processing/loadcleanapplemobility.R"))
+
+covar_table <- loadcleanapplemobility(location = location, startdate = min(pomp_data$date), enddate = max(pomp_data$date)) 
+             
 
 
 # --------------------------------------------------

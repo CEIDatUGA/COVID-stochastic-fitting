@@ -334,6 +334,10 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
   # otherwise pomp might get indigestion
   dat_for_pomp <- pomp_data %>% select(time, cases, hosps, deaths)
   
+  # remove any column in covariate table that's not time or the used variables
+  # otherwise pomp might get indigestion
+  covar_for_pomp <- covar_table %>% select(time,rel_beta_change)
+  
   
   # Define the pomp model object --------------------------------------------
   # the last line with the cdir statement is to try and prevent error messages 
@@ -343,7 +347,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     data = dat_for_pomp, 
     times = "time",
     t0 = 1,  # set first sim time to first observation time
-    covar = covariate_table(covar_table, times = "time", order = "constant"),
+    covar = covariate_table(covar_for_pomp, times = "time", order = "constant"),
     dmeasure = dmeas,
     rmeasure = rmeas,
     rinit = rinit,
@@ -355,6 +359,8 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
     cdir=".",
     cfile="tmp1" 
   )
+  
+  
   
   return(pomp_model)
 

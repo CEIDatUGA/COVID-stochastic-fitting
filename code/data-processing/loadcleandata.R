@@ -26,8 +26,8 @@ loadcleandata <- function(datasource, locations)
   #################################
   # pull data from Covidtracking and process
   #################################
-  us_ct_data <- read_csv("https://covidtracking.com/api/states/daily.csv")
-  us_ct_clean <- us_ct_data %>% dplyr::select(c(date,state,positive,negative,total,hospitalized,death)) %>%
+  us_ct_data <- read_csv("https://covidtracking.com/api/v1/states/daily.csv")
+  us_ct_clean <- us_ct_data %>% dplyr::select(c("date","state","positive","negative","total","hospitalized","death")) %>%
     mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
     group_by(state) %>% arrange(date) %>%
     mutate(Daily_Test_Positive = c(0,diff(positive))) %>% 
@@ -166,19 +166,23 @@ loadcleandata <- function(datasource, locations)
   #combine all US data from different sources
   us_dat <- dplyr::bind_rows(us_ct_clean, us_nyt_clean, us_jhu_clean, usafct_clean) 
   
-  browser()
-  
+ 
   pomp_data <- us_dat %>% dplyr::filter(source == datasource) %>%
                           dplyr::filter(Location == location) %>%
                           rename(cases = Daily_Cases,
                           hosps = Daily_Hospitalized, 
                           deaths = Daily_Deaths) %>%
                           dplyr::select(Date, Location, cases, hosps, deaths) %>% 
-                          group_by(Location) %>% 
-                          arrange(Date) %>%
+                          rename(date = Date, location = Location) %>% #consistent lower case spelling for variables
+                          group_by(location) %>% 
+                          arrange(date) %>%
+                          mutate(time = 1:n()) %>%
                           ungroup() 
     
-    return(pomp_data)
+  # Save cleaned data
+  saveRDS(pomp_data,filename)
+  
+  return(pomp_data)
 }
   
 
