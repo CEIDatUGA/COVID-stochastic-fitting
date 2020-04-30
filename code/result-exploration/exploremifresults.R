@@ -46,8 +46,6 @@ exploremifresults <- function(mif_res)
   #only keep those params/variables that are estimated  
   mif_df <- mif_df %>% filter(variable %in% tidyselect::all_of(c(params_to_estimate,inivals_to_estimate,"loglik")))
   
-  #browser()
-  
   #make a plot of traces for all mif runs  
   pl1 <- mif_df %>% ggplot(aes(x=iteration,y=value,group= mif_run, color=factor(variable)))+
     geom_line()+
@@ -62,6 +60,7 @@ exploremifresults <- function(mif_res)
   # as well as the mean likelihood. The latter comes from the pfilter run at the end of each mif run
   # ---------------------------------------------------------
   
+ 
   # for each mif run, take the pf runs and compute mean log likelihood
   n_ini_cond = length(mifs)
   ll = list()
@@ -70,36 +69,30 @@ exploremifresults <- function(mif_res)
     ll1 <- sapply(pfs[[i]], logLik)
     ll[[i]] <- logmeanexp(ll1, se = TRUE)
   }
+  
   # convert the list containing the log likelihoods for 
   # each run stored in ll into a data frame
-  ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T))
-  
-  # extract best fit paramter values for each mif run
-  coef_est_df <- data.frame(matrix(unlist(sapply(mifs, coef)), 
-                                 nrow = length(mifs), 
-                                 byrow = T))
-  colnames(coef_est_df) <- names(coef(mifs[[1]]))  
-  
-  #only keep those parameters that are being estimated
-  # coef_est_df = select(coef_est_df, params_to_estimate, inivals_to_estimate)
-  coef_est_df = select(coef_est_df, params_to_estimate)
-  
-  # combine the ll_df and coef_est_df data frames. 
-  # Also do some cleaning/renaming
-  mif_result_df <- ll_df %>%
+  ll_df <- data.frame(matrix(unlist(ll), nrow=n_ini_cond, byrow=T)) %>%
     dplyr::rename("LogLik" = X1,
                   "LogLik_SE" = X2) %>%
     dplyr::mutate(MIF_ID = 1:n()) %>%
-    dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-    bind_cols(coef_est_df) %>%
-    dplyr::arrange(-LogLik)
+    dplyr::select(MIF_ID, LogLik, LogLik_SE)
   
-  res_list$partable = mif_result_df
+  # extract best fit paramter values for each mif run
+  all_par_df <- data.frame(matrix(unlist(sapply(mifs, coef)), 
+                                 nrow = length(mifs), 
+                                 byrow = T))
+  colnames(all_par_df) <- names(coef(mifs[[1]]))  
   
-  #print(mif_result_df)
-  #filename = here('output/tables/par-table.RDS')
-  #saveRDS(mif_result_df,filename)
+  est_par_df = all_par_df %>% dplyr::select(params_to_estimate)
   
+  
+  # combine the ll_df and parameter  data frames. 
+  all_ll_par_df <- ll_df  %>% bind_cols(all_par_df) %>%  dplyr::arrange(-LogLik)
+  est_ll_par_df <- ll_df  %>% bind_cols(est_par_df) %>%  dplyr::arrange(-LogLik)
+  
+  res_list$est_partable = est_ll_par_df
+  res_list$all_partable = all_ll_par_df
   
   
   # ---------------------------------------------------------
@@ -160,13 +153,12 @@ exploremifresults <- function(mif_res)
                    )
   
   # do this for all parameters, even fixed ones
-  coef_all <- data.frame(matrix(rep(allparvals,times = nrow(coef_est_df)) , nrow = nrow(coef_est_df), byrow = TRUE))
+  coef_all <- data.frame(matrix(rep(allparvals,times = nrow(all_par_df)) , nrow = nrow(all_par_df), byrow = TRUE))
   colnames(coef_all) <- names(allparvals)
   
-  # coef_all[,c(params_to_estimate,inivals_to_estimate)] = coef_est_df
-  coef_all[,c(params_to_estimate)] = coef_est_df
+  coef_all[,c(params_to_estimate)] = est_par_df
   
-  coef_natural_df <- transform_params(coef_all, param_trans)
+  natural_par_df <- transform_params(coef_all, param_trans)
   
   # also give some parameters new names to avoid confusion
   param_nat_names <- c("beta_s", 
@@ -181,17 +173,11 @@ exploremifresults <- function(mif_res)
                       "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
                       "C1_0","H1_0","R_0","D_0")
   
-  colnames(coef_natural_df) <- param_nat_names
+  colnames(natural_par_df) <- param_nat_names
   
   # combine this new dataframe with the ll_df as done above 
   # Also do some cleaning/renaming
-  mif_result_natural_df <- ll_df %>%
-    dplyr::rename("LogLik" = X1,
-                  "LogLik_SE" = X2) %>%
-    dplyr::mutate(MIF_ID = 1:n()) %>%
-    dplyr::select(MIF_ID, LogLik, LogLik_SE) %>%
-    bind_cols(coef_natural_df) %>%
-    dplyr::arrange(-LogLik)
+  mif_result_natural_df <- ll_df  %>% bind_cols(natural_par_df) %>%  dplyr::arrange(-LogLik)
   
   is_fitted = rep("no",length(allparvals))
   is_fitted[which(names(allparvals) %in% c(params_to_estimate,inivals_to_estimate))] = "yes"

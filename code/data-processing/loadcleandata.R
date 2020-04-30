@@ -12,6 +12,8 @@ loadcleandata <- function(datasource, locations)
   # Load libraries ----------------------------------------------------------
    library(dplyr)
    library(tidyr)
+  library('readr')
+  
 
   filename = here("data",paste0("pomp_data_",Sys.Date(),'.rds')) #if the data file for today is here, load then return from function
   if (file.exists(filename)) {

@@ -72,8 +72,8 @@ par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals =
 # Set priors --------------------------
 # --------------------------------------------------
 # needs results from setparsvars 
-source(here("code/model-setup/setpriors.R"))
-prior_dens <- setpriors(par_var_list)
+#source(here("code/model-setup/setpriors.R"))
+#prior_dens <- setpriors(par_var_list)
 
 
 # --------------------------------------------------
@@ -126,9 +126,9 @@ parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(100,100)
+mif_settings$mif_num_particles  <- c(300,300)
 #mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(10,10)
+mif_settings$mif_num_iterations <- c(50,40)
 #mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 2000
@@ -162,8 +162,10 @@ mif_res$filename_label = filename_label
 source(here("code/result-exploration/exploremifresults.R"))
 mif_explore <- exploremifresults(mif_res = mif_res)
 #add results from mif exploration to mif_res object
+#trace plot, table with estimated parameters, table with all paramters, table with all parameters in natural units (as used in model)
 mif_res$traceplot = mif_explore$traceplot
-mif_res$partable = mif_explore$partable
+mif_res$all_partable = mif_explore$all_partable
+mif_res$est_partable = mif_explore$est_partable
 mif_res$partable_natural = mif_explore$partable_natural
 
 #save the complete mif object and all information used to create it to a file
@@ -177,47 +179,19 @@ saveRDS(object = mif_res, file = filename_temp)
 
 
 # Simulate the model to predict -----------------------------------------------------
-#mif_res = readRDS(here("output",'Georgia_COV_2020-04-24_mif.rds'))
+mif_res = readRDS(here("output",'output_mif.rds'))
 
 # Source the function to simulate trajectories and scenarios
 source(here("code/forward-simulations/simulatetrajectories.R"))
 
 # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/runscenarios.R"))
-
 scenario_res <- runscenarios(mif_res = mif_res)
 
 
-# Simulate the model to predict -----------------------------------------------------
-
-#first function is used by runscenario function
-#source(here("code/forward-simulations/simulate_trajectories.R"))
-#source(here("code/forward-simulations/runscenarios.R"))
-
-
-# # loads the previously generated pomp model 
-# # if one wants to run simulations based on best fit
-# # one needs to set those in the script and also make sure run-mif
-# # as well as explore-mif (so the table with best fit parameters is generated)
-# 
-# source(here("code/forward-simulations/simulatepompmodel.R"))
-# #set one of these to designate where the parameter values for the simulation
-# #should come from
-# #parsource = "base"
-# parsource = "mif"
-# #parsource = "pmcmc"
-# #parsource = "manual"
-# 
-# simulatepompmodel(parsource = parsource)
-# 
-# # Explore simulation results -----------------------------------------------------
-# # loads the previously generated forward simulations 
-# # all result figures are saved into the appropriate /output/ sub-folders
-# source(here("code/result-exploration/explore-simulation-results.R"))
-
-
-# Run the ABC-MCMC --------------------------------------------------------
-# source(here("code/model-fitting/run-abc.R"))
+#make plots
+#source(here("code/plotting/plotscenarios.R"))
+#plotscenarios(mif_res = mif_res, scenario_res = scenario_res)
 
 
 
