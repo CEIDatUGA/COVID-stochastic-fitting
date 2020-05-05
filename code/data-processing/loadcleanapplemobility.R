@@ -29,7 +29,7 @@ loadcleanapplemobility <- function(location, startdate, enddate)
   #################################
   # pull data from Apple and process
   #################################
-  x <- readr::read_csv("https://covid19-static.cdn-apple.com/covid19-mobility-data/2007HotfixDev42/v2/en-us/applemobilitytrends-2020-04-28.csv")
+  x <- readr::read_csv("https://covid19-static.cdn-apple.com/covid19-mobility-data/2007HotfixDev47/v2/en-us/applemobilitytrends-2020-05-03.csv")
 
   apple_data <- x %>% dplyr::filter(region == location) %>%
                       select(-geo_type, -region, -alternative_name) %>%

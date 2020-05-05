@@ -1,7 +1,7 @@
 # runscenarios.R
 # takes results from mif fitting, runs various scenarios
 
-runscenarios <- function(mif_res)
+runscenarios <- function(mif_res, forecast_horizon_days, nsim)
 {
   
 
@@ -19,194 +19,106 @@ runscenarios <- function(mif_res)
   est_partable = mif_res$est_partable
   all_partable = mif_res$all_partable
   start_date = min(mif_res$pomp_data$date)
+  param_vals = mif_res$par_var_list$allparvals
   
-
   # get best fit parameter values for all MIF fits that are within 2 LL of the best LL
   best_partable <- all_partable %>%
-                   filter(LogLik > (max(LogLik)-2)) %>%
+                   filter(LogLik > (max(LogLik, na.rm = TRUE)-2)) %>%
                    dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
   # Make sure there are some decent MLEs, i.e., not -inf
   # if there is at least 1 non-crazy LL, this should not be triggered
   stopifnot(nrow(best_partable) > 0)
 
+  #manually take top 2 entries, just for testing
   best_partable = all_partable[1:2,] %>%  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 
-  scenariovec = c("status_quo",)
+  # New time series starting at beginning of simulation and running into the future as specified
+  newtimes <- c(time(pomp_model), max(time(pomp_model))+seq_len(forecast_horizon_days))
   
+  #vector of names for all different scenarios to be explored
+  #scenariovec = c("no_intervention","status_quo","lowest_sd","linear_increase_sd","linear_decrease_sd","return_normal")
+  scenariovec = c("no_intervention","status_quo","strong_sd")
+  
+  #assign covariate table, then update it below
+  covar_table = mif_res$covar_table  
+  
+  scenario_res = list() #will contain results for all simulations for all scenarios
+  ct = 1 # a counter/indexer
   #loop over all scenarios
   for (scenario in scenariovec)  
     
   {
+    print(sprintf('starting scenario %s',scenario))
     #for each scenario, build the appropriate co-variate
+    if (scenario == "strong_sd")
+    {
+      covars <- covar_table$rel_beta_change #get the beta values
+      lastval <- tail(covars, 1) #get the last value of beta
+      minval <- 0.3  # max observed in NY
+      dec <- seq(lastval, minval, length.out = 7) #7 day decrease from current to future
+      final <- rep(minval, times = (forecast_horizon_days - length(dec))) #continue at low value after that
+      rel_beta_change <- c(covars, dec, final) #all new values
+    }
     if (scenario == "status_quo")
     {
-      
+      rel_beta_change = c(covar_table$rel_beta_change,rep(tail(covar_table$rel_beta_change,1),forecast_horizon_days))
     }
+    if (scenario == "no_intervention")
+    {
+      rel_beta_change = rep(100,length(newtimes))
+    }
+    
+    #build new covariate table for pomp
+    covar_for_pomp = data.frame(time = newtimes, rel_beta_change = rel_beta_change)
+    
 
     #update pomp object with new covariate
     M2 <- pomp(
       pomp_model,
       time = newtimes, # update time of pomp object 
-      covar = covariate_table(covars, 
+      covar = covariate_table(covar_for_pomp, 
                               times = "time",
                               order = "constant") # update covariate
             )
     
     
-    #for each scenario, run over all best fits to build ensemble of forecasts
-    for(i in 1:nrow(all_mles))
+    # #run the pomp model for each set of parameters that are within 2 LL of best fit
+    # #for each set of parameters, we create a certain number of stochastic trajectories
+    # #as specified by nsim
+    # for each scenario, run over all best fits to build ensemble of forecasts
+    for(i in 1:nrow(best_partable))
     {
       
       # Run the simulations
-      sim_out <- pomp::simulate(M2, 
+      #data.frame output didn't work, also takes up a lot of space
+      #using array format returns simulated states and observations as independent arrays
+      #each array has dimension Nobs/Nstates  X nsim  X times
+      sims <- pomp::simulate(M2, 
                                 params = param_vals,
-                                nsim = nsims, 
-                                format="data.frame")
+                                nsim = nsim, 
+                                format="arrays", 
+                                include.data = FALSE)
       
     }      
     
-      
-  } #
+    
+    scenario_res[[ct]] = sims #save simulation result in a big list for each scenario
+    scenario_res[[ct]]$scenario = scenario #save the scenario label too  
+    scenario_res[[ct]]$covar = covar_for_pomp #save the scenario label too  
+    
+    ct = ct + 1
+    
+  } #end loop over all scenarios
 
   
-  
-  
-  
-  
-  
-  
-  
-  # #  ---------------------------------------------------------
-  # # Run simulations for the time period covered by the data
-  # #  ---------------------------------------------------------
-  # 
-  # #run the pomp model for each set of parameters that are within 2 LL of best fit
-  # #for each set of parameters, we create a certain number of stochastic trajectories
-  # #as specified by nsim
-  # obs_sim <- tibble() #this will be a large data frame holding nsim simulations for each best fit MLE 
-  # 
-  # for(i in 1:nrow(best_partable)) {
-  # sim <- simulate(pomp_model,
-  #                     params = best_partable[i, ],
-  #                     nsim = 100,
-  #                     format="data.frame") %>%
-  #   mutate(mle_id = i)
-  #   obs_sim <- bind_rows(obs_sim, sim)
-  # }
-
-
-#  ---------------------------------------------------------
-# Run simulations for a future time period
-#  ---------------------------------------------------------
-weeks_ahead <- 6
-num_sims <- 100
-
-out_sims <- tibble()  # empty storage object, will contain future trajectories (stochastic)
-covar_scens <- tibble()  # empty storage object, will contain covariates for different future scenarios (deterministic)
-
-all_mles = best_partable #assign to this since that's the original name, so I don't have to edit code below
-
-
-
-#loop over all scenarios
-
-
-#loop over all best fit estimates
-for(i in 1:nrow(all_mles))
-{
-  mles <- all_mles[i, ]
-  obs <- obs_sim %>% 
-    filter(mle_id %in% c(i, 999))
-
-
-  sim_sql <- simulate_trajectories(pomp_model, start_date = start_date,
-                                  covar_action = "status_quo", param_vals = mles,
-                                  forecast_horizon_wks = weeks_ahead, 
-                                  nsims = num_sims, obs_sim = obs) 
-  sim_sq <- sim_sql$sims_ret %>%
-    mutate(SimType = "status_quo")
-  
-  sim_nal <- simulate_trajectories(pomp_model, start_date = start_date,
-                                  covar_action = "no_intervention", 
-                                  covar_no_action = 1,
-                                  param_vals = mles,
-                                  forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs)
-  sim_na <- sim_nal$sims_ret %>%
-    mutate(SimType = "no_intervention") %>%
-    mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
-  
-  sim_minsdl <- simulate_trajectories(pomp_model, start_date = start_date,
-                                     covar_action = "lowest_sd", 
-                                     param_vals = mles,
-                                     forecast_horizon_wks = weeks_ahead,
-                                     nsims = num_sims, obs_sim = obs)
-  sim_minsd <- sim_minsdl$sims_ret %>%
-    mutate(SimType = "lowest_sd") %>%
-    mutate(.id = as.character(.id))  # added to match the non-counterfactual returns
-  
-  sim_msdl <- simulate_trajectories(pomp_model, start_date = start_date,
-                                  covar_action = "more_sd",
-                                  param_vals = mles, 
-                                  forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs) 
-  sim_msd <- sim_msdl$sims_ret %>%
-    mutate(SimType = "linear_increase_sd")
-  
-  sim_lsdl <- simulate_trajectories(pomp_model, start_date = start_date,
-                                  covar_action = "less_sd",
-                                  param_vals = mles, 
-                                  forecast_horizon_wks = weeks_ahead,
-                                  nsims = num_sims, obs_sim = obs)
-  sim_lsd <- sim_lsdl$sims_ret %>%
-    mutate(SimType = "linear_decrease_sd")
-  
-  sim_norl <- simulate_trajectories(pomp_model, start_date = start_date,
-                                   covar_action = "normal",
-                                   param_vals = mles, 
-                                   forecast_horizon_wks = weeks_ahead,
-                                   nsims = num_sims, obs_sim = obs)
-  sim_nor <- sim_norl$sims_ret %>%
-    mutate(SimType = "return_normal")
-  
-  all_sims <- bind_rows(sim_sq, sim_na, sim_minsd, 
-                        sim_msd, sim_lsd, sim_nor) %>%
-    mutate(mle_id = i,
-           rep_id =  paste(.id, mle_id, sep = "-"))
-  out_sims <- bind_rows(out_sims, all_sims)
-  
-  # Collate the covariate scenarios
-  cov_sq <- sim_sql$covars %>%
-    mutate(SimType = "status_quo")
-  cov_na <- sim_nal$covars %>%
-    mutate(SimType = "no_intervention")
-  cov_minsd <- sim_minsdl$covars %>%
-    mutate(SimType = "lowest_sd") 
-  cov_msd <- sim_msdl$covars %>%
-    mutate(SimType = "linear_increase_sd")
-  cov_lsd <- sim_lsdl$covars %>%
-    mutate(SimType = "linear_decrease_sd")
-  cov_nor <- sim_norl$covars %>%
-    mutate(SimType = "return_normal")
-  all_covars <- bind_rows(cov_sq, cov_na, cov_minsd, cov_msd, cov_lsd, cov_nor)
-  covar_scens <- bind_rows(covar_scens, all_covars)
-}
-
-# Save the simulations
-fname <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
-saveRDS(object = out_sims, file = fname)
-
-# Save the covariates
-fname2 <- here('output', paste0(filename_label, '_simulation-covariates.rds'))
-saveRDS(object = covar_scens, file = fname2)
-
-scenario_res = list()
-scenario_res$sims = out_sims
-scenario_res$covars = covar_scens
+# Save the list containing simulations, scenario names and covariates for each scenario
+# this big list of results is further processed into a format that can be used easily by our shiny app
+  fname <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
+saveRDS(object = scenario_res, file = fname)
 
 return(scenario_res)
 
-}
+} #end function
 

@@ -23,6 +23,7 @@ loadcleandata <- function(datasource, locations)
   #if data file is not here, go through all of the below
 
   #data for population size for each state/country so we can compute cases per 100K
+  #not used but kept here from shiny tracker
   us_popsize <- readRDS(here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
 
   #################################

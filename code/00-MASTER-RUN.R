@@ -126,9 +126,9 @@ parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
 # two rounds of MIF
 # these 2 rounds are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(300,300)
+mif_settings$mif_num_particles  <- c(200,200)
 #mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(50,40)
+mif_settings$mif_num_iterations <- c(30,20)
 #mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$pf_num_particles <- 2000
@@ -181,12 +181,9 @@ saveRDS(object = mif_res, file = filename_temp)
 # Simulate the model to predict -----------------------------------------------------
 mif_res = readRDS(here("output",'output_mif.rds'))
 
-# Source the function to simulate trajectories and scenarios
-source(here("code/forward-simulations/simulatetrajectories.R"))
-
 # Source the script run the scenarios -- saves a file this time
 source(here("code/forward-simulations/runscenarios.R"))
-scenario_res <- runscenarios(mif_res = mif_res)
+scenario_res <- runscenarios(mif_res = mif_res, forecast_horizon_days = 37, nsim = 80)
 
 
 #make plots

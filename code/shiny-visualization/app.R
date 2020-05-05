@@ -11,25 +11,23 @@ library(RColorBrewer)
 
 #################################
 # Load all data
-# should be online so things update automatically
+# should be online (e.g. in Github repo) so things update automatically
 # for speed, we only get data from the online source if the data is old, otherwise we load locally
 #################################
 
 # to ensure data gets refreshed on server, we need this
-
-
 get_data <- function()
 {
-  filename = here("data",paste0("clean_data_",Sys.Date(),'.rds')) #if the data file for today is here, load then return from function
+  #if the data file for today is here, load then return from function
+  filename = here("data",paste0("clean_data_",Sys.Date(),'.rds')) 
   if (file.exists(filename)) {
      all_data <- readRDS(filename)    
      return(all_data)  
   }
   #if data file is not here, go through all of the below
-  
+  #not much needed here, just reading of data and a bit of processing
   #data for population size for each state/country so we can compute cases per 100K
   us_popsize <- readRDS(here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
-  world_popsize <-readRDS(here("data","world_popsize.rds")) 
   
   all_data = list() #will save and return all datasets as list
   
@@ -44,7 +42,6 @@ get_data <- function()
   
   raw_data <- readr::read_csv("https://raw.githubusercontent.com/CEIDatUGA/covid-19-data/ /.rds")
 
-    
   #save the data
   saveRDS(all_data, filename)    
   
@@ -55,7 +52,7 @@ get_data <- function()
 ###########################################
 # function that re-reads the data every so often
 ###########################################
-all_data_reactive <- reactivePoll(intervalMillis = 1000*60*60*12, # pull new data every 12 hours
+all_data_reactive <- reactivePoll(intervalMillis = 1000*60*60*3, # pull new data every N hours
                          session = NULL,
                          checkFunc = function() {Sys.time()}, #this will always return a different value, which means at intervals specified by intervalMillis the new data will be pulled
                          valueFunc = function() {get_data()} )
@@ -76,9 +73,6 @@ ui <- fluidPage(
                        sidebarLayout(
                          sidebarPanel(
                            shinyWidgets::pickerInput("state_selector", "Select State(s)", state_var, multiple = TRUE,options = list(`actions-box` = TRUE), selected = c("Georgia","California","Washington") ),
-                           shiny::selectInput( "otherdata", "Show additional data sources",c("Yes" = "Yes", "No" = "No"), selected = "No"),
-                           shiny::div("Also show data from additional sources (see 'about' tab for more)."),
-                           br(),
                            shiny::selectInput( "case_death",   "Outcome",c("Cases" = "Cases", "Hospitalizations" = "Hospitalized", "Deaths" = "Deaths")),
                            shiny::div("Modify the top plot to display cases, hospitalizations, or deaths."),
                            br(),
@@ -99,11 +93,7 @@ ui <- fluidPage(
                          # Output:
                          mainPanel(
                            #change to plotOutput if using static ggplot object
-                           plotlyOutput(outputId = "case_death_plot", height = "300px"),
-                           #change to plotOutput if using static ggplot object
-                           plotlyOutput(outputId = "testing_plot", height = "300px"),
-                           #change to plotOutput if using static ggplot object
-                           plotlyOutput(outputId = "testing_frac_plot", height = "300px")
+                           plotlyOutput(outputId = "case_death_plot", height = "300px")
                          ) #end main panel
                        ) #end sidebar layout     
               ), #close US tab
@@ -113,14 +103,14 @@ ui <- fluidPage(
                           fluidRow( #all of this is the header
                             tags$div(
                               id = "bigtext",
-                              "This COVID-19 tracker is brought to you by the",
+                              "This COVID-19 forecasting app is brought to you by the",
                               a("Center for the Ecology of Infectious Diseases",  href = "https://ceid.uga.edu", target = "_blank" ),
                               "and the",
                               a("College of Public Health", href = "https://publichealth.uga.edu", target = "_blank"),
                               "at the",
                               a("University of Georgia.", href = "https://www.uga.edu", target = "_blank"),
                               "It was developed by",
-                              a("Robbie Richards,", href = "https://rlrichards.github.io", target =  "_blank"),
+                              a("John Drake,", href = "https://daphnia.ecology.uga.edu/drakelab/", target =  "_blank"),
                               a("William Norfolk", href = "https://github.com/williamnorfolk", target = "_blank"),
                               "and ",
                               a("Andreas Handel.", href = "https://www.andreashandel.com/", target = "_blank"),
@@ -133,16 +123,15 @@ ui <- fluidPage(
                             ),# and tag
                             tags$div(
                               id = "bigtext",
-                              "The main underlying data for the US is sourced from",
+                              "The main underlying data for is sourced from",
                               a("The Covid Tracking Project.",  href = "https://covidtracking.com/", target = "_blank" ),
                               "This data source reports all and positive tests, hospitalizations and deaths for each state. We interpret positive tests as corresponding to new cases. Additional US data (cases and deaths only) is sourced from the",
                               a("New York Times (NYT),", href = "https://github.com/nytimes/covid-19-data", target = "_blank" ),
                               "from",
                               a("USA Facts", href = "https://usafacts.org/visualizations/coronavirus-covid-19-spread-map/", target = "_blank" ),
                               "and from the",
-                              a("Johns Hopkins University Center for Systems Science and Engineering (JHU).", href = "https://github.com/CSSEGISandData/COVID-19", target = "_blank" ),
-                              "World data is also sourced from the same JHU source. For more details on each data source, see the data websites. Note that some data sources might only report some data, and numbers might not be reliable, which can lead to nonsensical graphs (e.g. negative new daily cases/deaths or the fraction of positive tests being greater than 1). We make no attempt at cleaning/fixing the data, we only display it."
-                            ),              
+                              a("Johns Hopkins University Center for Systems Science and Engineering (JHU).", href = "https://github.com/CSSEGISandData/COVID-19", target = "_blank" )
+                              ),              
                             tags$div(
                               id = "bigtext",
                               a( "The Center for the Ecology of Infectious Diseases", href = "https://ceid.uga.edu", target = "_blank" ),
