@@ -9,18 +9,16 @@
 rm(list = ls(all.names = TRUE))
 
 # Necessary libraries --------------------------------------------
-# We only libraries needed for this script, others are loaded in each code
-# so we can run various scripts independently 
-# these libraries are needed by various scripts
+# could be loaded here or inside functions
 #library(lubridate) #needs to be present/is used below, but don't load since it messes with 'here'
 library(here)
-#library(dplyr)
-#library(tidyr)
-#library(pomp)  # must be at least version 2.x
-#library(doParallel)
-#library(foreach)
-#library(purrr)
-#library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(pomp)  # must be at least version 2.x
+library(doParallel)
+library(foreach)
+library(purrr)
+library(ggplot2)
 
 
 # --------------------------------------------------
