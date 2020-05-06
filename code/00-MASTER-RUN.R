@@ -128,20 +128,20 @@ for (location in statevec)
   # turn on parallel running or not
   parallel_info = list()
   parallel_info$parallel_run <- TRUE
-  parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
-  #parallel_info$num_cores <- 40  # on HPC
+  #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
+  parallel_info$num_cores <- 20  # on HPC
   
   # specify settings for mif2 procedure
   # two rounds of MIF
   # these 2 rounds are currently hard-coded into runmif
   mif_settings = list()
-  mif_settings$mif_num_particles  <- c(200,200)
-  #mif_settings$mif_num_particles  <- c(2000,2000)
-  mif_settings$mif_num_iterations <- c(30,20)
-  #mif_settings$mif_num_iterations <- c(100,100)
+  #mif_settings$mif_num_particles  <- c(200,200)
+  mif_settings$mif_num_particles  <- c(2000,2000)
+  #mif_settings$mif_num_iterations <- c(30,20)
+  mif_settings$mif_num_iterations <- c(100,100)
   mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
   mif_settings$pf_num_particles <- 2000
-  mif_settings$pf_reps <- 10
+  mif_settings$pf_reps <- 50
   
   # source the mif function
   source(here("code/model-fitting/runmif.R"))
@@ -192,7 +192,7 @@ for (location in statevec)
   
   # Source the script run the scenarios -- saves a file this time
   source(here("code/forward-simulations/runscenarios.R"))
-  scenario_res <- runscenarios(mif_res = mif_res, forecast_horizon_days = 37, nsim = 98)
+  scenario_res <- runscenarios(mif_res = mif_res, forecast_horizon_days = 37, nsim = 514)
 }
 
 # script below is run once all state results are processed

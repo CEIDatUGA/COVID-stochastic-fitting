@@ -20,4 +20,4 @@ p1 <- df %>%
       facet_wrap(Scenario ~ Location, ncol = 3, scales = "free_y") 
                   
                          
-
+plot(p1)

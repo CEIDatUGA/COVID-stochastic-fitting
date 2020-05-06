@@ -84,7 +84,7 @@ exploremifresults <- function(mif_res)
                                  byrow = T))
   colnames(all_par_df) <- names(coef(mifs[[1]]))  
   
-  est_par_df = all_par_df %>% dplyr::select(params_to_estimate)
+  est_par_df = all_par_df %>% dplyr::select( tidyselect::all_of(params_to_estimate))
   
   
   # combine the ll_df and parameter  data frames. 

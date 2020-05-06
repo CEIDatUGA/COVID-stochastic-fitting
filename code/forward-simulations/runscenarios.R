@@ -12,9 +12,6 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   library('here')
   library('vctrs')
 
-  mif_res <- readRDS(filename_temp); forecast_horizon_days = 33; nsim = 10;
-  
-  
   # assign pomp model and MLEs ------------------------------------------------
   mifs = mif_res$mif_runs
   pfs = mif_res$pf_runs
@@ -25,16 +22,12 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   param_vals = mif_res$par_var_list$allparvals
   
   # get best fit parameter values for all MIF fits that are within 2 LL of the best LL
-  best_partable <- all_partable %>%
-                   filter(LogLik > (max(LogLik, na.rm = TRUE)-2)) %>%
-                   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+  #best_partable <- all_partable %>%
+   #                filter(LogLik > (max(LogLik, na.rm = TRUE)-2)) %>%
+    #               dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
-  # Make sure there are some decent MLEs, i.e., not -inf
-  # if there is at least 1 non-crazy LL, this should not be triggered
-  stopifnot(nrow(best_partable) > 0)
-
-  #manually take top 2 entries, just for testing
-  best_partable = all_partable[1:2,] %>%  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
+  #take top 3 entries
+  best_partable = all_partable[1:3,] %>%  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
 
 
   # New time series starting at beginning of simulation and running into the future as specified
@@ -56,7 +49,7 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   for (scenario in scenariovec)  
     
   {
-    print(sprintf('starting scenario %s',scenario))
+    #print(sprintf('starting scenario %s',scenario))
     #for each scenario, build the appropriate co-variate
     if (scenario == "strong_sd")
     {

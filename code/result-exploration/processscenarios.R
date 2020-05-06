@@ -10,7 +10,7 @@ processscenarios <- function()
   
   library('dplyr')
   library('here')
-  library('purrr')
+  #library('purrr')
   
   #load data for US population size per state so we have all state names and their population sizes
   us_popsize <- readRDS(here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
@@ -42,18 +42,27 @@ processscenarios <- function()
       x = scenario_res[[n]]
       sims = x$sims
       
+      #test plot for debugging
+      #p1 <- sims %>% ggplot(aes(x=time,y=C_new,group=.id)) +  geom_line()
+      
       res_df <- sims %>%
                 rename( id = ".id") %>% 
-                mutate(Date = rep(x$dates,max(id))) %>% 
+                group_by(id) %>%
+                mutate(Date = x$dates) %>% 
+                ungroup() %>%
                 select(-time) %>%
                 pivot_longer(cols = -c("id","Date"),  names_to = "Variable", values_to = "Value") %>%
                 group_by(Variable, Date) %>%
                 summarise(lower = ceiling(quantile(Value, 0.1)),
-                  ptvalue = ceiling(mean(Value)),
+                  ptvalue = (mean(Value)),
                   upper = ceiling(quantile(Value, 0.9))) %>%
                 ungroup() %>%
                 pivot_longer(-c("Variable","Date"), names_to = 'Var_Type', values_to = "Value") %>%
                 mutate(Scenario = x$scenario, Location = state_now) 
+      
+      #test plot for debugging
+      #p2 <- res_df %>% filter(Variable == "C_new") %>% ggplot(aes(x=Date , y=Value, color = Var_Type)) +  geom_line()
+      
       
       scenario_df = rbind(scenario_df, res_df) #combine all scenarios  
       
