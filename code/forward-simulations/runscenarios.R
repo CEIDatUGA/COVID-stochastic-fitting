@@ -12,6 +12,9 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   library('here')
   library('vctrs')
 
+  mif_res <- readRDS(filename_temp); forecast_horizon_days = 33; nsim = 10;
+  
+  
   # assign pomp model and MLEs ------------------------------------------------
   mifs = mif_res$mif_runs
   pfs = mif_res$pf_runs
@@ -35,7 +38,10 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
 
 
   # New time series starting at beginning of simulation and running into the future as specified
+  # also compute corresponding dates
   newtimes <- c(time(pomp_model), max(time(pomp_model))+seq_len(forecast_horizon_days))
+  enddate = max(mif_res$pomp_data$date)
+  newdates <- c(mif_res$pomp_data$date, seq.Date(enddate+1, enddate+forecast_horizon_days, by = "days"))
   
   #vector of names for all different scenarios to be explored
   #scenariovec = c("no_intervention","status_quo","lowest_sd","linear_increase_sd","linear_decrease_sd","return_normal")
@@ -44,7 +50,7 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   #assign covariate table, then update it below
   covar_table = mif_res$covar_table  
   
-  scenario_res = list() #will contain results for all simulations for all scenarios
+  scenario_res = vector("list", length(scenariovec)) #will contain results for all simulations for all scenarios
   ct = 1 # a counter/indexer
   #loop over all scenarios
   for (scenario in scenariovec)  
@@ -67,21 +73,21 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
     }
     if (scenario == "no_intervention")
     {
-      rel_beta_change = rep(100,length(newtimes))
+      rel_beta_change = rep(1,length(newtimes))
     }
     
     #build new covariate table for pomp
-    covar_for_pomp = data.frame(time = newtimes, rel_beta_change = rel_beta_change)
+    covars = data.frame(rel_beta_change = rel_beta_change, time = newtimes)
     
 
     #update pomp object with new covariate
     M2 <- pomp(
       pomp_model,
       time = newtimes, # update time of pomp object 
-      covar = covariate_table(covar_for_pomp, 
+      covar = covariate_table(covars, 
                               times = "time",
                               order = "constant") # update covariate
-            )
+    )
     
     
     # #run the pomp model for each set of parameters that are within 2 LL of best fit
@@ -91,22 +97,22 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
     for(i in 1:nrow(best_partable))
     {
       
+      
       # Run the simulations
-      #data.frame output didn't work, also takes up a lot of space
-      #using array format returns simulated states and observations as independent arrays
-      #each array has dimension Nobs/Nstates  X nsim  X times
-      sims <- pomp::simulate(M2, 
-                                params = param_vals,
+       sims <- pomp::simulate(M2, 
+                                params = best_partable[i,],
                                 nsim = nsim, 
-                                format="arrays", 
+                                format="data.frame", 
                                 include.data = FALSE)
       
     }      
     
+   
     
-    scenario_res[[ct]] = sims #save simulation result in a big list for each scenario
+    scenario_res[[ct]]$sims = sims #save simulation result in a big list for each scenario
     scenario_res[[ct]]$scenario = scenario #save the scenario label too  
-    scenario_res[[ct]]$covar = covar_for_pomp #save the scenario label too  
+    scenario_res[[ct]]$covar = covars #save covar  
+    scenario_res[[ct]]$dates = newdates #save date information  
     
     ct = ct + 1
     
