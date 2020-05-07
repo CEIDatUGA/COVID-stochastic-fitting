@@ -59,9 +59,9 @@ est_these_inivals = ""
 
 # turn on parallel running or not
 parallel_info = list()
-parallel_info$parallel_run <- FALSE
+parallel_info$parallel_run <- TRUE
 #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
-parallel_info$num_cores <- 4  # on HPC - should ideally be M states * N mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
+parallel_info$num_cores <- 40  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
 
 
 # --------------------------------------------------
@@ -78,7 +78,7 @@ mif_settings$pf_reps <- 5 #replicates for particle filter following mif
 #mif_settings$pf_num_particles <- 2000 #particles for filter run following mif
 #mif_settings$pf_reps <- 50 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$replicates <- 5 #number of different starting conditions
+mif_settings$replicates <- 4 #number of different starting conditions - this is parallelized
 
 # --------------------------------------------------
 # Create a time-stamp variable
@@ -162,8 +162,14 @@ for (n in 1:5)
 
 } #end parallel MIF loop  
   
+#mif_res is a complicated list
+#main level is the n repeats over batches of states
+#level below is a list with N states
+#flatten to make it list of 50 states
+mif_flat = purrr::flatten(mif_res)
 
-browser()
+#list with each state, each state is a list containing sub-list of each replicate, which contains 2 elements, out_mif and pf
+#so results from mif for state 3 and replicate 2 would be mif_flat[[3]][[2]]$out_mif
 
 
 # --------------------------------------------------
@@ -172,6 +178,8 @@ browser()
 # --------------------------------------------------
 for (ct in 1:length(statevec))
 {
+  
+  pomp_list[[ct]]$mif_res = mif_flat[[ct]] #add list for each state to overall pomp list
   
   mif_explore <- exploremifresults(pomp_res = pomp_list[[ct]]) #compute trace plot and best param tables for mif
 

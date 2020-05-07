@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(mif_res)
+exploremifresults <- function(pomp_res)
 {
   
   #  ---------------------------------------------------------
@@ -13,19 +13,22 @@ exploremifresults <- function(mif_res)
   res_list=list() #this will contain all results produced here and returned 
 
   # Load libraries ----------------------------------------------------------
-  library(dplyr)
-  library(pomp)
-  library(purrr)
-  library(ggplot2)
+  #library(dplyr)
+  #library(pomp)
+  #library(purrr)
+  #library(ggplot2)
 
   # pull out individual pieces from mif_res super-list ----------------------------------------------------
   # this is a list of mif objects for each initial condition 
   # followed by pfilter objects run a specified number of times after each mif is run
-  mifs = mif_res$mif_runs
-  pfs = mif_res$pf_runs
+  
+  browser()
+  
+  mifs = sapply(pomp_res$mif_res, "[[", "out_mif")
+  #pfs = sapply(pomp_res$mif_res, "[[", "pf")
 
-  pomp_model = mif_res$pomp_model
-  pomp_data = mif_res$pomp_data   
+  pomp_model = pomp_res$pomp_model
+  pomp_data = pomp_res$pomp_data   
     
   ############################################################################
   # take values for model parameters and initial conditions -----------------
