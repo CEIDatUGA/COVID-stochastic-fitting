@@ -1,4 +1,4 @@
-loadcleandata <- function(datasource, locations)
+loadcleandata <- function(datasource, locations, timestamp)
 {
 
   #  ----------------------------------------------------------
@@ -10,12 +10,12 @@ loadcleandata <- function(datasource, locations)
   #instead of deleting code, a few extra lines at the end do the filtering so we only retain what we need here
   
   # Load libraries ----------------------------------------------------------
-   library(dplyr)
-   library(tidyr)
-  library('readr')
+  # library(dplyr)
+  # library(tidyr)
+  #library('readr')
   
 
-  filename = here("data",paste0("pomp_data_",Sys.Date(),'.rds')) #if the data file for today is here, load then return from function
+  filename = here("data",paste0("pomp_data_",timestamp,'.rds')) #if the data file for today is here, load then return from function
   if (file.exists(filename)) {
     pomp_data <- readRDS(filename)    
     return(pomp_data)  
@@ -24,7 +24,7 @@ loadcleandata <- function(datasource, locations)
 
   #data for population size for each state/country so we can compute cases per 100K
   #not used but kept here from shiny tracker
-  us_popsize <- readRDS(here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
+  us_popsize <- readRDS(here::here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
 
   #################################
   # pull data from Covidtracking and process

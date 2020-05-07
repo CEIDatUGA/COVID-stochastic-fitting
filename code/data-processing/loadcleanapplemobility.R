@@ -1,4 +1,4 @@
-loadcleanapplemobility <- function(location, startdate, enddate)
+loadcleanapplemobility <- function(location, startdate, enddate, timestamp)
 {
 
   #  ----------------------------------------------------------
@@ -15,7 +15,7 @@ loadcleanapplemobility <- function(location, startdate, enddate)
    library('readr')
    library('readr')
 
-  filename = here("data",paste0("applemobility_data_",Sys.Date(),'.rds')) #if the data file for today is here, load then return from function
+  filename = here("data",paste0("applemobility_data_",timestamp,'.rds')) #if the data file for today is here, load then return from function
   if (file.exists(filename)) {
     pomp_data <- readRDS(filename)    
     return(pomp_data)  
@@ -29,7 +29,7 @@ loadcleanapplemobility <- function(location, startdate, enddate)
   #################################
   # pull data from Apple and process
   #################################
-  x <- readr::read_csv("https://covid19-static.cdn-apple.com/covid19-mobility-data/2007HotfixDev47/v2/en-us/applemobilitytrends-2020-05-03.csv")
+  x <- readr::read_csv("https://covid19-static.cdn-apple.com/covid19-mobility-data/2007HotfixDev49/v2/en-us/applemobilitytrends-2020-05-05.csv")
 
   apple_data <- x %>% dplyr::filter(region == location) %>%
                       select(-geo_type, -region, -alternative_name) %>%

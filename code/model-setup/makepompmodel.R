@@ -1,4 +1,4 @@
-makepompmodel <- function(par_var_list, pomp_data, covar_table)
+makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
 {
 
   # This generates a pomp object for an SEIR model of COVID 19. 
@@ -336,7 +336,7 @@ makepompmodel <- function(par_var_list, pomp_data, covar_table)
   
   # remove any column in covariate table that's not time or the used variables
   # otherwise pomp might get indigestion
-  covar_for_pomp <- covar_table %>% select(time,rel_beta_change)
+  covar_for_pomp <- pomp_covar %>% select(time,rel_beta_change)
   
   
   # Define the pomp model object --------------------------------------------
