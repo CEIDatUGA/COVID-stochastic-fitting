@@ -1,7 +1,7 @@
 # exploremifresults.R
 # This function takes results produced by run-mif for exploration/plotting
 
-exploremifresults <- function(pomp_res)
+exploremifresults <- function(pomp_res, par_var_list)
 {
   
   #  ---------------------------------------------------------
@@ -18,22 +18,25 @@ exploremifresults <- function(pomp_res)
   #library(purrr)
   #library(ggplot2)
 
-  # pull out individual pieces from mif_res super-list ----------------------------------------------------
-  # this is a list of mif objects for each initial condition 
+  # pull out individual pieces from pomp_res super-list ----------------------------------------------------
+  # this is a large list of objects 
+  # mif_results are in sub-list mif_res 
+  mif_res = pomp_res$mif_res
+  
+  # from mif_res object, extract mif run results for each run  
+  mifs = sapply(mif_res, "[[", "out_mif")
   # followed by pfilter objects run a specified number of times after each mif is run
   
-  browser()
   
-  mifs = sapply(pomp_res$mif_res, "[[", "out_mif")
-  #pfs = sapply(pomp_res$mif_res, "[[", "pf")
-
+  pfs = sapply(mif_res, "[", "pf")
+  
+  
   pomp_model = pomp_res$pomp_model
   pomp_data = pomp_res$pomp_data   
     
   ############################################################################
   # take values for model parameters and initial conditions -----------------
   ############################################################################
-  par_var_list = mif_res$par_var_list
   allparvals <- par_var_list$allparvals
   params_to_estimate = par_var_list$params_to_estimate
   inivals_to_estimate = par_var_list$inivals_to_estimate
@@ -190,76 +193,6 @@ exploremifresults <- function(pomp_res)
   
   res_list$partable_natural <- mif_result_natural_df %>% 
                                dplyr::select(is_fitted, everything())  
-  
- 
-  # ---------------------------------------------------------
-  # Likelihood slices for mif results
-  # ---------------------------------------------------------
-  if (1 == 2) #turn off this whole code block for now
-  {
-    # take best fit parameter values for each mif, run a particle filter to compute likelihood
-    # scan over various parameters (while keeping others at MLE values)
-    # produce likelihood slices
-    # is too computationally intensive to do for all parameters, so we just do a few
-    library(foreach)
-    library(doParallel)
-    library(tidyr)
-    
-    # turn on parallel running or not
-    parallel_run <- TRUE
-    num_cores <- parallel::detectCores() - 2  # alter as needed
-    
-    # Turn on parallel or not --------------------------------------------------
-    if (parallel_run == TRUE) {
-      # Set up parallel structure 
-      n_cores <- num_cores
-      cl <- makeCluster(num_cores) 
-      registerDoParallel(cl)
-    } else { #if not run in parallel, set this to 1
-      n_cores <- 1
-    }
-    
-    
-    #do slice for each mif so we can compare
-    for (i in 1:length(mifs))
-    {
-      
-      print(sprintf('Start MIF number %d',i))
-      p1 = coef(mifs[[i]])["log_beta_s"]
-      p2 = coef(mifs[[i]])["frac_asym"]
-      
-      pslice <- sliceDesign(
-        center=coef(mifs[[i]]),
-        log_beta_s = rep(seq(from = 0.1*p1, to = 10*p1, length = 20),each=2) #the each value indicates how many replicates to do (since those are stochastic)  
-        #frac_asym = rep(seq(from = 0.1*p2, to = 10*p2, length = 20) ,each=2)
-      ) 
-      
-      slicefit <- foreach (theta=iter(pslice,"row"),
-                           .combine=rbind,.inorder=FALSE, .packages = c("pomp")) %dopar% 
-        {
-          pf <- pomp_model %>% pfilter(params=theta,Np=200) 
-          theta$loglik <- logLik(pf)
-          return(theta)
-        } 
-    }
-    stopCluster(cl)
-    
-    sliceplot <- slicefit %>% 
-      tidyr::gather(variable,value,log_beta_s,frac_asym) %>%
-      filter(variable==slice) %>%
-      ggplot(aes(x=value,y=loglik,color=variable))+
-      geom_point()+
-      facet_grid(~variable,scales="free_x")+
-      guides(color=FALSE)+
-      labs(x="parameter value",color="")+
-      theme_bw()
-    
-    res_list$sliceplot = sliceplot
-    
-    #plot(sliceplot)
-    #filename = here('output/figures/LL-slice.png')
-    #ggsave(filename,sliceplot)
-  }
   
   return(res_list)
   

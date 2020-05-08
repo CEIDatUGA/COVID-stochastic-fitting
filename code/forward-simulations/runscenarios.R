@@ -1,25 +1,31 @@
 # runscenarios.R
 # takes results from mif fitting, runs various scenarios
 
-runscenarios <- function(mif_res, forecast_horizon_days, nsim)
+runscenarios <- function(pomp_res, par_var_list, forecast_horizon_days, nsim)
 {
   
 
   # Load libraries ----------------------------------------------------------
-  library('pomp')
-  library('dplyr')
-  library('tidyr')
-  library('here')
-  library('vctrs')
+  #library('pomp')
+  #library('dplyr')
+  #library('tidyr')
+  #library('here')
+  #library('vctrs')
 
   # assign pomp model and MLEs ------------------------------------------------
-  mifs = mif_res$mif_runs
-  pfs = mif_res$pf_runs
-  pomp_model = mif_res$pomp_model
-  est_partable = mif_res$est_partable
-  all_partable = mif_res$all_partable
-  start_date = min(mif_res$pomp_data$date)
-  param_vals = mif_res$par_var_list$allparvals
+  # from mif_res object, extract mif run results for each run  
+  mifs = sapply(pomp_res$mif_res, "[[", "out_mif")
+  pfs = sapply(pomp_res$mif_res, "[", "pf")
+  
+  #pull various things out of pomp_res object
+  pomp_model = pomp_res$pomp_model
+  pomp_data = pomp_res$pomp_data
+  est_partable = pomp_res$est_partable
+  all_partable = pomp_res$all_partable
+  start_date = min(pomp_res$pomp_data$date)
+  param_vals = par_var_list$allparvals
+  covar_table = pomp_res$pomp_covar  
+  location = pomp_res$location
   
   # get best fit parameter values for all MIF fits that are within 2 LL of the best LL
   #best_partable <- all_partable %>%
@@ -33,17 +39,16 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   # New time series starting at beginning of simulation and running into the future as specified
   # also compute corresponding dates
   newtimes <- c(time(pomp_model), max(time(pomp_model))+seq_len(forecast_horizon_days))
-  enddate = max(mif_res$pomp_data$date)
-  newdates <- c(mif_res$pomp_data$date, seq.Date(enddate+1, enddate+forecast_horizon_days, by = "days"))
+  enddate = max(pomp_data$date)
+  newdates <- c(pomp_data$date, seq.Date(enddate+1, enddate+forecast_horizon_days, by = "days"))
   
   #vector of names for all different scenarios to be explored
   #scenariovec = c("no_intervention","status_quo","lowest_sd","linear_increase_sd","linear_decrease_sd","return_normal")
   scenariovec = c("no_intervention","status_quo","strong_sd")
   
-  #assign covariate table, then update it below
-  covar_table = mif_res$covar_table  
   
-  scenario_res = vector("list", length(scenariovec)) #will contain results for all simulations for all scenarios
+  scenario_res = vector("list", length(scenariovec)) #will contain full results for all simulations for all scenarios
+  scenario_df = NULL # a data frame containing processed results (as used by shiny)
   ct = 1 # a counter/indexer
   #loop over all scenarios
   for (scenario in scenariovec)  
@@ -71,7 +76,6 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
     
     #build new covariate table for pomp
     covars = data.frame(rel_beta_change = rel_beta_change, time = newtimes)
-    
 
     #update pomp object with new covariate
     M2 <- pomp(
@@ -106,7 +110,36 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
     scenario_res[[ct]]$scenario = scenario #save the scenario label too  
     scenario_res[[ct]]$covar = covars #save covar  
     scenario_res[[ct]]$dates = newdates #save date information  
+   
     
+    
+    # some extra code to compute quantiles (and potentially dump the raw trajectories when saving to file)
+    x = scenario_res[[ct]]
+    sims = x$sims
+    
+    #test plot for debugging
+    #p1 <- sims %>% ggplot(aes(x=time,y=C_new,group=.id)) +  geom_line()
+    
+    scenario_df <- sims %>%
+      rename( id = ".id") %>% 
+      group_by(id) %>%
+      mutate(Date = x$dates) %>% 
+      ungroup() %>%
+      select(-time) %>%
+      pivot_longer(cols = -c("id","Date"),  names_to = "Variable", values_to = "Value") %>%
+      group_by(Variable, Date) %>%
+      summarise(lower = ceiling(quantile(Value, 0.1)),
+                ptvalue = (mean(Value)),
+                upper = ceiling(quantile(Value, 0.9))) %>%
+      ungroup() %>%
+      pivot_longer(-c("Variable","Date"), names_to = 'Var_Type', values_to = "Value") %>%
+      mutate(Scenario = x$scenario, Location = location) 
+    
+    #test plot for debugging
+    #p2 <- res_df %>% filter(Variable == "C_new") %>% ggplot(aes(x=Date , y=Value, color = Var_Type)) +  geom_line()
+
+    scenario_res[[ct]]$scenario_df = scenario_df 
+  
     ct = ct + 1
     
   } #end loop over all scenarios
@@ -114,8 +147,8 @@ runscenarios <- function(mif_res, forecast_horizon_days, nsim)
   
 # Save the list containing simulations, scenario names and covariates for each scenario
 # this big list of results is further processed into a format that can be used easily by our shiny app
-  fname <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
-saveRDS(object = scenario_res, file = fname)
+#fname <- here('output', paste0(filename_label, '_simulation-scenarios.rds'))
+#saveRDS(object = scenario_res, file = fname)
 
 return(scenario_res)
 

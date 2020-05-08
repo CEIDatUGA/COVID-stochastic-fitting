@@ -13,11 +13,12 @@ filename = here('output','results_for_shiny.rds')
 df = readRDS(filename)
 
 p1 <- df %>% 
+      filter(Location %in% c("Georgia","Alabama","Washington","Michigan","California") ) %>%
       filter(Variable == "C_new") %>%
       filter(Var_Type == "ptvalue") %>%
       ggplot() +
       geom_line(alpha=1, aes(x = Date, y = Value, group = Scenario)) +
-      facet_wrap(Scenario ~ Location, ncol = 3, scales = "free_y") 
+      facet_wrap(Location ~ Scenario, ncol = 3, scales = "free_y") 
                   
                          
 plot(p1)

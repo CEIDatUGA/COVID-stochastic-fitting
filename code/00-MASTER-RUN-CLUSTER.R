@@ -10,16 +10,19 @@ rm(list = ls(all.names = TRUE))
 # Load necessary libraries -------------------------
 # --------------------------------------------------
 # could be loaded here or inside functions
-library(lubridate) #needs to loaded first so it doesn't mess with 'here'
-library(dplyr)
-library(tidyr)
+library('lubridate') #needs to loaded first so it doesn't mess with 'here'
 library('readr')
-library(pomp)  # must be at least version 2.x
-library(doParallel)
-library(foreach)
-library(here)
-library(purrr)
-library(ggplot2)
+library('doParallel')
+library('foreach')
+library('purrr')
+library('ggplot2')
+library('pomp')
+library('dplyr')
+library('tidyr')
+library('here')
+library('vctrs')
+library('vctrs')
+
 
 # --------------------------------------------------
 # Source all needed functions/scripts
@@ -31,7 +34,6 @@ source(here("code/model-setup/makepompmodel.R")) #function that generates the po
 source(here("code/model-fitting/runmif_allstates.R")) #runs mif fitting
 source(here("code/result-exploration/exploremifresults.R")) #explore mif results
 source(here("code/forward-simulations/runscenarios.R")) #run forward simulations for best fit mif results
-source(here("code/result-exploration/processscenarios.R")) #process results from all runs to get them into form for shiny
 
 # --------------------------------------------------
 # Set data source 
@@ -59,9 +61,9 @@ est_these_inivals = ""
 
 # turn on parallel running or not
 parallel_info = list()
-parallel_info$parallel_run <- TRUE
+parallel_info$parallel_run <- FALSE
 #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
-parallel_info$num_cores <- 40  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
+parallel_info$num_cores <- 4  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
 
 
 # --------------------------------------------------
@@ -164,51 +166,62 @@ for (n in 1:5)
   
 #mif_res is a complicated list
 #main level is the n repeats over batches of states
-#level below is a list with N states
-#flatten to make it list of 50 states
+#level below is a list with M states
+#flatten to make it list of all states
 mif_flat = purrr::flatten(mif_res)
 
-#list with each state, each state is a list containing sub-list of each replicate, which contains 2 elements, out_mif and pf
-#so results from mif for state 3 and replicate 2 would be mif_flat[[3]][[2]]$out_mif
+#mif_flat is a list with each state at the top level
+#each state is a list containing sub-list of each replicate, which contains 2 elements, out_mif and pfs
+#so mif_fit results from for state 3 and replicate 2 would be mif_flat[[3]][[2]]$out_mif
+
+#save the complete mif object for temp storage
+#filename = here('output',paste0(filename_label,'_mif.rds'))
+#saveRDS(object = mif_res, file = filename)
 
 
 # --------------------------------------------------
 # Another serial loop over states  
 # performs mif result analysis, forecasting and data processing for each state
 # --------------------------------------------------
+# loop over all states
+all_df = NULL #will contain results to be fed to shiny for all states
 for (ct in 1:length(statevec))
 {
+  all_scenarios = NULL
+  print(sprintf('starting state %s',statevec[ct]))
   
-  pomp_list[[ct]]$mif_res = mif_flat[[ct]] #add list for each state to overall pomp list
+  pomp_res = pomp_list[[ct]] #current state
+  pomp_res$mif_res = mif_flat[[ct]] #add mif results for each state to overall pomp object
   
-  mif_explore <- exploremifresults(pomp_res = pomp_list[[ct]]) #compute trace plot and best param tables for mif
+  mif_explore <- exploremifresults(pomp_res = pomp_res, par_var_list = par_var_list) #compute trace plot and best param tables for mif
 
-  pomp_list[[ct]]$traceplot = mif_explore$traceplot
-  pomp_list[[ct]]$all_partable = mif_explore$all_partable
-  pomp_list[[ct]]$est_partable = mif_explore$est_partable
-  pomp_list[[ct]]$partable_natural = mif_explore$partable_natural
+  pomp_res$traceplot = mif_explore$traceplot
+  pomp_res$all_partable = mif_explore$all_partable
+  pomp_res$est_partable = mif_explore$est_partable
+  pomp_res$partable_natural = mif_explore$partable_natural
   
   #run simulations/forecasts based on mif fits for each state
-  scenario_res <- runscenarios(mif_res = pomp_list[[ct]], forecast_horizon_days = 37, nsim = 514)
+  scenario_res <- runscenarios(pomp_res = pomp_res, par_var_list = par_var_list, forecast_horizon_days = 37, nsim = 514)
   
-  pomp_list[[ct]]$scenario_res = scenario_res
+  #to save space, one can delete the full scenario simulation  results before saving
+  for (n in 1:length(scenario_res)) {scenario_res[[n]]$sims <- NULL}
+  for (n in 1:length(scenario_res)) {all_scenarios = rbind(all_scenarios, scenario_res[[n]]$scenario_df) } #place results for all scenarios into a large dataframe
+  
+  all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame
+  
+  #add forward simulation results to pomp_res object
+  pomp_res$scenario_res = scenario_res
+  
+  pomp_res$mif_res <- NULL #to save space, one can delete the full mif results before saving
   
   #save the completed analysis for each state to a file with time-stamp
   #this file could be large, needs checking
-  #filename = here('output',paste0(filename_label,'_results.rds'))
-  #saveRDS(object = pomp_list, file = filename)
-  
+  filename = here('output',paste0(pomp_res$filename_label,'_results.rds'))
+  saveRDS(object = pomp_res, file = filename)
 }
 
-    
-  
-
-
-# script below is run once all state results are processed
-# process all scenario runs so data is in a form useful for shiny
-processscenarios()
-
-
-
+#this is what shiny will use
+filename = here('output','results_for_shiny.rds')
+saveRDS(all_df,filename)  
 
 
