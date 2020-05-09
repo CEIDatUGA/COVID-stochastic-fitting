@@ -72,24 +72,33 @@ est_these_inivals = ""
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
-parallel_info$num_cores <- 4  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
+parallel_info$num_cores <- 50  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
 
+#to estimate run-time: 
+#run interactively non-parallel with planned MIF settings (possibly lower MIF replicates)
+#watch output to see how long 1 state takes
+#main loop is done 5x, 10 states each. 
+#so if core number is 10 x mif runs (replicates), speed is 5x single state (max speed)
+#for less cores or more/less MIF replicates, multiply by the appropriate factor
+#on my machine,  2000 particles, 150 iterations and 5 reps on 50 cores takes 75min per 
+#batch of states, so total 5 x 75
+#if we do 20 mif reps on 200 cores on cluster, should be same duration
 
 # --------------------------------------------------
 # Specify settings for MIF fitting
 # --------------------------------------------------
 # two rounds of MIF are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(20,20)
-mif_settings$mif_num_iterations <- c(10,10)
-mif_settings$pf_num_particles <- 200 #particles for filter run following mif
-mif_settings$pf_reps <- 5 #replicates for particle filter following mif
-#mif_settings$mif_num_particles  <- c(2000,2000)
-#mif_settings$mif_num_iterations <- c(100,100)
-#mif_settings$pf_num_particles <- 2000 #particles for filter run following mif
-#mif_settings$pf_reps <- 50 #replicates for particle filter following mif
+#mif_settings$mif_num_particles  <- c(20,20)
+#mif_settings$mif_num_iterations <- c(10,10)
+#mif_settings$pf_num_particles <- 200 #particles for filter run following mif
+#mif_settings$pf_reps <- 5 #replicates for particle filter following mif
+mif_settings$mif_num_particles  <- c(2000,2000)
+mif_settings$mif_num_iterations <- c(80,70)
+mif_settings$pf_num_particles <- 2000 #particles for filter run following mif
+mif_settings$pf_reps <- 50 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$replicates <- 4 #number of different starting conditions - this is parallelized
+mif_settings$replicates <- 5 #number of different starting conditions - this is parallelized
 
 # --------------------------------------------------
 # Create a time-stamp variable

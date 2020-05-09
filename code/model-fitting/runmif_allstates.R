@@ -145,8 +145,9 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
     for (n in 1:length(pomp_list)) #loop over states
     {
       out_mif = list() #list containing results for each MIF for a given state
-
-      print(sprintf('Starting state %s',pomp_list[[n]]$location))
+      tstart2=Sys.time(); #capture current time, for benchmarking
+      
+      print(sprintf('Starting state %s at time %s',pomp_list[[n]]$location,as.character(tstart2)))
       for (i in 1:mif_settings$replicates) 
       {
       out_mif[[i]] <- run_mif(pomp_list = pomp_list,
