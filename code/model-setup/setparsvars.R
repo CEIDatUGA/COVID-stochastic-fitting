@@ -1,4 +1,4 @@
-setparsvars <- function(est_these_pars, est_these_inivals)
+setparsvars <- function(est_these_pars, est_these_inivals, population)
 {
 
   #this is a simple script that specifies model parameters, and variable names
@@ -21,7 +21,7 @@ setparsvars <- function(est_these_pars, est_these_inivals)
   
   #initial conditions are also considered parameters and some are estimated
   #we supply them on a log scale and in the code exponentiate to ensure no negative values
-  inivals <- c(S_0 = 10600000, 
+  inivals <- c(S_0 = population, 
                E1_0 = log(40), #E2_0 = 40, E3_0 = 40, E4_0 = 40, 
                Ia1_0 = log(22), #Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
                Isu1_0 = log(90),# Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 

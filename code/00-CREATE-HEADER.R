@@ -78,20 +78,22 @@ timestamp <- paste(lubridate::date(tm),
 # specify which states to run as a vector 
 # --------------------------------------------------
 
-statevec = c('Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming')
+# statevec = c('Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 
+#              'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 
+#              'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 
+#              'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+#              'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana',
+#              'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 
+#              'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma',
+#              'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+#              'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 
+#              'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 
+#              'Wyoming')
 # 'District of Columbia',  'Puerto Rico', 'Guam', 'American Samoa', 'Mariana Islands', 'Virgin Islands' #could include those
 
+statevec <- state.name  # internal R vector of 50 state names
+state_pops <- readRDS(here("data/us_popsize.rds"))
 
-
-
-# --------------------------------------------------
-# --------------------------------------------------
-# Run the functions sourced above 
-# --------------------------------------------------
-# --------------------------------------------------
-
-# run function that sets variables and parameters 
-par_var_list <- setparsvars(est_these_pars = est_these_pars, est_these_inivals = est_these_inivals)
 
 # --------------------------------------------------
 # Loop over states  
@@ -107,14 +109,30 @@ for (location in statevec)
   # This will be appended to each saved file 
   filename_label <- paste(location,datasource,timestamp,sep="-") 
   
+  # Get the state's population size
+  population <- state_pops %>%
+    filter(state_full == location)
+  
+  # Set the parameter values and initial conditions
+  par_var_list <- setparsvars(est_these_pars = est_these_pars, 
+                              est_these_inivals = est_these_inivals,
+                              population = population)
+  
   # Run data cleaning script.
-  pomp_data <- loadcleandata(datasource = datasource, location = location, timestamp = timestamp) 
+  pomp_data <- loadcleandata(datasource = datasource, 
+                             location = location, 
+                             timestamp = timestamp) 
   
   # Get covariate 
-  pomp_covar <- loadcleanapplemobility(location = location, startdate = min(pomp_data$date), enddate = max(pomp_data$date), timestamp = timestamp) 
+  pomp_covar <- loadcleanapplemobility(location = location, 
+                                       startdate = min(pomp_data$date),
+                                       enddate = max(pomp_data$date), 
+                                       timestamp = timestamp) 
   
   # Make a pomp model 
-  pomp_model <- makepompmodel(par_var_list = par_var_list, pomp_data = pomp_data, pomp_covar = pomp_covar)
+  pomp_model <- makepompmodel(par_var_list = par_var_list, 
+                              pomp_data = pomp_data, 
+                              pomp_covar = pomp_covar)
 
   # Save all pieces for each state in a list
   pomp_list[[ct]]$pomp_model = pomp_model 
@@ -122,6 +140,7 @@ for (location in statevec)
   pomp_list[[ct]]$pomp_data = pomp_data
   pomp_list[[ct]]$pomp_covar = pomp_covar
   pomp_list[[ct]]$location = location
+  pomp_list[[ct]]$par_var_list = par_var_list
   
   ct = ct + 1
   
@@ -129,5 +148,4 @@ for (location in statevec)
 
 saveRDS(pomp_list, file = here("header", "pomp_list.rds"))
 saveRDS(timestamp, file = here("header", "timestamp.rds"))
-saveRDS(par_var_list, file = here("header", "par_var_list.rds"))
 
