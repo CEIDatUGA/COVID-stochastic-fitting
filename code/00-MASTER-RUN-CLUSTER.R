@@ -28,7 +28,9 @@ library('dplyr')
 library('tidyr')
 library('here')
 library('vctrs')
-library('vctrs')
+# library('snow')
+# library('doSNOW')
+# library('Rmpi')
 
 
 # --------------------------------------------------
@@ -72,7 +74,8 @@ est_these_inivals = ""
 parallel_info = list()
 parallel_info$parallel_run <- TRUE
 #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
-parallel_info$num_cores <- 50  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
+# Add one extra core for the master process
+parallel_info$num_cores <- 20  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
 
 #to estimate run-time: 
 #run interactively non-parallel with planned MIF settings (possibly lower MIF replicates)
@@ -93,12 +96,12 @@ mif_settings = list()
 #mif_settings$mif_num_iterations <- c(10,10)
 #mif_settings$pf_num_particles <- 200 #particles for filter run following mif
 #mif_settings$pf_reps <- 5 #replicates for particle filter following mif
-mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(80,70)
-mif_settings$pf_num_particles <- 2000 #particles for filter run following mif
-mif_settings$pf_reps <- 50 #replicates for particle filter following mif
+mif_settings$mif_num_particles  <- c(200,200)
+mif_settings$mif_num_iterations <- c(10,10)
+mif_settings$pf_num_particles <- 500 #particles for filter run following mif
+mif_settings$pf_reps <- 2 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$replicates <- 5 #number of different starting conditions - this is parallelized
+mif_settings$replicates <- 2 #number of different starting conditions - this is parallelized
 
 # --------------------------------------------------
 # Create a time-stamp variable
@@ -119,7 +122,6 @@ timestamp <- paste(lubridate::date(tm),
 # --------------------------------------------------
 
 statevec = c('Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming')
-
 # 'District of Columbia',  'Puerto Rico', 'Guam', 'American Samoa', 'Mariana Islands', 'Virgin Islands' #could include those
 
 

@@ -15,9 +15,17 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   # Turn on parallel or not --------------------------------------------------
   if (parallel_run == TRUE) {
     # Set up parallel structure 
-    n_cores <- parallel_info$num_cores
-    cl <- makeCluster(n_cores) 
+    # n_cores <- parallel_info$num_cores
+    # cl <- makeCluster(n_cores) 
+    # registerDoParallel(cl)
+    
+    slaves <- parallel_info$num_cores
+    cl <- makeCluster(slaves, type="MPI")  # number of MPI tasks to use
     registerDoParallel(cl)
+    
+    # cluster_mpi <- startMPIcluster(count = parallel_info$num_cores - 1)
+    # registerDoMPI(cluster_mpi)
+    
   } else { #if not run in parallel, set this to 1
     n_cores <- 1
   }
