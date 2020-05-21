@@ -28,6 +28,7 @@ loadcleanapplemobility <- function(locations, pomp_data, timestamp)
 
   #################################
   # pull data from Apple and process
+  # currently need to manually enter right URL by looking at it here: https://www.apple.com/covid19/mobility
   #################################
   x <- readr::read_csv("https://covid19-static.cdn-apple.com/covid19-mobility-data/2007HotfixDev49/v2/en-us/applemobilitytrends-2020-05-05.csv")
 

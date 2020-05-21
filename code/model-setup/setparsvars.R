@@ -62,13 +62,14 @@ setparsvars <- function(est_these_pars, est_these_inivals, population)
                # log_g_c = rev_logistic(1/3),  
                # log_g_h = rev_logistic(1/12),
                
-               log_max_diag = log(1), #max for factor by which movement through Isd happens faster (quicker diagnosis) 
-               log_diag_inc_rate = log(2), #rate at which faster diagnosis ramps up to max
-               log_half_diag = log(15),  #time at which intervention is at 50%
+               log_max_diag = log(1), #max for factor by which movement through Isd happens faster (quicker diagnosis). value of 1 means double speed to diagnosis 
+               log_diag_inc_rate = log(1.1), #rate at which faster diagnosis ramps up to max, value close to 1 is slow ramp-up, larger values means steeper ramp-up
+               log_half_diag = log(30),  #days post simulation start at which intervention is at 50%
                
-               max_detect_par = log(1),  #max fraction detected
-               log_detect_inc_rate = log(2), #speed at which fraction detected ramps up
-               log_half_detect = log(15), #time at which intervention is at 50%
+               max_detect_par = log(1.5),  #max fraction detected. value of 1 means 50% increase above base_detect_frac. Value of 1.5 gives 40% increase. 
+               log_detect_inc_rate = log(1.1), #speed at which fraction detected ramps up
+               log_half_detect = log(30), #days post simulation start at which intervention is at 50%
+               base_detect_frac = log(0.1), #min fraction detected at start
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))
