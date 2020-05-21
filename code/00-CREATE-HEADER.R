@@ -36,7 +36,6 @@ library('vctrs')
 source(here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
 source(here("code/data-processing/loadcleandata.R")) #data processing function
 source(here("code/data-processing/loadcleanapplemobility.R")) #function that processes and retrieves covariate
-source(here("code/model-setup/makepompmodel.R")) #function that generates the pomp model
 
 
 # --------------------------------------------------
@@ -94,6 +93,17 @@ timestamp <- paste(lubridate::date(tm),
 statevec <- state.name  # internal R vector of 50 state names
 state_pops <- readRDS(here("data/us_popsize.rds"))
 
+# Run data cleaning script.
+all_states_pomp_data <- loadcleandata(datasource = datasource, 
+                                      locations = statevec, 
+                                      timestamp = timestamp)
+
+all_states_pomp_covar <- loadcleanapplemobility(
+  location = statevec, 
+  pomp_data = all_states_pomp_data, 
+  timestamp = timestamp
+) 
+
 
 # --------------------------------------------------
 # Loop over states  
@@ -102,50 +112,49 @@ state_pops <- readRDS(here("data/us_popsize.rds"))
 
 pomp_list <- vector("list",length(statevec)) #large list that will hold pomp model and other info for each state
 ct = 1 #an indexer
-for (location in statevec)
+for (dolocation in statevec)
 {
-  print(sprintf('starting state %s',location))
+  print(sprintf('starting state %s',dolocation))
   
   # This will be appended to each saved file 
-  filename_label <- paste(location,datasource,timestamp,sep="-") 
+  filename_label <- paste(dolocation,datasource,timestamp,sep="-") 
   
   # Get the state's population size
   population <- state_pops %>%
-    filter(state_full == location)
+    filter(state_full == dolocation) %>%
+    pull(total_pop)
   
   # Set the parameter values and initial conditions
   par_var_list <- setparsvars(est_these_pars = est_these_pars, 
                               est_these_inivals = est_these_inivals,
                               population = population)
   
-  # Run data cleaning script.
-  pomp_data <- loadcleandata(datasource = datasource, 
-                             location = location, 
-                             timestamp = timestamp) 
+  pomp_data <- all_states_pomp_data %>%
+    filter(location == dolocation)
   
   # Get covariate 
-  pomp_covar <- loadcleanapplemobility(location = location, 
-                                       startdate = min(pomp_data$date),
-                                       enddate = max(pomp_data$date), 
-                                       timestamp = timestamp) 
+  pomp_covar <- all_states_pomp_covar %>%
+    filter(location == dolocation)
   
-  # Make a pomp model 
-  pomp_model <- makepompmodel(par_var_list = par_var_list, 
-                              pomp_data = pomp_data, 
-                              pomp_covar = pomp_covar)
+  # # Make a pomp model 
+  # pomp_model <- makepompmodel(par_var_list = par_var_list, 
+  #                             pomp_data = pomp_data, 
+  #                             pomp_covar = pomp_covar)
 
   # Save all pieces for each state in a list
-  pomp_list[[ct]]$pomp_model = pomp_model 
+  # pomp_list[[ct]]$pomp_model = pomp_model 
   pomp_list[[ct]]$filename_label = filename_label
   pomp_list[[ct]]$pomp_data = pomp_data
   pomp_list[[ct]]$pomp_covar = pomp_covar
-  pomp_list[[ct]]$location = location
+  pomp_list[[ct]]$location = dolocation
   pomp_list[[ct]]$par_var_list = par_var_list
   
   ct = ct + 1
   
 } #done serial loop over all states that creates pomp object and other info 
 
-saveRDS(pomp_list, file = here("header", "pomp_list.rds"))
-saveRDS(timestamp, file = here("header", "timestamp.rds"))
+
+# Save the outputs
+saveRDS(pomp_list, file = here("header/pomp_list.rds"))
+saveRDS(timestamp, file = here("header/timestamp.rds"))
 

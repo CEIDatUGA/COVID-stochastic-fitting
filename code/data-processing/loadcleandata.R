@@ -15,11 +15,11 @@ loadcleandata <- function(datasource, locations, timestamp)
   #library('readr')
   
 
-  filename = here("data",paste0("pomp_data_",timestamp,'.rds')) #if the data file for today is here, load then return from function
-  if (file.exists(filename)) {
-    pomp_data <- readRDS(filename)    
-    return(pomp_data)  
-  }
+  # filename = here("data",paste0("pomp_data_",timestamp,'.rds')) #if the data file for today is here, load then return from function
+  # if (file.exists(filename)) {
+  #   pomp_data <- readRDS(filename)    
+  #   return(pomp_data)  
+  # }
   #if data file is not here, go through all of the below
 
   #data for population size for each state/country so we can compute cases per 100K
@@ -171,7 +171,7 @@ loadcleandata <- function(datasource, locations, timestamp)
   
  
   pomp_data <- us_dat %>% dplyr::filter(source == datasource) %>%
-                          dplyr::filter(Location == location) %>%
+                          dplyr::filter(Location %in% locations) %>%
                           rename(cases = Daily_Cases,
                           hosps = Daily_Hospitalized, 
                           deaths = Daily_Deaths) %>%
@@ -183,7 +183,7 @@ loadcleandata <- function(datasource, locations, timestamp)
                           ungroup() 
     
   # Save cleaned data
-  saveRDS(pomp_data,filename)
+  # saveRDS(pomp_data,filename)
   
   return(pomp_data)
 }

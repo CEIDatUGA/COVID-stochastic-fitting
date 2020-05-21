@@ -33,17 +33,27 @@ library('vctrs')
 # --------------------------------------------------
 # Read in indexing argument for states
 # --------------------------------------------------
-args <- commandArgs(trailingOnly = F)
-myargument <- args[length(args)]
-myargument <- as.numeric(sub("-","",myargument))
+args = (commandArgs(TRUE))
+##args is now a list of character vectors
+## First check to see if arguments are passed.
+## Then cycle through each element of the list and evaluate the expressions.
+if(length(args)==0){
+  print("No arguments supplied.")
+}else{
+  for(i in 1:length(args)){
+    eval(parse(text=args[[i]]))
+  }
+}
+myargument = as.numeric(a)
 
 
 # --------------------------------------------------
 # Source all needed functions/scripts
 # --------------------------------------------------
-source("./code/model-fitting/runmif_allstates_array.R") #runs mif fitting
-source("./code/result-exploration/exploremifresults.R") #explore mif results
-source("./code/forward-simulations/runscenarios.R") #run forward simulations for best fit mif results
+source("../code/model-fitting/runmif_allstates_array.R") #runs mif fitting
+source("../code/result-exploration/exploremifresults.R") #explore mif results
+source("../code/forward-simulations/runscenarios.R") #run forward simulations for best fit mif results
+source("../code/model-setup/makepompmodel.R") #function that generates the pomp model
 
 
 # --------------------------------------------------
@@ -56,7 +66,7 @@ parallel_info = list()
 parallel_info$parallel_run <- TRUE
 #parallel_info$num_cores <- parallel::detectCores() - 1  # alter as needed
 # Add one extra core for the master process
-parallel_info$num_cores <- 3  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
+parallel_info$num_cores <- 32  # on HPC - should ideally be M states * replicates mif runs (e.g. 10 states at a time, 20 mif runs, so 200) 
 
 #to estimate run-time: 
 #run interactively non-parallel with planned MIF settings (possibly lower MIF replicates)
@@ -73,19 +83,19 @@ parallel_info$num_cores <- 3  # on HPC - should ideally be M states * replicates
 # --------------------------------------------------
 # two rounds of MIF are currently hard-coded into runmif
 mif_settings = list()
-mif_settings$mif_num_particles  <- c(200,200)
-mif_settings$mif_num_iterations <- c(10,10)
-mif_settings$pf_num_particles <- 500 #particles for filter run following mif
-mif_settings$pf_reps <- 2 #replicates for particle filter following mif
+mif_settings$mif_num_particles  <- c(2000,2000)
+mif_settings$mif_num_iterations <- c(100,100)
+mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
+mif_settings$pf_reps <- 10 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$replicates <- 3 #number of different starting conditions - this is parallelized
+mif_settings$replicates <- 32 #number of different starting conditions - this is parallelized
 
 # --------------------------------------------------
 # Create a time-stamp variable
 # Will be applied to saved results
 # defined outside loop so it's the same for each state
 # --------------------------------------------------
-timestamp <- readRDS("./header/timestamp.rds")
+timestamp <- readRDS("../header/timestamp.rds")
 
   
 # --------------------------------------------------
@@ -93,26 +103,37 @@ timestamp <- readRDS("./header/timestamp.rds")
 # done in parallel and batches of 10 states each
 # --------------------------------------------------
 
-pomp_list <- readRDS("./header/pomp_list.rds")
-par_var_list <- readRDS("./header/par_var_list.rds")
+pomp_listr <- readRDS("../header/pomp_list.rds")
+this_pomp <- pomp_listr[[myargument]]
+
+# Make the pomp model
+pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
+                            pomp_data = this_pomp$pomp_data, 
+                            pomp_covar = this_pomp$pomp_covar)
+this_pomp$pomp_model <- pomp_model
+
 
 mif_res <- runmif_allstates(parallel_info = parallel_info, 
                             mif_settings = mif_settings, 
-                            pomp_list = pomp_list[[myargument]], 
-                            par_var_list = par_var_list)
+                            pomp_list = this_pomp, 
+                            par_var_list = this_pomp$par_var_list)
 
+# filename = paste0('../output/', this_pomp$filename_label, '_results.rds')
+# saveRDS(object = mif_res, file = filename)
 
 # --------------------------------------------------
 # Another serial loop over states  
 # performs mif result analysis, forecasting and data processing for each state
 # --------------------------------------------------
+# 
+# all_scenarios = NULL #will contain all scenarios for a state as a data frame
 
-all_scenarios = NULL #will contain all scenarios for a state as a data frame
-
-pomp_res = pomp_list[[myargument]] #current state
+pomp_res = this_pomp #current state
+rm(this_pomp) #remove the old object
 pomp_res$mif_res = mif_res #add mif results for each state to overall pomp object
 
-mif_explore <- exploremifresults(pomp_res = pomp_res, par_var_list = par_var_list) #compute trace plot and best param tables for mif
+mif_explore <- exploremifresults(pomp_res = pomp_res, 
+                                 par_var_list = pomp_res$par_var_list) #compute trace plot and best param tables for mif
 #add resutls computed to the pomp_res object
 pomp_res$traceplot = mif_explore$traceplot
 pomp_res$all_partable = mif_explore$all_partable
@@ -120,8 +141,11 @@ pomp_res$est_partable = mif_explore$est_partable
 pomp_res$partable_natural = mif_explore$partable_natural
 
 #run simulations/forecasts based on mif fits for each state
-scenario_res <- runscenarios(pomp_res = pomp_res, par_var_list = par_var_list, forecast_horizon_days = 37, nsim = 114)
-  
+scenario_res <- runscenarios(pomp_res = pomp_res, 
+                             par_var_list = pomp_res$par_var_list, 
+                             forecast_horizon_days = 37, 
+                             nsim = 100)
+
 #add forward simulation results to pomp_res object
 pomp_res$scenario_res = scenario_res
 
@@ -129,7 +153,7 @@ pomp_res$mif_res <- NULL #to save space, one can delete the full mif results bef
 
 #save the completed analysis for each state to a file with time-stamp
 #this file could be large, needs checking
-filename = paste0('./output', pomp_res$filename_label, '_results.rds')
+filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
 saveRDS(object = pomp_res, file = filename)
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
