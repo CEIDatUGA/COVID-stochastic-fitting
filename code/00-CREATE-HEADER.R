@@ -35,7 +35,7 @@ library('vctrs')
 # --------------------------------------------------
 source(here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
 source(here("code/data-processing/loadcleandata.R")) #data processing function
-source(here("code/data-processing/loadcleanapplemobility.R")) #function that processes and retrieves covariate
+source(here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
 
 
 # --------------------------------------------------
@@ -95,7 +95,7 @@ all_states_pomp_data <- loadcleandata(datasource = datasource,
                                       locations = statevec, 
                                       timestamp = timestamp)
 
-all_states_pomp_covar <- loadcleanapplemobility(
+all_states_pomp_covar <- loadcleanucmobility(
   location = statevec, 
   pomp_data = all_states_pomp_data, 
   timestamp = timestamp
