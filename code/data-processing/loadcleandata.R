@@ -37,7 +37,7 @@ loadcleandata <- function(datasource, locations, timestamp)
     mutate(Daily_Test_Negative = c(0,diff(negative))) %>% 
     mutate(Daily_Test_All = c(0,diff(total))) %>% 
     mutate(Daily_Hospitalized = c(0,diff(hospitalized))) %>% 
-    mutate(Daily_Deaths = c(0,diff(death))) %>% rename(state_abr = state) %>%
+    mutate(Daily_Deaths = c(NA,diff(death))) %>% rename(state_abr = state) %>%
     merge(us_popsize) %>%
     rename(Date = date, Location = state, Population_Size = total_pop, Total_Deaths = death, 
            Total_Cases = positive, Total_Hospitalized = hospitalized, 
@@ -180,7 +180,39 @@ loadcleandata <- function(datasource, locations, timestamp)
                           group_by(location) %>% 
                           arrange(date) %>%
                           mutate(time = 1:n()) %>%
-                          ungroup() 
+                          ungroup()
+  
+  # Remove bad WY data point
+  pomp_data <- pomp_data %>%
+    mutate(cases = ifelse(location == "Wyoming" & cases > 100, NA, cases))
+  
+  # Apply 7-day moving average to the data
+  ma <- function(x) {
+    window <- 7
+    n <- c(seq.int(window), rep(window, length(x)-window))
+    xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+    xm[is.nan(xm)] <- NA
+    return(xm)
+  }
+  
+  pomp_data <- pomp_data %>%
+    group_by(location) %>%
+    arrange(date) %>%
+    mutate(cases = ma(cases),
+           hosps = ma(hosps),
+           deaths = ma(deaths)) %>%
+    ungroup()
+  
+  # Check to make sure no negative values
+  neg_deaths <- pomp_data %>%
+    filter(sign(deaths) == -1) %>%
+    pull(deaths)
+  stopifnot(length(neg_deaths) == 0)
+  
+  neg_cases <- pomp_data %>%
+    filter(sign(cases) == -1) %>%
+    pull(cases)
+  stopifnot(length(neg_cases) == 0)
     
   # Save cleaned data
   # saveRDS(pomp_data,filename)

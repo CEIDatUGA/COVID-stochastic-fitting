@@ -73,7 +73,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
     // Ramp-up speed, base value and max value could be fitted.
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
-    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + base_detect_frac;
+    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
     
     // -----------------------------------
@@ -266,10 +266,10 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
   
   dmeas <- Csnippet(
     "
-    double d1, d2, d3;
-    double theta1, theta2, theta3;
+    double d1, d3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     
     if(ISNA(cases)) {
@@ -278,11 +278,11 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
       d1 = dnbinom_mu(cases, theta1, C_new, 1); 
     }
     
-    if(ISNA(hosps)) {
-      d2 = 0;  // loglik is 0 if no observations
-    } else {
-      d2 = dnbinom_mu(hosps, theta2, H_new, 1);
-    }
+    //if(ISNA(hosps)) {
+    //  d2 = 0;  // loglik is 0 if no observations
+    //} else {
+    //  d2 = dnbinom_mu(hosps, theta2, H_new, 1);
+    //}
     
     if(ISNA(deaths)) {
       d3 = 0;  // loglik is 0 if no observations
@@ -290,7 +290,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
       d3 = dnbinom_mu(deaths, theta3, D_new, 1);
     }
     
-    lik = d1 + d2 + d3;  // sum the individual likelihoods
+    lik = d1 + d3;  // sum the individual likelihoods
     lik = (give_log) ? lik : exp(lik);  // return loglik or exp(lik)
     "
   )
@@ -311,10 +311,10 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     "
     double theta1, theta2, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     cases = rnbinom_mu(theta1, C_new);  // for forecasting 
-    hosps = rnbinom_mu(theta2, H_new);  // for forecasting
+    //hosps = rnbinom_mu(theta2, H_new);  // for forecasting
     deaths = rnbinom_mu(theta3, D_new);  // for forecasting
     "
   )
@@ -354,7 +354,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
     statenames = varnames,
     paramnames = allparnames, 
-    obsnames = c("cases", "hosps", "deaths"),
+    obsnames = c("cases", "deaths"),
     accumvars = c("C_new", "H_new", "D_new"),    
     cdir=".",
     cfile="tmp1" 
