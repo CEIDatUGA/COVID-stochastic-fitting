@@ -1,4 +1,4 @@
-makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
+makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
 {
 
   # This generates a pomp object for an SEIR model of COVID 19. 
@@ -31,6 +31,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
     double beta;
     double dW;  // environmental stochasticity/noise
+    double trend;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -56,8 +57,15 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     //    numeric value (useful for fitting).
     // The overall foi is modulated by the unacast data stream as covariate.
     
-    foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-  
+    //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+    if(fit == 1) {
+      trend = dot_product(K, &b1, &seas_1);
+    }
+    if(fit == 0) {
+      trend = trend_sim;
+    }
+    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
+    foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
   
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.
@@ -199,6 +207,8 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     R += trans[11] + trans[15] + trans[24] + trans[29];
     D += trans[28];
     D_new += trans[28];  // new deaths tracker, reset at obs times
+    
+    trendO = trend;
     "
   )
   
@@ -243,6 +253,8 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     R = nearbyint(R_0);
     D = nearbyint(D_0);
     D_new = nearbyint(D_0);
+    
+    trendO = 100;
     "
   )
   
@@ -309,7 +321,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
   
   rmeas <- Csnippet(
     "
-    double theta1, theta2, theta3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
     //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
@@ -334,9 +346,9 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
   # otherwise pomp might get indigestion
   dat_for_pomp <- pomp_data %>% select(time, cases, hosps, deaths)
   
-  # remove any column in covariate table that's not time or the used variables
-  # otherwise pomp might get indigestion
-  covar_for_pomp <- pomp_covar %>% select(time,rel_beta_change)
+  # # remove any column in covariate table that's not time or the used variables
+  # # otherwise pomp might get indigestion
+  # covar_for_pomp <- pomp_covar %>% select(time,rel_beta_change)
   
   
   # Define the pomp model object --------------------------------------------
@@ -347,7 +359,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     data = dat_for_pomp, 
     times = "time",
     t0 = 1,  # set first sim time to first observation time
-    covar = covariate_table(covar_for_pomp, times = "time", order = "constant"),
+    covar = pomp_covar,
     dmeasure = dmeas,
     rmeasure = rmeas,
     rinit = rinit,
@@ -356,6 +368,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar)
     paramnames = allparnames, 
     obsnames = c("cases", "deaths"),
     accumvars = c("C_new", "H_new", "D_new"),    
+    globals = paste0("int K = ", as.character(n_knots), ";"),
     cdir=".",
     cfile="tmp1" 
   )

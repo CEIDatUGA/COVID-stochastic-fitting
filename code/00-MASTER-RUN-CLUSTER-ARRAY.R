@@ -105,13 +105,14 @@ timestamp <- readRDS("../header/timestamp.rds")
 
 pomp_listr <- readRDS("../header/pomp_list.rds")
 this_pomp <- pomp_listr[[myargument]]
+n_knots <- round(nrow(this_pomp$pomp_data) / 7)
 
 # Make the pomp model
 pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
                             pomp_data = this_pomp$pomp_data, 
-                            pomp_covar = this_pomp$pomp_covar)
+                            pomp_covar = this_pomp$pomp_covar,
+                            n_knots = n_knots)
 this_pomp$pomp_model <- pomp_model
-
 
 mif_res <- runmif_allstates(parallel_info = parallel_info, 
                             mif_settings = mif_settings, 

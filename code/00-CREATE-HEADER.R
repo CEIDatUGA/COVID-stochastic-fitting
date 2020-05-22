@@ -50,10 +50,7 @@ datasource = c("COV") #one of CovidTracker (COV), NYT (NYT), JHU (JHU), USAFacts
 # --------------------------------------------------
 #This is passed to setparsvars function. 
 #If set to "all", all params are estimated
-est_these_pars = c("log_sigma_dw", 
-                   "log_theta_cases", "log_theta_hosps", "log_theta_deaths")
-# est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
-est_these_inivals = ""
+
 
 
 # --------------------------------------------------
@@ -121,17 +118,39 @@ for (dolocation in statevec)
     filter(state_full == dolocation) %>%
     pull(total_pop)
   
+  pomp_data <- all_states_pomp_data %>%
+    filter(location == dolocation)
+  
+  n_knots <- round(nrow(pomp_data) / 7)
+  est_these_pars = c("log_sigma_dw", 
+                     "log_theta_cases", "log_theta_deaths")
+  # est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
+  est_these_inivals = ""
+  knot_coefs <-  paste0("b", 1:n_knots)
+  est_these_pars <- c(est_these_pars, knot_coefs)
+  
   # Set the parameter values and initial conditions
   par_var_list <- setparsvars(est_these_pars = est_these_pars, 
                               est_these_inivals = est_these_inivals,
                               population = population)
   
-  pomp_data <- all_states_pomp_data %>%
+  # Get covariate 
+  tmp_covar <- all_states_pomp_covar %>%
     filter(location == dolocation)
   
-  # Get covariate 
-  pomp_covar <- all_states_pomp_covar %>%
-    filter(location == dolocation)
+  covar = covariate_table(
+    t = pomp_data$time,
+    seas = bspline.basis(
+      x=t,
+      nbasis=n_knots,
+      degree=3
+    ),
+    rel_beta_change = as.matrix(tmp_covar$rel_beta_change),
+    trend_sim = as.matrix(rep(100, times = nrow(tmp_covar))),
+    fit = 1,
+    times="t",
+    order = "constant"
+  )
   
   # # Make a pomp model 
   # pomp_model <- makepompmodel(par_var_list = par_var_list, 
@@ -142,7 +161,7 @@ for (dolocation in statevec)
   # pomp_list[[ct]]$pomp_model = pomp_model 
   pomp_list[[ct]]$filename_label = filename_label
   pomp_list[[ct]]$pomp_data = pomp_data
-  pomp_list[[ct]]$pomp_covar = pomp_covar
+  pomp_list[[ct]]$pomp_covar = covar
   pomp_list[[ct]]$location = dolocation
   pomp_list[[ct]]$par_var_list = par_var_list
   

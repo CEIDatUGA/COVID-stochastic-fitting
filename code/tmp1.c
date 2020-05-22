@@ -1,11 +1,11 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-05-05 07:23:07.380 -0400 */
-/* Salt: E29B7C1234E6F27841D05F5E */
+/* Time: 2020-05-21 20:17:46.123 -0600 */
+/* Salt: 6155C4A027BD7293EF11844A */
 
-#include <C:/Users/andre/Documents/R/win-library/4.0/pomp/include/pomp.h>
+#include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
 #include <R_ext/Rdynload.h>
 
- 
+int K = 11; 
 
 
 /* C snippet: 'rinit' */
@@ -26,23 +26,49 @@
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define frac_asym		(__p[__parindex[17]])
-#define frac_hosp		(__p[__parindex[18]])
-#define frac_dead		(__p[__parindex[19]])
-#define log_theta_cases		(__p[__parindex[20]])
-#define log_theta_hosps		(__p[__parindex[21]])
-#define log_theta_deaths		(__p[__parindex[22]])
-#define log_sigma_dw		(__p[__parindex[23]])
-#define S_0		(__p[__parindex[24]])
-#define E1_0		(__p[__parindex[25]])
-#define Ia1_0		(__p[__parindex[26]])
-#define Isu1_0		(__p[__parindex[27]])
-#define Isd1_0		(__p[__parindex[28]])
-#define C1_0		(__p[__parindex[29]])
-#define H1_0		(__p[__parindex[30]])
-#define R_0		(__p[__parindex[31]])
-#define D_0		(__p[__parindex[32]])
+#define base_detect_frac		(__p[__parindex[17]])
+#define frac_asym		(__p[__parindex[18]])
+#define frac_hosp		(__p[__parindex[19]])
+#define frac_dead		(__p[__parindex[20]])
+#define log_theta_cases		(__p[__parindex[21]])
+#define log_theta_hosps		(__p[__parindex[22]])
+#define log_theta_deaths		(__p[__parindex[23]])
+#define log_sigma_dw		(__p[__parindex[24]])
+#define b1		(__p[__parindex[25]])
+#define b2		(__p[__parindex[26]])
+#define b3		(__p[__parindex[27]])
+#define b4		(__p[__parindex[28]])
+#define b5		(__p[__parindex[29]])
+#define b6		(__p[__parindex[30]])
+#define b7		(__p[__parindex[31]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define b10		(__p[__parindex[34]])
+#define b11		(__p[__parindex[35]])
+#define S_0		(__p[__parindex[36]])
+#define E1_0		(__p[__parindex[37]])
+#define Ia1_0		(__p[__parindex[38]])
+#define Isu1_0		(__p[__parindex[39]])
+#define Isd1_0		(__p[__parindex[40]])
+#define C1_0		(__p[__parindex[41]])
+#define H1_0		(__p[__parindex[42]])
+#define R_0		(__p[__parindex[43]])
+#define D_0		(__p[__parindex[44]])
+#define trendO_0		(__p[__parindex[45]])
 #define rel_beta_change		(__covars[__covindex[0]])
+#define trend_sim		(__covars[__covindex[1]])
+#define fit		(__covars[__covindex[2]])
+#define seas_1		(__covars[__covindex[3]])
+#define seas_2		(__covars[__covindex[4]])
+#define seas_3		(__covars[__covindex[5]])
+#define seas_4		(__covars[__covindex[6]])
+#define seas_5		(__covars[__covindex[7]])
+#define seas_6		(__covars[__covindex[8]])
+#define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
+#define seas_10		(__covars[__covindex[12]])
+#define seas_11		(__covars[__covindex[13]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -73,6 +99,7 @@
 #define D_new		(__x[__stateindex[27]])
 #define R		(__x[__stateindex[28]])
 #define D		(__x[__stateindex[29]])
+#define trendO		(__x[__stateindex[30]])
 
 void __pomp_rinit (double *__x, const double *__p, double t, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars)
 {
@@ -113,6 +140,8 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
     R = nearbyint(R_0);
     D = nearbyint(D_0);
     D_new = nearbyint(D_0);
+    
+    trendO = 100;
      
 }
 
@@ -133,6 +162,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
+#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -140,6 +170,17 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef log_theta_hosps
 #undef log_theta_deaths
 #undef log_sigma_dw
+#undef b1
+#undef b2
+#undef b3
+#undef b4
+#undef b5
+#undef b6
+#undef b7
+#undef b8
+#undef b9
+#undef b10
+#undef b11
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -149,7 +190,21 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef H1_0
 #undef R_0
 #undef D_0
+#undef trendO_0
 #undef rel_beta_change
+#undef trend_sim
+#undef fit
+#undef seas_1
+#undef seas_2
+#undef seas_3
+#undef seas_4
+#undef seas_5
+#undef seas_6
+#undef seas_7
+#undef seas_8
+#undef seas_9
+#undef seas_10
+#undef seas_11
 #undef S
 #undef E1
 #undef E2
@@ -180,6 +235,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef D_new
 #undef R
 #undef D
+#undef trendO
 
 /* C snippet: 'step.fn' */
 #define log_beta_s		(__p[__parindex[0]])
@@ -199,23 +255,49 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define frac_asym		(__p[__parindex[17]])
-#define frac_hosp		(__p[__parindex[18]])
-#define frac_dead		(__p[__parindex[19]])
-#define log_theta_cases		(__p[__parindex[20]])
-#define log_theta_hosps		(__p[__parindex[21]])
-#define log_theta_deaths		(__p[__parindex[22]])
-#define log_sigma_dw		(__p[__parindex[23]])
-#define S_0		(__p[__parindex[24]])
-#define E1_0		(__p[__parindex[25]])
-#define Ia1_0		(__p[__parindex[26]])
-#define Isu1_0		(__p[__parindex[27]])
-#define Isd1_0		(__p[__parindex[28]])
-#define C1_0		(__p[__parindex[29]])
-#define H1_0		(__p[__parindex[30]])
-#define R_0		(__p[__parindex[31]])
-#define D_0		(__p[__parindex[32]])
+#define base_detect_frac		(__p[__parindex[17]])
+#define frac_asym		(__p[__parindex[18]])
+#define frac_hosp		(__p[__parindex[19]])
+#define frac_dead		(__p[__parindex[20]])
+#define log_theta_cases		(__p[__parindex[21]])
+#define log_theta_hosps		(__p[__parindex[22]])
+#define log_theta_deaths		(__p[__parindex[23]])
+#define log_sigma_dw		(__p[__parindex[24]])
+#define b1		(__p[__parindex[25]])
+#define b2		(__p[__parindex[26]])
+#define b3		(__p[__parindex[27]])
+#define b4		(__p[__parindex[28]])
+#define b5		(__p[__parindex[29]])
+#define b6		(__p[__parindex[30]])
+#define b7		(__p[__parindex[31]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define b10		(__p[__parindex[34]])
+#define b11		(__p[__parindex[35]])
+#define S_0		(__p[__parindex[36]])
+#define E1_0		(__p[__parindex[37]])
+#define Ia1_0		(__p[__parindex[38]])
+#define Isu1_0		(__p[__parindex[39]])
+#define Isd1_0		(__p[__parindex[40]])
+#define C1_0		(__p[__parindex[41]])
+#define H1_0		(__p[__parindex[42]])
+#define R_0		(__p[__parindex[43]])
+#define D_0		(__p[__parindex[44]])
+#define trendO_0		(__p[__parindex[45]])
 #define rel_beta_change		(__covars[__covindex[0]])
+#define trend_sim		(__covars[__covindex[1]])
+#define fit		(__covars[__covindex[2]])
+#define seas_1		(__covars[__covindex[3]])
+#define seas_2		(__covars[__covindex[4]])
+#define seas_3		(__covars[__covindex[5]])
+#define seas_4		(__covars[__covindex[6]])
+#define seas_5		(__covars[__covindex[7]])
+#define seas_6		(__covars[__covindex[8]])
+#define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
+#define seas_10		(__covars[__covindex[12]])
+#define seas_11		(__covars[__covindex[13]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -246,6 +328,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define D_new		(__x[__stateindex[27]])
 #define R		(__x[__stateindex[28]])
 #define D		(__x[__stateindex[29]])
+#define trendO		(__x[__stateindex[30]])
 
 void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars, double t, double dt)
 {
@@ -262,6 +345,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     double detect_frac, diag_speedup; // fraction of those that get eventually diagnosed
     double beta;
     double dW;  // environmental stochasticity/noise
+    double trend;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -287,14 +371,21 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     //    numeric value (useful for fitting).
     // The overall foi is modulated by the unacast data stream as covariate.
     
-    foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
-  
+    //foi = rel_beta_change * (exp(log_beta_s)*(Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot));
+    if(fit == 1) {
+      trend = dot_product(K, &b1, &seas_1);
+    }
+    if(fit == 0) {
+      trend = trend_sim;
+    }
+    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
+    foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
   
     // Time-dependent rate of movement through Isd dummy compartments.
     // Starts at no speedup, then increases with time up to a max.
-    // Ramp-up speed, time at which half-max is reached and max value are fitted.
-    
-    diag_speedup = (1 + exp(log_max_diag) ) *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
+    // Ramp-up speed, time at which half-max is reached and max values could be fitted.
+    // equation for this is 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
+    diag_speedup = 1 + exp(log_max_diag)  *  pow(t, exp(log_diag_inc_rate)) / (pow(exp(log_half_diag),exp(log_diag_inc_rate))  + pow(t, exp(log_diag_inc_rate)));
     g_sd = diag_speedup*exp(log_g_sd); //shortened time in symptomatic stage prior to diagnosis
     g_c = exp(log_g_c)/diag_speedup; //increased time in symptomatic stage post diagnosis
     
@@ -302,9 +393,9 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     // Time dependent fraction of those that move into detected category at the 
     //    end of the E phase.
     // Starts at 0 at simulation start, then ramps up to some max value (0-1). 
-    // Ramp-up speed and max value are fitted.
-    
-    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate)));
+    // Ramp-up speed, base value and max value could be fitted.
+    // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
+    detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
     
     // -----------------------------------
@@ -430,6 +521,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     R += trans[11] + trans[15] + trans[24] + trans[29];
     D += trans[28];
     D_new += trans[28];  // new deaths tracker, reset at obs times
+    
+    trendO = trend;
      
 }
 
@@ -450,6 +543,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
+#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -457,6 +551,17 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef log_theta_hosps
 #undef log_theta_deaths
 #undef log_sigma_dw
+#undef b1
+#undef b2
+#undef b3
+#undef b4
+#undef b5
+#undef b6
+#undef b7
+#undef b8
+#undef b9
+#undef b10
+#undef b11
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -466,7 +571,21 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef H1_0
 #undef R_0
 #undef D_0
+#undef trendO_0
 #undef rel_beta_change
+#undef trend_sim
+#undef fit
+#undef seas_1
+#undef seas_2
+#undef seas_3
+#undef seas_4
+#undef seas_5
+#undef seas_6
+#undef seas_7
+#undef seas_8
+#undef seas_9
+#undef seas_10
+#undef seas_11
 #undef S
 #undef E1
 #undef E2
@@ -497,6 +616,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef D_new
 #undef R
 #undef D
+#undef trendO
 
 /* C snippet: 'rmeasure' */
 #define log_beta_s		(__p[__parindex[0]])
@@ -516,23 +636,49 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define frac_asym		(__p[__parindex[17]])
-#define frac_hosp		(__p[__parindex[18]])
-#define frac_dead		(__p[__parindex[19]])
-#define log_theta_cases		(__p[__parindex[20]])
-#define log_theta_hosps		(__p[__parindex[21]])
-#define log_theta_deaths		(__p[__parindex[22]])
-#define log_sigma_dw		(__p[__parindex[23]])
-#define S_0		(__p[__parindex[24]])
-#define E1_0		(__p[__parindex[25]])
-#define Ia1_0		(__p[__parindex[26]])
-#define Isu1_0		(__p[__parindex[27]])
-#define Isd1_0		(__p[__parindex[28]])
-#define C1_0		(__p[__parindex[29]])
-#define H1_0		(__p[__parindex[30]])
-#define R_0		(__p[__parindex[31]])
-#define D_0		(__p[__parindex[32]])
+#define base_detect_frac		(__p[__parindex[17]])
+#define frac_asym		(__p[__parindex[18]])
+#define frac_hosp		(__p[__parindex[19]])
+#define frac_dead		(__p[__parindex[20]])
+#define log_theta_cases		(__p[__parindex[21]])
+#define log_theta_hosps		(__p[__parindex[22]])
+#define log_theta_deaths		(__p[__parindex[23]])
+#define log_sigma_dw		(__p[__parindex[24]])
+#define b1		(__p[__parindex[25]])
+#define b2		(__p[__parindex[26]])
+#define b3		(__p[__parindex[27]])
+#define b4		(__p[__parindex[28]])
+#define b5		(__p[__parindex[29]])
+#define b6		(__p[__parindex[30]])
+#define b7		(__p[__parindex[31]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define b10		(__p[__parindex[34]])
+#define b11		(__p[__parindex[35]])
+#define S_0		(__p[__parindex[36]])
+#define E1_0		(__p[__parindex[37]])
+#define Ia1_0		(__p[__parindex[38]])
+#define Isu1_0		(__p[__parindex[39]])
+#define Isd1_0		(__p[__parindex[40]])
+#define C1_0		(__p[__parindex[41]])
+#define H1_0		(__p[__parindex[42]])
+#define R_0		(__p[__parindex[43]])
+#define D_0		(__p[__parindex[44]])
+#define trendO_0		(__p[__parindex[45]])
 #define rel_beta_change		(__covars[__covindex[0]])
+#define trend_sim		(__covars[__covindex[1]])
+#define fit		(__covars[__covindex[2]])
+#define seas_1		(__covars[__covindex[3]])
+#define seas_2		(__covars[__covindex[4]])
+#define seas_3		(__covars[__covindex[5]])
+#define seas_4		(__covars[__covindex[6]])
+#define seas_5		(__covars[__covindex[7]])
+#define seas_6		(__covars[__covindex[8]])
+#define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
+#define seas_10		(__covars[__covindex[12]])
+#define seas_11		(__covars[__covindex[13]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -563,19 +709,19 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define D_new		(__x[__stateindex[27]])
 #define R		(__x[__stateindex[28]])
 #define D		(__x[__stateindex[29]])
+#define trendO		(__x[__stateindex[30]])
 #define cases		(__y[__obsindex[0]])
-#define hosps		(__y[__obsindex[1]])
-#define deaths		(__y[__obsindex[2]])
+#define deaths		(__y[__obsindex[1]])
 
 void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const int *__obsindex, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars, double t)
 {
  
-    double theta1, theta2, theta3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     cases = rnbinom_mu(theta1, C_new);  // for forecasting 
-    hosps = rnbinom_mu(theta2, H_new);  // for forecasting
+    //hosps = rnbinom_mu(theta2, H_new);  // for forecasting
     deaths = rnbinom_mu(theta3, D_new);  // for forecasting
      
 }
@@ -597,6 +743,7 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
+#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -604,6 +751,17 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef log_theta_hosps
 #undef log_theta_deaths
 #undef log_sigma_dw
+#undef b1
+#undef b2
+#undef b3
+#undef b4
+#undef b5
+#undef b6
+#undef b7
+#undef b8
+#undef b9
+#undef b10
+#undef b11
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -613,7 +771,21 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef H1_0
 #undef R_0
 #undef D_0
+#undef trendO_0
 #undef rel_beta_change
+#undef trend_sim
+#undef fit
+#undef seas_1
+#undef seas_2
+#undef seas_3
+#undef seas_4
+#undef seas_5
+#undef seas_6
+#undef seas_7
+#undef seas_8
+#undef seas_9
+#undef seas_10
+#undef seas_11
 #undef S
 #undef E1
 #undef E2
@@ -644,8 +816,8 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef D_new
 #undef R
 #undef D
+#undef trendO
 #undef cases
-#undef hosps
 #undef deaths
 
 /* C snippet: 'dmeasure' */
@@ -666,23 +838,49 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define max_detect_par		(__p[__parindex[14]])
 #define log_detect_inc_rate		(__p[__parindex[15]])
 #define log_half_detect		(__p[__parindex[16]])
-#define frac_asym		(__p[__parindex[17]])
-#define frac_hosp		(__p[__parindex[18]])
-#define frac_dead		(__p[__parindex[19]])
-#define log_theta_cases		(__p[__parindex[20]])
-#define log_theta_hosps		(__p[__parindex[21]])
-#define log_theta_deaths		(__p[__parindex[22]])
-#define log_sigma_dw		(__p[__parindex[23]])
-#define S_0		(__p[__parindex[24]])
-#define E1_0		(__p[__parindex[25]])
-#define Ia1_0		(__p[__parindex[26]])
-#define Isu1_0		(__p[__parindex[27]])
-#define Isd1_0		(__p[__parindex[28]])
-#define C1_0		(__p[__parindex[29]])
-#define H1_0		(__p[__parindex[30]])
-#define R_0		(__p[__parindex[31]])
-#define D_0		(__p[__parindex[32]])
+#define base_detect_frac		(__p[__parindex[17]])
+#define frac_asym		(__p[__parindex[18]])
+#define frac_hosp		(__p[__parindex[19]])
+#define frac_dead		(__p[__parindex[20]])
+#define log_theta_cases		(__p[__parindex[21]])
+#define log_theta_hosps		(__p[__parindex[22]])
+#define log_theta_deaths		(__p[__parindex[23]])
+#define log_sigma_dw		(__p[__parindex[24]])
+#define b1		(__p[__parindex[25]])
+#define b2		(__p[__parindex[26]])
+#define b3		(__p[__parindex[27]])
+#define b4		(__p[__parindex[28]])
+#define b5		(__p[__parindex[29]])
+#define b6		(__p[__parindex[30]])
+#define b7		(__p[__parindex[31]])
+#define b8		(__p[__parindex[32]])
+#define b9		(__p[__parindex[33]])
+#define b10		(__p[__parindex[34]])
+#define b11		(__p[__parindex[35]])
+#define S_0		(__p[__parindex[36]])
+#define E1_0		(__p[__parindex[37]])
+#define Ia1_0		(__p[__parindex[38]])
+#define Isu1_0		(__p[__parindex[39]])
+#define Isd1_0		(__p[__parindex[40]])
+#define C1_0		(__p[__parindex[41]])
+#define H1_0		(__p[__parindex[42]])
+#define R_0		(__p[__parindex[43]])
+#define D_0		(__p[__parindex[44]])
+#define trendO_0		(__p[__parindex[45]])
 #define rel_beta_change		(__covars[__covindex[0]])
+#define trend_sim		(__covars[__covindex[1]])
+#define fit		(__covars[__covindex[2]])
+#define seas_1		(__covars[__covindex[3]])
+#define seas_2		(__covars[__covindex[4]])
+#define seas_3		(__covars[__covindex[5]])
+#define seas_4		(__covars[__covindex[6]])
+#define seas_5		(__covars[__covindex[7]])
+#define seas_6		(__covars[__covindex[8]])
+#define seas_7		(__covars[__covindex[9]])
+#define seas_8		(__covars[__covindex[10]])
+#define seas_9		(__covars[__covindex[11]])
+#define seas_10		(__covars[__covindex[12]])
+#define seas_11		(__covars[__covindex[13]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -713,18 +911,18 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define D_new		(__x[__stateindex[27]])
 #define R		(__x[__stateindex[28]])
 #define D		(__x[__stateindex[29]])
+#define trendO		(__x[__stateindex[30]])
 #define cases		(__y[__obsindex[0]])
-#define hosps		(__y[__obsindex[1]])
-#define deaths		(__y[__obsindex[2]])
+#define deaths		(__y[__obsindex[1]])
 #define lik		(__lik[0])
 
 void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const double *__p, int give_log, const int *__obsindex, const int *__stateindex, const int *__parindex, const int *__covindex, const double *__covars, double t)
 {
  
-    double d1, d2, d3;
-    double theta1, theta2, theta3;
+    double d1, d3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
-    theta2 = exp(log_theta_hosps);
+    //theta2 = exp(log_theta_hosps);
     theta3 = exp(log_theta_deaths);
     
     if(ISNA(cases)) {
@@ -733,11 +931,11 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
       d1 = dnbinom_mu(cases, theta1, C_new, 1); 
     }
     
-    if(ISNA(hosps)) {
-      d2 = 0;  // loglik is 0 if no observations
-    } else {
-      d2 = dnbinom_mu(hosps, theta2, H_new, 1);
-    }
+    //if(ISNA(hosps)) {
+    //  d2 = 0;  // loglik is 0 if no observations
+    //} else {
+    //  d2 = dnbinom_mu(hosps, theta2, H_new, 1);
+    //}
     
     if(ISNA(deaths)) {
       d3 = 0;  // loglik is 0 if no observations
@@ -745,7 +943,7 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
       d3 = dnbinom_mu(deaths, theta3, D_new, 1);
     }
     
-    lik = d1 + d2 + d3;  // sum the individual likelihoods
+    lik = d1 + d3;  // sum the individual likelihoods
     lik = (give_log) ? lik : exp(lik);  // return loglik or exp(lik)
      
 }
@@ -767,6 +965,7 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef max_detect_par
 #undef log_detect_inc_rate
 #undef log_half_detect
+#undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
 #undef frac_dead
@@ -774,6 +973,17 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef log_theta_hosps
 #undef log_theta_deaths
 #undef log_sigma_dw
+#undef b1
+#undef b2
+#undef b3
+#undef b4
+#undef b5
+#undef b6
+#undef b7
+#undef b8
+#undef b9
+#undef b10
+#undef b11
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -783,7 +993,21 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef H1_0
 #undef R_0
 #undef D_0
+#undef trendO_0
 #undef rel_beta_change
+#undef trend_sim
+#undef fit
+#undef seas_1
+#undef seas_2
+#undef seas_3
+#undef seas_4
+#undef seas_5
+#undef seas_6
+#undef seas_7
+#undef seas_8
+#undef seas_9
+#undef seas_10
+#undef seas_11
 #undef S
 #undef E1
 #undef E2
@@ -814,8 +1038,8 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef D_new
 #undef R
 #undef D
+#undef trendO
 #undef cases
-#undef hosps
 #undef deaths
 #undef lik
 
