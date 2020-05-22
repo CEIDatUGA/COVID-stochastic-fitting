@@ -88,7 +88,7 @@ for(do_file in all_files) {
     gather("Variable", "Value", -Date) %>%
     mutate(Var_Type = "obs")
   sim <- res$scenario_res[[2]]$scenario_df %>%
-    dplyr::filter(Variable %in% c("cases", "hosps", "deaths")) %>%
+    dplyr::filter(Variable %in% c("cases", "deaths")) %>%
     dplyr::select(Variable, Date, Var_Type, Value)
   datsim <- sim %>%
     filter(Date <= max(dat$Date))
@@ -105,7 +105,7 @@ for(do_file in all_files) {
 
 ## Status-quo Projections
 
-```{r sqs}
+```{r sqs, eval = FALSE}
 all_files <- list.files(here("output"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 

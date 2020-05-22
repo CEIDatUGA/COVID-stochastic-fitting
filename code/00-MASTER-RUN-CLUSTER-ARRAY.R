@@ -86,7 +86,7 @@ mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
 mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
-mif_settings$pf_reps <-10 #replicates for particle filter following mif
+mif_settings$pf_reps <- 10 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$replicates <- 32 #number of different starting conditions - this is parallelized
 
@@ -162,6 +162,16 @@ pomp_res$partable_natural = mif_explore$partable_natural
 # pomp_res$scenario_res = scenario_res
 
 pomp_res$mif_res <- NULL #to save space, one can delete the full mif results before saving
+
+# Simulate from the model at best MLE
+params <- pomp_res$all_partable %>%
+  slice(1) %>%
+  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) %>%
+  gather() %>%
+  tibble::deframe()
+sim <- pomp::simulate(pomp_res$pomp_model, params = params, 
+                      nsim = 100, format = "data.frame")
+pomp_res$sims <- sim 
 
 #save the completed analysis for each state to a file with time-stamp
 #this file could be large, needs checking
