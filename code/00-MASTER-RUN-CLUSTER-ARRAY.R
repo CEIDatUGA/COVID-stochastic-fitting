@@ -86,7 +86,7 @@ mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
 mif_settings$mif_num_iterations <- c(100,100)
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
-mif_settings$pf_reps <- 10 #replicates for particle filter following mif
+mif_settings$pf_reps <-10 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$replicates <- 32 #number of different starting conditions - this is parallelized
 
@@ -102,6 +102,16 @@ timestamp <- readRDS("../header/timestamp.rds")
 # Loop over states  
 # done in parallel and batches of 10 states each
 # --------------------------------------------------
+
+states_map <- tibble(state = state.name) %>%
+  mutate(num = 1:n()) %>%
+  filter(state %in% c("California", "Colorado", "Georgia",
+                      "New York", "Washington", "Montana",
+                      "Texas", "Minnesota", "Wyoming"))
+myargument <- states_map %>%
+  slice(myargument) %>%
+  pull(num)
+
 
 pomp_listr <- readRDS("../header/pomp_list.rds")
 this_pomp <- pomp_listr[[myargument]]
@@ -134,7 +144,8 @@ rm(this_pomp) #remove the old object
 pomp_res$mif_res = mif_res #add mif results for each state to overall pomp object
 
 mif_explore <- exploremifresults(pomp_res = pomp_res, 
-                                 par_var_list = pomp_res$par_var_list) #compute trace plot and best param tables for mif
+                                 par_var_list = pomp_res$par_var_list,
+                                 n_knots = n_knots) #compute trace plot and best param tables for mif
 #add resutls computed to the pomp_res object
 pomp_res$traceplot = mif_explore$traceplot
 pomp_res$all_partable = mif_explore$all_partable
@@ -142,13 +153,13 @@ pomp_res$est_partable = mif_explore$est_partable
 pomp_res$partable_natural = mif_explore$partable_natural
 
 #run simulations/forecasts based on mif fits for each state
-scenario_res <- runscenarios(pomp_res = pomp_res, 
-                             par_var_list = pomp_res$par_var_list, 
-                             forecast_horizon_days = 37, 
-                             nsim = 100)
-
-#add forward simulation results to pomp_res object
-pomp_res$scenario_res = scenario_res
+# scenario_res <- runscenarios(pomp_res = pomp_res, 
+#                              par_var_list = pomp_res$par_var_list, 
+#                              forecast_horizon_days = 37, 
+#                              nsim = 100)
+# 
+# #add forward simulation results to pomp_res object
+# pomp_res$scenario_res = scenario_res
 
 pomp_res$mif_res <- NULL #to save space, one can delete the full mif results before saving
 
