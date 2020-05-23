@@ -82,24 +82,38 @@ all_files <- list.files(here("output"), pattern = "*.rds")
 
 for(do_file in all_files) {
   res <- readRDS(here("output", do_file))
-
-  dat <- res$pomp_data %>%
-    dplyr::select(-location, -time) %>%
-    dplyr::rename("Date" = date) %>%
-    gather("Variable", "Value", -Date) %>%
-    mutate(Var_Type = "obs")
-  sim <- res$scenario_res[[2]]$scenario_df %>%
-    dplyr::filter(Variable %in% c("cases", "deaths")) %>%
-    dplyr::select(Variable, Date, Var_Type, Value)
-  datsim <- sim %>%
-    filter(Date <= max(dat$Date))
+  sim <- res$sims
+  dat <- res$pomp_data
   
-  dat_with_sim <- bind_rows(dat, datsim)
-  ggplot(dat_with_sim, aes(x = Date, y = Value)) +
-    geom_line(aes(linetype = Var_Type)) +
-    facet_wrap(~Variable, scales = "free_y", ncol = 1) +
-    scale_linetype_manual(values = c(3, 2, 1, 3)) +
-    ggtitle(res$location) -> gout
+  print(do_file)
+  
+  sim %>%
+    dplyr::select(time, cases) %>%
+    group_by(time) %>%
+    summarize(upper = quantile(cases, 0.9),
+              ptval = ceiling(mean(cases)),
+              lower = quantile(cases, 0.1)) %>%
+    ggplot(aes(x = time, y = ptval)) +
+    geom_line() +
+    geom_line(aes(y = upper), linetype = 2) +
+    geom_line(aes(y = lower), linetype = 2) +
+    geom_line(data = dat, aes(x = time, y = cases), color = "red") +
+    ggtitle("Cases") -> g1
+  
+  sim %>%
+    dplyr::select(time, deaths) %>%
+    group_by(time) %>%
+    summarize(upper = quantile(deaths, 0.9),
+              ptval = ceiling(mean(deaths)),
+              lower = quantile(deaths, 0.1)) %>%
+    ggplot(aes(x = time, y = ptval)) +
+    geom_line() +
+    geom_line(aes(y = upper), linetype = 2) +
+    geom_line(aes(y = lower), linetype = 2) +
+    geom_line(data = dat, aes(x = time, y = deaths), color = "red") +
+    ggtitle("Deaths") -> g2
+  
+  gout <- cowplot::plot_grid(g1, g2, ncol = 1)
   print(gout)
 }
 ``` 
