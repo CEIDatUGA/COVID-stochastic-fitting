@@ -113,7 +113,17 @@ for(do_file in all_files) {
     geom_line(data = dat, aes(x = time, y = deaths), color = "red") +
     ggtitle("Deaths") -> g2
   
-  gout <- cowplot::plot_grid(g1, g2, ncol = 1)
+  sim %>%
+    dplyr::select(time, trendO) %>%
+    filter(time > 1) %>%
+    group_by(time) %>%
+    summarize(ptval = mean(exp(trendO)/(1+exp(trendO)))) %>%
+    ggplot(aes(x = time, y = ptval)) +
+    geom_line() +
+    ylim(c(0, 1)) +
+    ggtitle("Latent trend") -> g3
+  
+  gout <- cowplot::plot_grid(g1, g2, g3, ncol = 1)
   print(gout)
 }
 ``` 

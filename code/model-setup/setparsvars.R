@@ -23,12 +23,12 @@ setparsvars <- function(est_these_pars, est_these_inivals, population)
   #initial conditions are also considered parameters and some are estimated
   #we supply them on a log scale and in the code exponentiate to ensure no negative values
   inivals <- c(S_0 = population, 
-               E1_0 = log(40), #E2_0 = 40, E3_0 = 40, E4_0 = 40, 
-               Ia1_0 = log(22), #Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
-               Isu1_0 = log(90),# Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
-               Isd1_0 = log(14), #Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14, 
+               E1_0 = log(1), #E2_0 = 40, E3_0 = 40, E4_0 = 40, 
+               Ia1_0 = log(1), #Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
+               Isu1_0 = log(1),# Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
+               Isd1_0 = log(1), #Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14, 
                C1_0 = 2, #C2_0 = 2, C3_0 = 2, C4_0 = 2, 
-               H1_0 = 2, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
+               H1_0 = 0, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
                R_0 = 0,
                D_0 = 0,
                trendO_0 = 100
@@ -55,7 +55,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, population)
                log_g_su = log(4/6),
                log_g_sd = log(4/3),
                log_g_c = log(4/3),
-               log_g_h = log(4/12),
+               log_g_h = log(4/6),
+               # log_g_h = log(4/12),
                
                # log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
                # log_g_a = rev_logistic(1/3.5),
