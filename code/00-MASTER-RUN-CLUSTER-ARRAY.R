@@ -84,7 +84,7 @@ parallel_info$num_cores <- 32  # on HPC - should ideally be M states * replicate
 # two rounds of MIF are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(100,100)
+mif_settings$mif_num_iterations <- c(150,150)
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
 mif_settings$pf_reps <- 10 #replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
@@ -103,19 +103,19 @@ timestamp <- readRDS("../header/timestamp.rds")
 # done in parallel and batches of 10 states each
 # --------------------------------------------------
 
-states_map <- tibble(state = state.name) %>%
-  mutate(num = 1:n()) %>%
-  filter(state %in% c("California", "Colorado", "Georgia",
-                      "New York", "Washington", "Montana",
-                      "Texas", "Minnesota", "Wyoming"))
-myargument <- states_map %>%
-  slice(myargument) %>%
-  pull(num)
+# states_map <- tibble(state = state.name) %>%
+#   mutate(num = 1:n()) %>%
+#   filter(state %in% c("California", "Colorado", "Georgia",
+#                       "New York", "Washington", "Montana",
+#                       "Texas", "Minnesota", "Wyoming"))
+# myargument <- states_map %>%
+#   slice(myargument) %>%
+#   pull(num)
 
 
 pomp_listr <- readRDS("../header/pomp_list.rds")
 this_pomp <- pomp_listr[[myargument]]
-n_knots <- round(nrow(this_pomp$pomp_data) / 7)
+n_knots <- round(nrow(this_pomp$pomp_data) / 7 / 2)
 
 # Make the pomp model
 pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
