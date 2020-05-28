@@ -30,7 +30,9 @@ loadcleanucmobility <- function(locations, pomp_data, timestamp)
     fname <- allfiles[i]
     stateabb <- strsplit(fname, "_")[[1]][2]
     tmp <- readRDS(here("data/ucmobility/", fname)) %>%
-      mutate(state_abb = stateabb)
+      mutate(state_abb = stateabb) %>%
+      group_by(state, Date, time, state_abb) %>%
+      summarise(rel_beta_change = mean(rel_beta_change))
     uc_mobility <- bind_rows(uc_mobility, tmp)
   }
   
@@ -39,7 +41,7 @@ loadcleanucmobility <- function(locations, pomp_data, timestamp)
     left_join(state_map, by = "state_abb") %>%
     dplyr::select(-state_abb) %>%
     rename("location" = state_name,
-           "date" = Date)
+           "date" = Date) 
   
   out <- tibble()
   for(dostate in unique(uc_mobility$location)) {
