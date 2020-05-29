@@ -45,6 +45,6 @@ covar_table <- data.frame(state = rep(as.character(unique(single_state$state_cod
                           time = pred$x,
                           rel_beta_change = pred$y)
 saveRDS(covar_table, file = paste("data/ucmobility/state_breakdown/rel-beta-change-covar_", #main title
-                                  as.character(unique(single_state$state_code)),"_", #state
-                                  gsub("-", "",Sys.Date()), ".rds", sep = "")) #date
+                                  as.character(unique(single_state$state_code)), #state
+                                  ".rds", sep = "")) # data associated with push
 }
