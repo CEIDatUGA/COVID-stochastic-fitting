@@ -278,11 +278,11 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
   
   dmeas <- Csnippet(
     "
-    double d1;
-    double theta1;
+    double d1, d3;
+    double theta1, theta3;
     theta1 = exp(log_theta_cases);
     //theta2 = exp(log_theta_hosps);
-    //theta3 = exp(log_theta_deaths);
+    theta3 = exp(log_theta_deaths);
     
     if(ISNA(cases)) {
       d1 = 0;  // loglik is 0 if no observations
@@ -296,13 +296,13 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     //  d2 = dnbinom_mu(hosps, theta2, H_new, 1);
     //}
     
-    //if(ISNA(deaths)) {
-    //  d3 = 0;  // loglik is 0 if no observations
-    //} else {
-    //  d3 = dnbinom_mu(deaths, theta3, D_new, 1);
-    //}
+    if(ISNA(deaths)) {
+      d3 = 0;  // loglik is 0 if no observations
+    } else {
+      d3 = dnbinom_mu(deaths, theta3, D_new, 1);
+    }
     
-    lik = d1;  // sum the individual likelihoods
+    lik = d1 + d3;  // sum the individual likelihoods
     lik = (give_log) ? lik : exp(lik);  // return loglik or exp(lik)
     "
   )
@@ -324,10 +324,10 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     double theta1, theta3;
     theta1 = exp(log_theta_cases);
     //theta2 = exp(log_theta_hosps);
-    //theta3 = exp(log_theta_deaths);
+    theta3 = exp(log_theta_deaths);
     cases = rnbinom_mu(theta1, C_new);  // for forecasting 
     //hosps = rnbinom_mu(theta2, H_new);  // for forecasting
-    //deaths = rnbinom_mu(theta3, D_new);  // for forecasting
+    deaths = rnbinom_mu(theta3, D_new);  // for forecasting
     "
   )
   
@@ -366,7 +366,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     rprocess = euler(step.fun = pomp_step, delta.t = 1/20),
     statenames = varnames,
     paramnames = allparnames, 
-    obsnames = c("cases"),
+    obsnames = c("cases", "deaths"),
     accumvars = c("C_new", "H_new", "D_new"),    
     globals = paste0("int K = ", as.character(n_knots), ";"),
     cdir=".",

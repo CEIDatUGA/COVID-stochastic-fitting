@@ -52,6 +52,7 @@ myargument = as.numeric(a)
 # --------------------------------------------------
 source("../code/model-fitting/runmif_allstates_array.R") #runs mif fitting
 source("../code/result-exploration/exploremifresults.R") #explore mif results
+source("../code/forward-simulations/simulate_trajectories.R")
 source("../code/forward-simulations/runscenarios.R") #run forward simulations for best fit mif results
 source("../code/model-setup/makepompmodel.R") #function that generates the pomp model
 
@@ -115,7 +116,7 @@ timestamp <- readRDS("../header/timestamp.rds")
 
 pomp_listr <- readRDS("../header/pomp_list.rds")
 this_pomp <- pomp_listr[[myargument]]
-n_knots <- round(nrow(this_pomp$pomp_data) / 7 / 2)
+n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
 
 # Make the pomp model
 pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
@@ -177,6 +178,12 @@ pomp_res$sims <- sim
 #this file could be large, needs checking
 filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
 saveRDS(object = pomp_res, file = filename)
+
+# Run scenarios
+pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
+filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
+saveRDS(object = pomp_res, file = filename)
+
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
 

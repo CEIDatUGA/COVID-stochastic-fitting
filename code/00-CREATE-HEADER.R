@@ -121,7 +121,7 @@ for (dolocation in statevec)
   pomp_data <- all_states_pomp_data %>%
     filter(location == dolocation)
   
-  n_knots <- round(nrow(pomp_data) / 7 / 2)
+  n_knots <- round(nrow(pomp_data) / 10 )
   est_these_pars = c("log_sigma_dw", "log_beta_s",
                      "log_theta_cases", "log_theta_deaths")
   est_these_inivals = c("C1_0")

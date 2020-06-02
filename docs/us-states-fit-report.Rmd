@@ -101,7 +101,8 @@ for(do_file in all_files) {
     ggtitle("Cases") -> g1
   
   sim %>%
-    dplyr::select(time, deaths) %>%
+    dplyr::select(time, D_new) %>%
+    rename("deaths" = D_new) %>%
     group_by(time) %>%
     summarize(upper = quantile(deaths, 0.9),
               ptval = ceiling(mean(deaths)),
