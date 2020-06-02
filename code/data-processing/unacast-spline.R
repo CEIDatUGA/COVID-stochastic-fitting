@@ -1,4 +1,3 @@
-
 # load libraries
 library(tidyr)
 library(dplyr)
@@ -11,10 +10,10 @@ pseudo_data <- data.frame(
 
 
 # Load the data -----------------------------------------------------------     
-state_data <- read.csv(file = "unacast/sds-v3-full-state.csv")
+state_data <- read.csv(file = "data/ucmobility/sds-v3-full-state.csv")
 
 # loop through for each state 
-states <- as.vector(unique(state$state_name))
+states <- as.vector(unique(state_data$state_name))
 
 for(state in states){
 single_state <- filter(state_data, state_name == state)
@@ -41,14 +40,11 @@ pred <- predict(mod)
 
 # Save the output ---------------------------------------------------------
 
-covar_table <- data.frame(state = rep(single_state$state_code, nrow(unacast)),
+covar_table <- data.frame(state = rep(as.character(unique(single_state$state_code)), nrow(unacast)),
                           Date = unacast$Date,
                           time = pred$x,
                           rel_beta_change = pred$y)
-saveRDS(covar_table, file = paste("data/state_breakdown/rel-beta-change-covar_", #main title
-                                  as.character(unique(single_state$state_code)),"_", #state
-                                  gsub("-", "", Sys.Date()), ".rds", sep = "")) #date
+saveRDS(covar_table, file = paste("data/ucmobility/state_breakdown/rel-beta-change-covar_", #main title
+                                  as.character(unique(single_state$state_code)), #state
+                                  ".rds", sep = "")) # data associated with push
 }
-
-# read in all files in the state_breakdown folder 
-# bind together 
