@@ -22,7 +22,7 @@ library(googlesheets4)
 ## In-Sample Trajectories
 
 ```{r us-traj}
-all_files <- list.files(here("output"), pattern = "*.rds")[-1]
+all_files <- list.files(here("output"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 
 for(do_file in all_files) {
@@ -114,9 +114,9 @@ for(do_file in all_files) {
 }
 ``` 
 
-## Status-quo Projections
+## Projections
 
-```{r sqs, eval = FALSE}
+```{r sqs}
 all_files <- list.files(here("output"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 
@@ -124,9 +124,8 @@ for(do_file in all_files) {
   res <- readRDS(here("output", do_file))
   sims <- res$scenarios$sims
   sim_summs <- sims %>%
-  dplyr::select(SimType, Period, Date, cases, H_new, deaths) %>%
+  dplyr::select(SimType, Period, Date, cases, deaths) %>%
   rename("Acases" = cases,
-         "Bhosps" = H_new,
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
@@ -134,16 +133,37 @@ for(do_file in all_files) {
             ptvalue = ceiling(mean(Value)),
             # ptvalue = median(Value),
             upper = ceiling(quantile(Value, 0.975))) %>%
-  ungroup()
+  ungroup() %>%
+    mutate(lower = ifelse(Period == "Past", ptvalue, lower),
+           upper = ifelse(Period == "Past", ptvalue, upper))
+  
+  res$pomp_data %>%
+    dplyr::select(date, cases, deaths) %>%
+    rename("Acases" = cases,
+           "Cdeaths" = deaths,
+           "Date" = date) %>%
+    gather(key = "Variable", value = "Value", -Date) %>%
+    mutate(SimType = "status_quo") -> dat
+  datAll <- dat %>%
+    bind_rows(dat %>% mutate(SimType = "linear_increase_sd")) %>%
+    bind_rows(dat %>% mutate(SimType = "return_normal"))
+  
+  ggplot(sim_summs, aes(x = Date, y = ptvalue)) +
+    geom_line() +
+    geom_line(data = datAll, aes(x = Date, y = Value), col = "red") +
+    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+    facet_wrap(SimType ~ Variable,scales = "free", ncol = 2) -> simout
+  print(do_file)
+  print(simout)
 
 }
 ```
 
 ## Parameter Estimates
-```{r params, results='asis'}
+```{r params, results='asis', eval = TRUE}
 all_files <- list.files(here("output"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
-
+betas <- tibble()
 for(do_file in all_files) {
   res <- readRDS(here("output", do_file))
   mindate <- min(res$pomp_data$date)
@@ -157,10 +177,21 @@ for(do_file in all_files) {
     filter(is_fitted == "yes") %>%
     dplyr::select(X1, Names) %>%
     mutate(X1 = ifelse(Names == "beta_s", X1 * pop, X1)) %>%
-    rename("MLE" = X1) %>%
+    rename("MLE" = X1) -> tab
+  tab %>%
     knitr::kable() %>%
     print()
   cat("\n")
-    
+  betas <- betas %>%
+    bind_rows(tibble(beta = tab %>% filter(Names == "beta_s") %>% pull(MLE),
+                     location = res$location))
 }
+```
+
+## Baseline transmission rate parameters
+
+```{r histo}
+ggplot(data = betas, aes(x = location, y = beta)) +
+  geom_col(fill = "dodgerblue") +
+  coord_flip()
 ```

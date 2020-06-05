@@ -90,7 +90,8 @@ state_pops <- readRDS(here("data/us_popsize.rds"))
 # Run data cleaning script.
 all_states_pomp_data <- loadcleandata(datasource = datasource, 
                                       locations = statevec, 
-                                      timestamp = timestamp)
+                                      timestamp = timestamp,
+                                      smooth = FALSE)
 
 all_states_pomp_covar <- loadcleanucmobility(
   location = statevec, 
