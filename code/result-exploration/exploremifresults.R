@@ -40,6 +40,7 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
   allparvals <- par_var_list$allparvals
   params_to_estimate = par_var_list$params_to_estimate
   inivals_to_estimate = par_var_list$inivals_to_estimate
+  all_ests <- c(params_to_estimate, inivals_to_estimate)
   varnames <- par_var_list$varnames
   allparnames <- names(allparvals) #includes initial conditions
   
@@ -90,7 +91,7 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
                                  byrow = T))
   colnames(all_par_df) <- names(coef(mifs[[1]]))  
   
-  est_par_df = all_par_df %>% dplyr::select( tidyselect::all_of(params_to_estimate))
+  est_par_df = all_par_df %>% dplyr::select( tidyselect::all_of(all_ests))
   
   
   # combine the ll_df and parameter  data frames. 
@@ -164,7 +165,7 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
   coef_all <- data.frame(matrix(rep(allparvals,times = nrow(all_par_df)) , nrow = nrow(all_par_df), byrow = TRUE))
   colnames(coef_all) <- names(allparvals)
   
-  coef_all[,c(params_to_estimate)] = est_par_df
+  coef_all[,c(all_ests)] = est_par_df
   
   natural_par_df <- transform_params(coef_all, param_trans)
   

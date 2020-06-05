@@ -17,67 +17,12 @@ library(googlesheets4)
 ```
 
 
-
-## The Model 
-
-### Model Overview
-
-This model tracks susceptibles, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hopspitalized, dead and recovered hosts. 
-The following compartments are included:  
-
-* **S** - uninfected and susceptible individuals 
-* **E** - individuals who are infected and do not yet show symptoms. Those individuals can be infectious.
-* **I~a~** - individuals who are infected and do not show symptoms. Those individuals are likely infectious, but the model allows to adjust this.
-* **I~su~** - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment never get diagnosed and recover.
-* **I~sd~** - individuals who are infected and show symptoms. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to **C**.
-* **C** - individuals who have been diagnosed as cases. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
-* **H** - individuals who have been hospitalized. Those individuals are likely isolated and not infectious, but the model allows to adjust this.
-* **R** - recovered/removed individuals. Those individuals have recovered and are immune. 
-* **D** - individuals who died from the infection. 
-
-To allow more realistic distributions of movement through compartments, several of these compartments are internally split into dummy stages. Dummy stages are currently:
-
-* **E** - 4 compartments
-* **I~a~** - 4 compartments 
-* **I~su~** - 4 compartments
-* **I~sd~** - 4 compartments
-* **C** - 4 compartments
-* **H** - 4 compartments
-
-
-The included processes/mechanisms are the following:
-
-* Susceptible individuals ($S$`) can become infected by individuals in the $E$, $I_a$, $I_s$, $I_d$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* All infected hosts first enter the presymptomatic stage and move through the $E$ dummy compartments. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage,  the remainder into the $I_{sd}$ stage.
-* Individuals in the asymptomatic $I_a$ stage are assumed to never be diagnosed and eventually recover.
-* Individuals in the symptomatic $I_{su}$ stage are assumed to remain undiagnosed and eventually recover.
-* Individuals in the symptomatic $I_{sd}$ stage are assumed to be diagnosed after some time and move into the $C$ stage.
-* A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
-* A fraction of individuals in the $H$ stage will recover, the remainder dies.
-
-### Interventions
-
-The following interventions are implemented:
-
-* Social distancing, is assumed to reduce all transmission rates by some factor. This is provided as covariate based on mobility data.
-* Increased speed of detection, which is assumed to increase at a sigmoidal manner up to a maximum value.
-* Increased level of detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase at a sigmoidal manner up to a maximum value.
-
-
-### Model Implementation
-The flow diagram for the model implemented in this app is:
-
-```{r pomp-model,  fig.cap='MIF trace plot'}
-knitr::include_graphics(here("docs",'pomp-model.png'))
-```
-
-
 # Results
 
 ## In-Sample Trajectories
 
 ```{r us-traj}
-all_files <- list.files(here("output"), pattern = "*.rds")
+all_files <- list.files(here("output"), pattern = "*.rds")[-1]
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 
 for(do_file in all_files) {
@@ -123,6 +68,46 @@ for(do_file in all_files) {
     geom_line() +
     ylim(c(0, 1)) +
     ggtitle("Latent trend") -> g3
+
+# dates <- unique(dat$date)
+# num_days <- length(dates)
+# n_knots <- round(num_days / 10)
+# bases <- pomp::bspline.basis(x=1:num_days, nbasis=n_knots, degree=3)
+# 
+# res$partable %>%
+#   slice(1) %>%
+#   mutate(id = 1:n()) %>%
+#   gather("key", "value", -id) %>%
+#   filter(key %in% paste0("b", 1:n_knots)) %>%
+#   dplyr::select(-id) %>%
+#   deframe() -> betas
+# 
+# 
+# trend <- bases %*% betas
+# trend <- exp(trend) / (1+exp(trend))
+# trend_df <- tibble(
+#   Date = dates,
+#   Psi = trend,
+#   Phi = covar$rel_beta_change) %>%
+#   mutate(PhiPsi = Phi*Psi) %>%
+#   gather("key", "value", -Date)
+# 
+# ggplot(trend_df, aes(Date, value, color = key)) +
+#   geom_line(aes(size = key)) +
+#   scale_y_continuous(limits = c(0, 1)) +
+#   scale_color_manual(values = c("dodgerblue", "black", "salmon")) +
+#   scale_size_manual(values = c(1,2,1)) +
+#   theme_minimal(base_size = 14, base_line_size = 0.5) +
+#   theme(legend.position = "top") -> phipsi
+# 
+# beta_trend <- trend_df %>%
+#   filter(key == "PhiPsi") %>%
+#   mutate(beta = value * beta_est)
+# 
+# ggplot(beta_trend, aes(x = Date, y = beta)) +
+#   geom_line() +
+#   ylab(expression(beta[t]))+
+#   theme_minimal(base_size = 14, base_line_size = 0.5) -> btrend
   
   gout <- cowplot::plot_grid(g1, g2, g3, ncol = 1)
   print(gout)
@@ -137,19 +122,20 @@ all_files <- list.files(here("output"), pattern = "*.rds")
 
 for(do_file in all_files) {
   res <- readRDS(here("output", do_file))
-  sim <- res$scenario_res[[2]]$scenario_df %>%
-    dplyr::filter(Variable %in% c("cases", "hosps", "deaths")) %>%
-    dplyr::select(Variable, Date, Var_Type, Value)
-  
-  maxdate <- max(dat$Date)
-  
-  ggplot(sim, aes(x = Date, y = Value)) +
-    geom_line(aes(linetype = Var_Type)) +
-    geom_vline(aes(xintercept = maxdate)) +
-    facet_wrap(~Variable, scales = "free_y", ncol = 1) +
-    scale_linetype_manual(values = c(3, 1, 3)) +
-    ggtitle(res$location) -> gout
-  print(gout)
+  sims <- res$scenarios$sims
+  sim_summs <- sims %>%
+  dplyr::select(SimType, Period, Date, cases, H_new, deaths) %>%
+  rename("Acases" = cases,
+         "Bhosps" = H_new,
+         "Cdeaths" = deaths) %>%
+  gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
+  group_by(SimType, Period, Date, Variable) %>%
+  summarise(lower = ceiling(quantile(Value, 0.025)),
+            ptvalue = ceiling(mean(Value)),
+            # ptvalue = median(Value),
+            upper = ceiling(quantile(Value, 0.975))) %>%
+  ungroup()
+
 }
 ```
 
