@@ -29,85 +29,56 @@ for(do_file in all_files) {
   res <- readRDS(here("output", do_file))
   sim <- res$sims
   dat <- res$pomp_data
+  mobility <- res$pomp_covar@table["rel_beta_change",]
+  dates_map <- dat %>%
+    dplyr::select(date, time)
   
   print(do_file)
   
   sim %>%
     dplyr::select(time, cases) %>%
     group_by(time) %>%
-    summarize(upper = quantile(cases, 0.9),
+    summarize(upper = quantile(cases, 0.975),
               ptval = ceiling(mean(cases)),
-              lower = quantile(cases, 0.1)) %>%
-    ggplot(aes(x = time, y = ptval)) +
+              lower = quantile(cases, 0.025)) %>%
+    left_join(dates_map, by = "time") %>%
+    ggplot(aes(x = date, y = ptval)) +
     geom_line() +
     geom_line(aes(y = upper), linetype = 2) +
     geom_line(aes(y = lower), linetype = 2) +
-    geom_line(data = dat, aes(x = time, y = cases), color = "red") +
+    geom_line(data = dat, aes(x = date, y = cases), color = "red") +
     ggtitle("Cases") -> g1
   
   sim %>%
     dplyr::select(time, D_new) %>%
     rename("deaths" = D_new) %>%
     group_by(time) %>%
-    summarize(upper = quantile(deaths, 0.9),
+    summarize(upper = quantile(deaths, 0.975),
               ptval = ceiling(mean(deaths)),
-              lower = quantile(deaths, 0.1)) %>%
-    ggplot(aes(x = time, y = ptval)) +
+              lower = quantile(deaths, 0.025)) %>%
+     left_join(dates_map, by = "time") %>%
+    ggplot(aes(x = date, y = ptval)) +
     geom_line() +
     geom_line(aes(y = upper), linetype = 2) +
     geom_line(aes(y = lower), linetype = 2) +
-    geom_line(data = dat, aes(x = time, y = deaths), color = "red") +
+    geom_line(data = dat, aes(x = date, y = deaths), color = "red") +
     ggtitle("Deaths") -> g2
   
   sim %>%
     dplyr::select(time, trendO) %>%
     filter(time > 1) %>%
     group_by(time) %>%
-    summarize(ptval = mean(exp(trendO)/(1+exp(trendO)))) %>%
-    ggplot(aes(x = time, y = ptval)) +
+    summarize(psi = mean(exp(trendO)/(1+exp(trendO)))) %>%
+    mutate(phi = mobility[-1],
+           PhiPsi = phi * psi) %>%
+    gather("key", "value", -time) %>%
+     left_join(dates_map, by = "time") %>%
+    ggplot(aes(x = date, y = value, color = key, size = key)) +
     geom_line() +
+    scale_color_manual(values = c("red", "black", "blue")) +
+    scale_size_manual(values = c(1, 2, 1)) +
     ylim(c(0, 1)) +
-    ggtitle("Latent trend") -> g3
-
-# dates <- unique(dat$date)
-# num_days <- length(dates)
-# n_knots <- round(num_days / 10)
-# bases <- pomp::bspline.basis(x=1:num_days, nbasis=n_knots, degree=3)
-# 
-# res$partable %>%
-#   slice(1) %>%
-#   mutate(id = 1:n()) %>%
-#   gather("key", "value", -id) %>%
-#   filter(key %in% paste0("b", 1:n_knots)) %>%
-#   dplyr::select(-id) %>%
-#   deframe() -> betas
-# 
-# 
-# trend <- bases %*% betas
-# trend <- exp(trend) / (1+exp(trend))
-# trend_df <- tibble(
-#   Date = dates,
-#   Psi = trend,
-#   Phi = covar$rel_beta_change) %>%
-#   mutate(PhiPsi = Phi*Psi) %>%
-#   gather("key", "value", -Date)
-# 
-# ggplot(trend_df, aes(Date, value, color = key)) +
-#   geom_line(aes(size = key)) +
-#   scale_y_continuous(limits = c(0, 1)) +
-#   scale_color_manual(values = c("dodgerblue", "black", "salmon")) +
-#   scale_size_manual(values = c(1,2,1)) +
-#   theme_minimal(base_size = 14, base_line_size = 0.5) +
-#   theme(legend.position = "top") -> phipsi
-# 
-# beta_trend <- trend_df %>%
-#   filter(key == "PhiPsi") %>%
-#   mutate(beta = value * beta_est)
-# 
-# ggplot(beta_trend, aes(x = Date, y = beta)) +
-#   geom_line() +
-#   ylab(expression(beta[t]))+
-#   theme_minimal(base_size = 14, base_line_size = 0.5) -> btrend
+    theme(legend.position = "top") -> g3
   
   gout <- cowplot::plot_grid(g1, g2, g3, ncol = 1)
   print(gout)
@@ -129,10 +100,10 @@ for(do_file in all_files) {
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
-  summarise(lower = ceiling(quantile(Value, 0.025)),
-            ptvalue = ceiling(mean(Value)),
+  summarise(lower = ceiling(quantile(Value, 0.025, na.rm = TRUE)),
+            ptvalue = ceiling(mean(Value, na.rm = TRUE)),
             # ptvalue = median(Value),
-            upper = ceiling(quantile(Value, 0.975))) %>%
+            upper = ceiling(quantile(Value, 0.975, na.rm = TRUE))) %>%
   ungroup() %>%
     mutate(lower = ifelse(Period == "Past", ptvalue, lower),
            upper = ifelse(Period == "Past", ptvalue, upper))
@@ -161,7 +132,7 @@ for(do_file in all_files) {
 
 ## Parameter Estimates
 ```{r params, results='asis', eval = TRUE}
-all_files <- list.files(here("output"), pattern = "*.rds")
+all_files <- list.files(here("output/"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 betas <- tibble()
 for(do_file in all_files) {
@@ -191,7 +162,9 @@ for(do_file in all_files) {
 ## Baseline transmission rate parameters
 
 ```{r histo}
-ggplot(data = betas, aes(x = location, y = beta)) +
+ggplot(data = betas, aes(x = reorder(location, beta), y = beta)) +
   geom_col(fill = "dodgerblue") +
+  ylab(expression(beta)) +
+  xlab("") +
   coord_flip()
 ```
