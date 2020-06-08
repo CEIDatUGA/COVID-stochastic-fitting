@@ -90,7 +90,8 @@ state_pops <- readRDS(here("data/us_popsize.rds"))
 # Run data cleaning script.
 all_states_pomp_data <- loadcleandata(datasource = datasource, 
                                       locations = statevec, 
-                                      timestamp = timestamp)
+                                      timestamp = timestamp,
+                                      smooth = FALSE)
 
 all_states_pomp_covar <- loadcleanucmobility(
   location = statevec, 
@@ -124,7 +125,7 @@ for (dolocation in statevec)
   n_knots <- round(nrow(pomp_data) / 10 )
   est_these_pars = c("log_sigma_dw", "log_beta_s",
                      "log_theta_cases", "log_theta_deaths")
-  est_these_inivals = c("C1_0")
+  est_these_inivals = c("E1_0")
   # est_these_inivals = ""
   knot_coefs <-  paste0("b", 1:n_knots)
   est_these_pars <- c(est_these_pars, knot_coefs)

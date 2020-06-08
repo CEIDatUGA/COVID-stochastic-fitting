@@ -1,4 +1,4 @@
-loadcleandata <- function(datasource, locations, timestamp)
+loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
 {
 
   #  ----------------------------------------------------------
@@ -195,13 +195,20 @@ loadcleandata <- function(datasource, locations, timestamp)
     return(xm)
   }
   
+  if(smooth) {
+    pomp_data <- pomp_data %>%
+      group_by(location) %>%
+      arrange(date) %>%
+      mutate(cases = ma(cases),
+             hosps = ma(hosps),
+             deaths = ma(deaths)) %>%
+      ungroup()
+  }
+  
+  # Remove negative values
   pomp_data <- pomp_data %>%
-    group_by(location) %>%
-    arrange(date) %>%
-    mutate(cases = ma(cases),
-           hosps = ma(hosps),
-           deaths = ma(deaths)) %>%
-    ungroup()
+    mutate(deaths = ifelse(sign(deaths) == -1, NA, deaths),
+           cases = ifelse(sign(cases) == -1, NA, cases))
   
   # Check to make sure no negative values
   neg_deaths <- pomp_data %>%
