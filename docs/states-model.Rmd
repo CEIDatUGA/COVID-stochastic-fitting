@@ -92,9 +92,6 @@ ggplot(all_data, aes(x = date, y = value, color = location)) +
 ```
 
 
-
-
-
 In addition, we include a covariate that describes human mobility.
 These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>.
 We smooth the raw data from Unacast using a spline fit, resulting in the trajectory of human movement shown below.
@@ -126,7 +123,6 @@ ggplot(all_phi, aes(x = date, y = phi, color = location)) +
   theme_dark(base_line_size = 0.5) +
   guides(color = FALSE)
 ```
-
 
 
 ## The Model
@@ -309,3 +305,230 @@ Each scenario is simulated 100 times for each parameter set that is within 2 poi
 Initial conditions are determined by simulating 100 trajectories over the observation period and then extracting unobservable state values from the trajectory that most closely aligns with the final observations of case and death reports.
 Thus, each replicate within an MLE set starts from the same initial conditions, but different MLE sets start from unique initial conditions.
 We make projections six weeks into the future.
+
+# Results
+
+## Latent trend and transmission over time
+The estimated latent trend in transmission reduction is combined with mobility data to augment baseline tranmission over time.
+The estimated values of $\beta$ for each state are informative, but to understand the tranmission rate as implemented in the model we need to look at $\gamma(t)$, which is plotted below.
+
+```{r trends, fig.width = 10}
+filenames <- list.files(path = here("output/"), pattern = ".rds") %>%
+  as_tibble(.name_repair = "minimal") %>%
+  mutate(fname = value) %>%
+  separate(value, into = c("location"), sep = "-")
+
+all_beta_gamma <- tibble()
+for(i in 1:nrow(filenames)) {
+  tmp <- readRDS(paste0(here("output"), "/", filenames[i,"fname"]))
+  dat <- tmp$pomp_covar@table["rel_beta_change", ]
+  psi <- tmp$sims %>%
+    filter(.id == "1") %>%
+    mutate(psi = exp(trendO)/(1+exp(trendO))) %>%
+    pull(psi)
+  betas <- tmp$partable_natural[which(rownames(tmp$partable_natural) == "beta_s"), 2]
+  pop <- tmp$partable_natural[which(rownames(tmp$partable_natural) == "S_0"), 2]
+  latents <- round(tmp$partable_natural[which(rownames(tmp$partable_natural) == "E1_0"), 2])
+  dates <- tmp$pomp_data$date
+  out <- tibble(location = tmp$location,
+                date = dates,
+                phi = dat,
+                psi = psi,
+                beta = betas,
+                gamma = beta * phi * psi,
+                S0 = pop,
+                L0 = latents) %>%
+    slice(-1)  # remove first sim point of initial conditions
+  all_beta_gamma <- bind_rows(all_beta_gamma, out)
+}
+
+ggplot(all_beta_gamma, aes(date, gamma)) +
+  geom_line(color = "salmon") +
+  facet_wrap(~location, ncol = 10) +
+  coord_cartesian(ylim = c(0, 1e-06)) +
+  theme_minimal(base_size = 10) +
+  ylab(expression(omega)) +
+  theme(axis.text.x = element_text(angle = 45)) +
+  ggtitle("Transmission rates over time")
+```
+
+Here we plot the average $\omega$ over time.
+
+```{r avgomega}
+all_beta_gamma %>%
+  group_by(location) %>%
+  summarise(mean_omega = mean(gamma),
+            lower = min(gamma),
+            upper = max(gamma)) %>%
+  ggplot(aes(y = mean_omega, x = reorder(location, mean_omega))) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
+  ylab(expression(omega)) +
+  xlab("") +
+  coord_flip() +
+  theme_minimal() +
+  ggtitle("Mean tranmission rates over time", subtitle = "error bars show min and max")
+```
+
+Across all states, $\omega$ decreased through the month of March, reaching a low point by the beginning of April.
+Transmission is stayed relatively constant through April and May, with a slight increasing trend ocurring at the end of May into June.
+See plot below that shows $\omega(t)$ for each state (grey lines) and the overall trend (blue line).
+
+```{r omegatime}
+all_beta_gamma %>%
+  filter(date >= "2020-03-01") %>%
+  ggplot(aes(x = date, y = gamma)) +
+  geom_line(color = "grey", aes(group = location), size = 0.5) +
+  geom_smooth(se = FALSE, color = "dodgerblue", size = 1.2) +
+  coord_cartesian(ylim = c(0, 1e-06)) +
+  ylab(expression(omega)) +
+  theme_minimal() +
+  ggtitle("Transmission rate over time")
+```
+
+## Initial number of infectious individuals
+Our model is initialized with 2 individuals in the $C_1$ compartment and 1 individual in each of the $I_1$ compartments. 
+We estimated the initial size of the latent compartment, $L_1$.
+Below we plot the MLE of $L_1$ for each state and the relationship between $L_1$ and $\omega(t=1)$ in each state.
+
+```{r latents}
+all_beta_gamma %>%
+  group_by(location) %>%
+  summarise(L0 = mean(L0)) -> latents
+
+all_beta_gamma %>%
+  group_by(location) %>%
+  filter(date == min(date)) %>%
+  dplyr::select(location, gamma) -> omegas
+
+latents <- latents %>%
+  left_join(omegas, by = c("location"))
+
+ggplot(latents, aes(y = L0, x = reorder(location, L0))) +
+  geom_col(fill = "dodgerblue") +
+  coord_flip() +
+  xlab("") + ylab("Estimated initial size of latent compartment") +
+  theme_minimal()
+
+ggplot(latents, aes(x = L0, y = gamma)) +
+  geom_point() +
+  ylab(expression(omega)) + xlab("L0") +
+  theme_minimal()
+```
+
+## Log likelihoods
+
+```{r mlesmaes}
+filenames <- list.files(path = here("output/"), pattern = ".rds") %>%
+  as_tibble(.name_repair = "minimal") %>%
+  mutate(fname = value) %>%
+  separate(value, into = c("location"), sep = "-")
+
+all_maes <- tibble()
+logliks <- tibble()
+for(i in 1:nrow(filenames)) {
+  res <- readRDS(paste0(here("output"), "/", filenames[i,"fname"]))
+  out_sims <- res$scenarios$sims
+  dat <- res$pomp_data %>%
+  dplyr::select(time, cases, deaths) 
+
+  # Apply 7-day moving average to the data
+  ma <- function(x) {
+    window <- 7
+    n <- c(seq.int(window), rep(window, length(x)-window))
+    xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+    xm[is.nan(xm)] <- NA 
+    return(xm)
+  }
+  
+  dat <- dat %>%
+    mutate(cases = ma(cases),
+           deaths = ma(deaths)) %>%
+    gather("key", "value", -time) %>%
+    rename("observation" = value)
+  out_sims %>%
+    filter(SimType == "status_quo") %>%
+    dplyr::select(rep_id, time, cases, deaths) %>%
+    gather("key", "value", -rep_id, -time) %>%
+    left_join(dat, by = c("time", "key")) %>%
+    drop_na() %>%
+    mutate(abserror = abs(value - observation)) %>%
+    group_by(time, key) %>%
+    summarise(mae = mean(abserror)) %>%
+    ungroup() %>%
+    left_join(res$pomp_data[,c("time", "date")], by = "time") -> maeByDate
+  maeTotal <- maeByDate %>%
+    group_by(key) %>%
+    summarise(mmae = round(mean(mae),2)) %>%
+    mutate(location = res$location)
+  all_maes <- bind_rows(all_maes, maeTotal)
+  
+  
+  pars <- res$partable_natural
+  llmle <- pars[which(rownames(pars) == "LogLik"), 2]
+  
+  loglik_naive <- function(y){
+    res <- diff(y)
+    sigma <- sd(res, na.rm = TRUE)
+    densities <- dnorm(res, sd = sigma, log = TRUE)
+    sum(densities)
+  }
+  pomp_data <- res$pomp_data %>%
+    dplyr::select(time, cases, deaths)
+  cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
+  dnll <- loglik_naive(pomp_data$deaths[!is.na(pomp_data$deaths)])
+  nll <- cnll + dnll
+  outll <- tibble(location = res$location,
+                  llmle = llmle,
+                  nll = nll)
+  logliks <- bind_rows(logliks, outll)
+}
+
+states_with_better_nll <- logliks %>%
+  filter(nll > llmle) %>%
+  pull(location)
+
+if(length(states_with_better_nll) > 2) {
+  last <- tail(states_with_better_nll)
+  others <- head(states_with_better_nll, length(states_with_better_nll) - 1)
+  first <- paste(others, collapse = ", ")
+  stsprint <- paste(first, last, collapse = ", and ") 
+} else {
+  stsprint <- paste(states_with_better_nll, collapse = " and ")
+}
+```
+
+Here we compare the log likelihood of each state's model at the MLEs to a random walk model.
+In nearly all cases, the log likelihood of the SEIR model is higher (less negative) than the random walk model.
+The `r length(states_with_better_nll)` states where the random walk model outperforms the SEIR model are `r stsprint`.
+All log likelihoods are compared in the plot below.
+Note that less negative implies a better model.
+
+```{r plotll}
+logliks %>%
+  gather("key", "value", -location) %>%
+  ggplot(aes(x = location, y = value, fill = key)) +
+  geom_col(position = position_dodge()) +
+  coord_flip() +
+  scale_fill_brewer(type = "qual") +
+  theme_minimal()
+```
+
+## Mean absolute errors
+
+Here we show the MAEs for each state for daily case reports and daily death reports.
+The MAE is truncated to 350 for visualization purposes.
+
+```{r maes}
+ggplot(all_maes %>%
+         mutate(mmae = ifelse(mmae > 350, 350, mmae)), 
+       aes(x = reorder(location, mmae), y = mmae)) +
+  geom_col(aes(fill = key)) +
+  facet_wrap(~key, scales = "free_x") +
+  theme_minimal() +
+  coord_flip() +
+  scale_fill_manual(values = c("dodgerblue", "salmon")) +
+  guides(fill = FALSE) +
+  xlab("") +
+  ylab("Mean absolute error (MAE)") 
+```
