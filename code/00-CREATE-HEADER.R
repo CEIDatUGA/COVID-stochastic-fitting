@@ -123,7 +123,7 @@ for (dolocation in statevec)
     filter(location == dolocation)
   
   n_knots <- round(nrow(pomp_data) / 10 )
-  est_these_pars = c("log_sigma_dw", "log_beta_s",
+  est_these_pars = c("log_sigma_dw", "log_beta_s", "frac_dead",
                      "log_theta_cases", "log_theta_deaths")
   est_these_inivals = c("E1_0")
   # est_these_inivals = ""
@@ -174,4 +174,8 @@ for (dolocation in statevec)
 # Save the outputs
 saveRDS(pomp_list, file = here("header/pomp_list.rds"))
 saveRDS(timestamp, file = here("header/timestamp.rds"))
+
+# Create new folder for benchmark storage
+datestamp <- Sys.Date()
+dir.create(paste0("output/", datestamp, "/"))
 

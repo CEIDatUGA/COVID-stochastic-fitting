@@ -100,13 +100,15 @@ for(do_file in all_files) {
          "Cdeaths" = deaths) %>%
   gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
   group_by(SimType, Period, Date, Variable) %>%
-  summarise(lower = ceiling(quantile(Value, 0.025, na.rm = TRUE)),
-            ptvalue = ceiling(mean(Value, na.rm = TRUE)),
-            # ptvalue = median(Value),
-            upper = ceiling(quantile(Value, 0.975, na.rm = TRUE))) %>%
-  ungroup() %>%
-    mutate(lower = ifelse(Period == "Past", ptvalue, lower),
-           upper = ifelse(Period == "Past", ptvalue, upper))
+  summarise(lower_95 = ceiling(quantile(Value, 0.025, na.rm = TRUE)),
+            lower_90 = ceiling(quantile(Value, 0.05, na.rm = TRUE)),
+            lower_80 = ceiling(quantile(Value, 0.1, na.rm = TRUE)),
+            mean_value = ceiling(mean(Value, na.rm = TRUE)),
+            median_value = median(Value, na.rm = TRUE),
+            upper_80 = ceiling(quantile(Value, 0.9, na.rm = TRUE)),
+            upper_90 = ceiling(quantile(Value, 0.95, na.rm = TRUE)),
+            upper_95 = ceiling(quantile(Value, 0.975, na.rm = TRUE))) %>%
+  ungroup() 
   
   res$pomp_data %>%
     dplyr::select(date, cases, deaths) %>%

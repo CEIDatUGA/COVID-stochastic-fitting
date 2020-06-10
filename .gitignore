@@ -4,5 +4,5 @@
 .Ruserdata
 unacast-ga-private.txt
 ga_state_raw*.csv
-*_results.rds
+output/cache/
 
