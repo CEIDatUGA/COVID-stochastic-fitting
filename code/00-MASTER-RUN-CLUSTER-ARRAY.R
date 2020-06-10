@@ -188,9 +188,9 @@ pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_lis
 # for(i in 1:length(allfiles)) {
 #   pomp_res <- readRDS(paste0("../output/cache/2020-06-09-full/",allfiles[i]))
 #   # Summarize results
-#   res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims, 
+#   res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims,
 #                                        pomp_data = pomp_res$pomp_data,
-#                                        pomp_covar = pomp_res$pomp_covar, 
+#                                        pomp_covar = pomp_res$pomp_covar,
 #                                        location = pomp_res$location)
 #   # Store for benchmarking
 #   rundate <- strsplit(pomp_res$filename_label, split = "-")[[1]][3:5]
@@ -198,14 +198,14 @@ pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_lis
 #   outdir <- paste0("../output/", rundate, "/")
 #   outfile <- paste0(outdir, pomp_res$filename_label, '.csv')
 #   write.csv(res_summary, outfile)
-#   
+# 
 #   # Store for updating
 #   outdir <- "../output/"
 #   fname <- strsplit(pomp_res$filename_label, split = "-")[[1]][1:2]
 #   fname <- paste0(fname, collapse = "-")
 #   outfile <- paste0(outdir, fname, '.csv')
 #   write.csv(res_summary, outfile)
-#   
+# 
 #   # Store parameter estimates
 #   saveRDS(pomp_res$partable_natural, file = paste0("../output/", fname, "-params.rds"))
 # }

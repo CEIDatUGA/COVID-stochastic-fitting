@@ -2,9 +2,10 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
   
   # Summarize daily cases and deaths across simulation reps
   incidence_summaries <- sims %>%
-    dplyr::select(SimType, Period, Date, cases, deaths) %>%
+    dplyr::select(SimType, Period, Date, cases, deaths, H_new) %>%
     rename("daily_cases" = cases,
-           "daily_deaths" = deaths) %>%
+           "daily_deaths" = deaths,
+           "daily_hosps" = H_new) %>%
     gather(key = "Variable", value = "Value", -SimType, -Period, -Date) %>%
     group_by(SimType, Period, Date, Variable) %>%
     summarise(lower_95 = ceiling(quantile(Value, 0.025, na.rm = TRUE)),
@@ -27,7 +28,13 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
     ungroup() %>%
     mutate(Variable = ifelse(Variable == "daily_cases",
                              "cumulative_cases",
-                             "cumulative_deaths"))
+                             Variable),
+           Variable = ifelse(Variable == "daily_deaths",
+                             "cumulative_deaths",
+                             Variable),
+           Variable = ifelse(Variable == "daily_hosps",
+                             "cumulative_hosps",
+                             Variable))
   
   # Infections over time
   pop_size <- sims %>%
