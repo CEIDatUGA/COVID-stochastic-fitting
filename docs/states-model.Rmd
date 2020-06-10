@@ -484,10 +484,6 @@ for(do_state in unique(state_summaries$location)) {
   logliks <- bind_rows(logliks, outll)
 } 
   
-
-
-
-
 states_with_better_nll <- logliks %>%
   filter(nll > llmle) %>%
   pull(location)
@@ -508,14 +504,17 @@ The `r length(states_with_better_nll)` states where the random walk model outper
 All log likelihoods are compared in the plot below.
 Note that less negative implies a better model.
 
-```{r plotll}
+```{r plotll, fig.height=10}
 logliks %>%
+  rename("SEIR model log likelihood" = llmle,
+         "RW model log likelihood" = nll) %>%
   gather("key", "value", -location) %>%
   ggplot(aes(x = location, y = value, fill = key)) +
   geom_col(position = position_dodge()) +
   coord_flip() +
-  scale_fill_brewer(type = "qual") +
-  theme_minimal()
+  scale_fill_brewer(type = "qual", name = NULL) +
+  theme_minimal() +
+  theme(legend.position = "top")
 ```
 
 ## Mean absolute errors
@@ -525,7 +524,10 @@ The MAE is truncated to 350 for visualization purposes.
 
 ```{r maes}
 ggplot(all_maes %>%
-         mutate(mae = ifelse(mae > 350, 350, mae)), 
+         mutate(mae = ifelse(mae > 350, 350, mae)) %>%
+         mutate(variable = ifelse(variable == "daily_cases", 
+                                  "Daily reported cases", 
+                                  "Daily reported deaths")), 
        aes(x = reorder(location, mae), y = mae)) +
   geom_col(aes(fill = variable)) +
   facet_wrap(~variable, scales = "free_x") +
