@@ -59,14 +59,14 @@ We show a subset of the state-level data here for Georgia, New York, Washington,
 We did not smooth the reported data but we did exclude all negative case and death reports.
 
 ```{r collate-data}
-all_files <- list.files(path = here("output/"), pattern = ".csv")
-param_files <- list.files(path = here("output/"), pattern = ".rds")
+all_files <- list.files(path = here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here("output/current/"), pattern = ".rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
-  tmpfile <- paste0(here("output/"), "/", do_file)
+  tmpfile <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type %in% c("data", "status_quo"),
            variable %in% c("daily_cases", "daily_deaths")) %>%
@@ -74,7 +74,7 @@ for(i in 1:length(all_files)) {
     dplyr::select(location, sim_type, period, date, variable, mean_value,
                   mobility_trend, latent_trend)
   
-  tmpparamfile <- paste0(here("output/"), "/", param_files[i])
+  tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
@@ -380,14 +380,18 @@ Our model is initialized with 2 individuals in the $C_1$ compartment and 1 indiv
 We estimated the initial size of the latent compartment, $L_1$.
 Below we plot the MLE of $L_1$ for each state and the relationship between $L_1$ and $\omega(t=1)$ in each state.
 
-```{r latents, eval = FALSE}
-all_beta_omega %>%
-  group_by(location) %>%
-  summarise(L0 = mean(L0)) -> latents
+```{r latents}
+state_parameters %>%
+  filter(parameter == "E1_0") %>%
+  spread(parameter, value) %>%
+  rename("L0" = E1_0) -> latents
 
-all_beta_omega %>%
+state_summaries %>%
   group_by(location) %>%
   filter(date == min(date)) %>%
+  filter(variable == "daily_cases") %>% 
+  filter(sim_type == "status_quo") %>%
+  ungroup() %>%
   dplyr::select(location, omega) -> omegas
 
 latents <- latents %>%
@@ -407,71 +411,82 @@ ggplot(latents, aes(x = L0, y = omega)) +
 
 ## Log likelihoods
 
-```{r mlesmaes, eval = FALSE}
-filenames <- list.files(path = here("output/"), pattern = ".rds") %>%
-  as_tibble(.name_repair = "minimal") %>%
-  mutate(fname = value) %>%
-  separate(value, into = c("location"), sep = "-")
-
-all_maes <- tibble()
-logliks <- tibble()
-for(i in 1:nrow(filenames)) {
-  res <- readRDS(paste0(here("output"), "/", filenames[i,"fname"]))
-  out_sims <- res$scenarios$sims
-  dat <- res$pomp_data %>%
-  dplyr::select(time, cases, deaths) 
-
-  # Apply 7-day moving average to the data
-  ma <- function(x) {
+```{r mlesmaes}
+ma <- function(x) {
     window <- 7
     n <- c(seq.int(window), rep(window, length(x)-window))
     xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
     xm[is.nan(xm)] <- NA 
     return(xm)
-  }
-  
+}
+
+loglik_naive <- function(y){
+  res <- diff(y)
+  sigma <- sd(res, na.rm = TRUE)
+  densities <- dnorm(res, sd = sigma, log = TRUE)
+  sum(densities)
+}
+
+all_maes <- tibble()
+logliks <- tibble()
+
+for(do_state in unique(state_summaries$location)) {
+  tmp_summary <- state_summaries %>%
+    filter(location == do_state)
+  dat <- tmp_summary %>%
+    filter(sim_type == "data") %>%
+    dplyr::select(date, variable, mean_value) %>%
+    spread(variable, mean_value) %>%
+    rename("cases" = daily_cases,
+           "deaths" = daily_deaths)
+
+  # Apply 7-day moving average to the data
   dat <- dat %>%
-    mutate(cases = ma(cases),
-           deaths = ma(deaths)) %>%
-    gather("key", "value", -time) %>%
+    mutate(daily_cases = ma(cases),
+           daily_deaths = ma(deaths)) %>%
+    dplyr::select(-cases, -deaths) %>%
+    gather("variable", "value", -date) %>%
     rename("observation" = value)
-  out_sims %>%
-    filter(SimType == "status_quo") %>%
-    dplyr::select(rep_id, time, cases, deaths) %>%
-    gather("key", "value", -rep_id, -time) %>%
-    left_join(dat, by = c("time", "key")) %>%
+  
+  mae_total <- tmp_summary %>%
+    filter(sim_type == "status_quo") %>%
+    filter(period == "Past") %>%
+    filter(variable %in% c("daily_cases", "daily_deaths")) %>%
+    mutate(variable = as.character(variable)) %>%
+    dplyr::select(date, variable, mean_value) %>%
+    rename("value" = mean_value) %>%
+    left_join(dat, by = c("date", "variable")) %>%
     drop_na() %>%
     mutate(abserror = abs(value - observation)) %>%
-    group_by(time, key) %>%
-    summarise(mae = mean(abserror)) %>%
+    group_by(variable) %>%
+    summarise(mae = round(mean(abserror), 2)) %>%
     ungroup() %>%
-    left_join(res$pomp_data[,c("time", "date")], by = "time") -> maeByDate
-  maeTotal <- maeByDate %>%
-    group_by(key) %>%
-    summarise(mmae = round(mean(mae),2)) %>%
-    mutate(location = res$location)
-  all_maes <- bind_rows(all_maes, maeTotal)
+    mutate(location = do_state)
+
+  all_maes <- bind_rows(all_maes, mae_total)
   
-  
-  pars <- res$partable_natural
-  llmle <- pars[which(rownames(pars) == "LogLik"), 2]
-  
-  loglik_naive <- function(y){
-    res <- diff(y)
-    sigma <- sd(res, na.rm = TRUE)
-    densities <- dnorm(res, sd = sigma, log = TRUE)
-    sum(densities)
-  }
-  pomp_data <- res$pomp_data %>%
-    dplyr::select(time, cases, deaths)
+  # Log likelihoods
+  tmp_loglik <- state_logliks %>%
+    filter(location == do_state) %>%
+    pull(log_lik)
+  pomp_data <- tmp_summary %>%
+    filter(sim_type == "data") %>%
+    dplyr::select(date, variable, mean_value) %>%
+    spread(variable, mean_value) %>%
+    rename("cases" = daily_cases,
+           "deaths" = daily_deaths)
   cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
   dnll <- loglik_naive(pomp_data$deaths[!is.na(pomp_data$deaths)])
   nll <- cnll + dnll
-  outll <- tibble(location = res$location,
-                  llmle = llmle,
+  outll <- tibble(location = do_state,
+                  llmle = tmp_loglik,
                   nll = nll)
   logliks <- bind_rows(logliks, outll)
-}
+} 
+  
+
+
+
 
 states_with_better_nll <- logliks %>%
   filter(nll > llmle) %>%
@@ -481,7 +496,7 @@ if(length(states_with_better_nll) > 2) {
   last <- tail(states_with_better_nll)
   others <- head(states_with_better_nll, length(states_with_better_nll) - 1)
   first <- paste(others, collapse = ", ")
-  stsprint <- paste(first, last, collapse = ", and ") 
+  stsprint <- paste(first, last, collapse = ", and ")
 } else {
   stsprint <- paste(states_with_better_nll, collapse = " and ")
 }
@@ -493,7 +508,7 @@ The `r length(states_with_better_nll)` states where the random walk model outper
 All log likelihoods are compared in the plot below.
 Note that less negative implies a better model.
 
-```{r plotll, eval = FALSE}
+```{r plotll}
 logliks %>%
   gather("key", "value", -location) %>%
   ggplot(aes(x = location, y = value, fill = key)) +
@@ -508,12 +523,12 @@ logliks %>%
 Here we show the MAEs for each state for daily case reports and daily death reports.
 The MAE is truncated to 350 for visualization purposes.
 
-```{r maes, eval = FALSE}
+```{r maes}
 ggplot(all_maes %>%
-         mutate(mmae = ifelse(mmae > 350, 350, mmae)), 
-       aes(x = reorder(location, mmae), y = mmae)) +
-  geom_col(aes(fill = key)) +
-  facet_wrap(~key, scales = "free_x") +
+         mutate(mae = ifelse(mae > 350, 350, mae)), 
+       aes(x = reorder(location, mae), y = mae)) +
+  geom_col(aes(fill = variable)) +
+  facet_wrap(~variable, scales = "free_x") +
   theme_minimal() +
   coord_flip() +
   scale_fill_manual(values = c("dodgerblue", "salmon")) +
