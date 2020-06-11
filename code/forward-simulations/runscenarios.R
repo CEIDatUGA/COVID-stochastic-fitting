@@ -12,8 +12,8 @@ runscenarios <- function(pomp_res, par_var_list, forecast_horizon_days = 6*7, ns
 
   # assign pomp model and MLEs ------------------------------------------------
   # from mif_res object, extract mif run results for each run  
-  mifs = sapply(pomp_res$mif_res, "[[", "out_mif")
-  pfs = sapply(pomp_res$mif_res, "[", "pf")
+  # mifs = sapply(pomp_res$mif_res, "[[", "out_mif")
+  # pfs = sapply(pomp_res$mif_res, "[", "pf")
   
   #pull various things out of pomp_res object
   pomp_model = pomp_res$pomp_model
