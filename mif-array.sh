@@ -13,4 +13,4 @@ module load R/3.6.2-foss-2018a-X11-20180131-GACRC
 
 mkdir ${PBS_JOBID}
 cd ${PBS_JOBID}
-R CMD BATCH "--args a=$PBS_ARRAYID " ../code/00-MASTER-RUN-CLUSTER-ARRAY.R
+R CMD BATCH "--args a=$PBS_ARRAYID " ../code/00-RUN-CLUSTER-ARRAY.R

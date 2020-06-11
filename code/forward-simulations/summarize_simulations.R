@@ -59,9 +59,9 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
   
   # Mobility covariate (phi)
   dates <- unique(sims$Date) %>%
-    enframe(name = "time", value = "Date")
+    tibble::enframe(name = "time", value = "Date")
   mobility <- pomp_covar@table["rel_beta_change", ] %>%
-    enframe(name = "time", value = "phi") %>%
+    tibble::enframe(name = "time", value = "phi") %>%
     right_join(dates, by = "time") %>%
     fill(phi, .direction = "down") %>%
     dplyr::select(-time)

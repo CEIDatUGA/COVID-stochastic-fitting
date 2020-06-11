@@ -28,6 +28,7 @@ library('dplyr')
 library('tidyr')
 library('here')
 library('vctrs')
+library('tibble')
 
 
 # --------------------------------------------------
@@ -177,61 +178,34 @@ pomp_res$sims <- sim
 
 #save the completed analysis for each state to a file with time-stamp
 #this file could be large, needs checking
-filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
-# saveRDS(object = pomp_res, file = filename)
+
 
 # Run scenarios
 pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
-# filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
-# saveRDS(object = pomp_res, file = filename)
-
-allfiles <- list.files("../output/cache/2020-06-09-full/")
-for(i in 1:length(allfiles)) {
-  pomp_res <- readRDS(paste0("../output/cache/2020-06-09-full/",allfiles[i]))
-  # Summarize results
-  res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims,
-                                       pomp_data = pomp_res$pomp_data,
-                                       pomp_covar = pomp_res$pomp_covar,
-                                       location = pomp_res$location)
-  # Store for benchmarking
-  rundate <- strsplit(pomp_res$filename_label, split = "-")[[1]][3:5]
-  rundate <- paste0(rundate, collapse = "-")
-  outdir <- paste0("../output/", rundate, "/")
-  outfile <- paste0(outdir, pomp_res$filename_label, '.csv')
-  write.csv(res_summary, outfile, row.names = FALSE)
-
-  # Store for updating
-  outdir <- "../output/current/"
-  fname <- strsplit(pomp_res$filename_label, split = "-")[[1]][1:2]
-  fname <- paste0(fname, collapse = "-")
-  outfile <- paste0(outdir, fname, '.csv')
-  write.csv(res_summary, outfile, row.names = FALSE)
-
-  # Store parameter estimates
-  saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
-}
+filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
+saveRDS(object = pomp_res, file = filename)
 
 # Summarize results
 res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims, 
                                      pomp_covar = pomp_res$covar, 
                                      location = pomp_res$location)
+
 # Store for benchmarking
 rundate <- strsplit(pomp_res$filename_label, split = "-")[[1]][3:5]
 rundate <- paste0(rundate, collapse = "-")
 outdir <- paste0("../output/", rundate, "/")
-dir.create(outdir)
 outfile <- paste0(outdir, pomp_res$filename_label, '.csv')
 write.csv(res_summary, outfile, row.names = FALSE)
 
 # Store for updating
-outdir <- "../output/"
+outdir <- "../output/current/"
 fname <- strsplit(pomp_res$filename_label, split = "-")[[1]][1:2]
 fname <- paste0(fname, collapse = "-")
 outfile <- paste0(outdir, fname, '.csv')
 write.csv(res_summary, outfile, row.names = FALSE)
 
 # Store parameter estimates
-saveRDS(pomp_res$partable_natural, file = paste0("../output/", fname, "-params.rds"))
+saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
 
