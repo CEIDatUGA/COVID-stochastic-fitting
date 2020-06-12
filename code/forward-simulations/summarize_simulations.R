@@ -1,4 +1,4 @@
-summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
+summarize_simulations <- function(sims, pomp_data, pomp_covar, location, mle_sim) {
   
   # Summarize daily cases and deaths across simulation reps
   incidence_summaries <- sims %>%
@@ -67,10 +67,13 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
     dplyr::select(-time)
   
   # Latent trend (psi)
-  latent_trend <- sims %>% 
-    group_by(Date) %>%
-    summarise(psi = mean(trendO, na.rm = TRUE)) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi))))
+  latent_trend <- mle_sim %>% 
+    filter(.id == 1) %>%
+    mutate(psi = trendO) %>%
+    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
+    dplyr::select(time, psi) %>%
+    left_join(dates, by = "time") %>%
+    dplyr::select(-time)
 
   # Format data
   form_data <- pomp_data %>%
