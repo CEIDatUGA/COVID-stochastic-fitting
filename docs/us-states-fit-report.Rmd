@@ -22,11 +22,11 @@ library(googlesheets4)
 ## In-Sample Trajectories
 
 ```{r us-traj}
-all_files <- list.files(here("output"), pattern = "*.rds")
+all_files <- list.files(here("output/cache/2020-06-11/"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 
 for(do_file in all_files) {
-  res <- readRDS(here("output", do_file))
+  res <- readRDS(here("output/cache/2020-06-11/", do_file))
   sim <- res$sims
   dat <- res$pomp_data
   mobility <- res$pomp_covar@table["rel_beta_change",]
@@ -88,11 +88,11 @@ for(do_file in all_files) {
 ## Projections
 
 ```{r sqs}
-all_files <- list.files(here("output"), pattern = "*.rds")
+all_files <- list.files(here("output/cache/2020-06-11/"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 
 for(do_file in all_files) {
-  res <- readRDS(here("output", do_file))
+  res <- readRDS(here("output/cache/2020-06-11/", do_file))
   sims <- res$scenarios$sims
   sim_summs <- sims %>%
   dplyr::select(SimType, Period, Date, cases, deaths) %>%
@@ -121,10 +121,10 @@ for(do_file in all_files) {
     bind_rows(dat %>% mutate(SimType = "linear_increase_sd")) %>%
     bind_rows(dat %>% mutate(SimType = "return_normal"))
   
-  ggplot(sim_summs, aes(x = Date, y = ptvalue)) +
+  ggplot(sim_summs, aes(x = Date, y = mean_value)) +
     geom_line() +
     geom_line(data = datAll, aes(x = Date, y = Value), col = "red") +
-    geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+    geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2) +
     facet_wrap(SimType ~ Variable,scales = "free", ncol = 2) -> simout
   print(do_file)
   print(simout)
@@ -133,7 +133,7 @@ for(do_file in all_files) {
 ```
 
 ## Parameter Estimates
-```{r params, results='asis', eval = TRUE}
+```{r params, results='asis', eval = FALSE}
 all_files <- list.files(here("output/"), pattern = "*.rds")
 # if(length(all_files != 50)) stop("Too few or too many output files...")
 betas <- tibble()
@@ -163,7 +163,7 @@ for(do_file in all_files) {
 
 ## Baseline transmission rate parameters
 
-```{r histo}
+```{r histo, eval = FALSE}
 ggplot(data = betas, aes(x = reorder(location, beta), y = beta)) +
   geom_col(fill = "dodgerblue") +
   ylab(expression(beta)) +

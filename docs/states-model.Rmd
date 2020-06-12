@@ -331,7 +331,11 @@ The estimated latent trend in transmission reduction is combined with mobility d
 The estimated values of $\beta$ for each state are informative, but to understand the tranmission rate as implemented in the model we need to look at $\omega(t)$, which is plotted below.
 
 ```{r trends, fig.width = 10}
-ggplot(state_summaries, aes(date, omega)) +
+omega_summaries <- state_summaries %>%
+  group_by(location, date) %>%
+  filter(period == "Past") %>%
+  summarise(omega = mean(omega))
+ggplot(omega_summaries, aes(date, omega)) +
   geom_line(color = "salmon") +
   facet_wrap(~location, ncol = 10) +
   coord_cartesian(ylim = c(0, 1e-06)) +
@@ -346,6 +350,7 @@ Here we plot the average $\omega$ over time.
 ```{r avgomega}
 state_summaries %>%
   group_by(location) %>%
+  filter(period == "Past") %>%
   summarise(mean_omega = mean(omega),
             lower = min(omega),
             upper = max(omega)) %>%
@@ -366,6 +371,7 @@ See plot below that shows $\omega(t)$ for each state (grey lines) and the overal
 ```{r omegatime}
 state_summaries %>%
   filter(date >= "2020-03-01") %>%
+  filter(period == "Past") %>%
   ggplot(aes(x = date, y = omega)) +
   geom_line(color = "grey", aes(group = location), size = 0.5) +
   geom_smooth(se = FALSE, color = "dodgerblue", size = 1.2) +
