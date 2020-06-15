@@ -186,7 +186,7 @@ filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
 saveRDS(object = pomp_res, file = filename)
 
 # Summarize results
-res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims, 
+res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 
                                      pomp_data = pomp_res$pomp_data,
                                      pomp_covar = pomp_res$pomp_covar, 
                                      location = pomp_res$location,
