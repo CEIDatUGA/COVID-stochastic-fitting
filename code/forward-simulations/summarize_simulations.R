@@ -1,4 +1,7 @@
-summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
+summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle_sim) {
+  
+  sims <- sims_out$sims
+  sim_covars <- sims_out$covars
   
   # Summarize daily cases and deaths across simulation reps
   incidence_summaries <- sims %>%
@@ -19,28 +22,31 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
     ungroup()
   
   # Summarize cumulative cases and deaths across simulation reps
-  cumulative_summaries <- incidence_summaries %>%
-    arrange(SimType, Variable, Date) %>%
-    group_by(SimType, Variable) %>%
-    mutate_at(c("lower_95", "lower_90", "lower_80", "mean_value", 
-                        "median_value", "upper_80", "upper_90", "upper_95"), 
-              cumsum) %>%
-    ungroup() %>%
-    mutate(Variable = ifelse(Variable == "daily_cases",
-                             "cumulative_cases",
-                             Variable),
-           Variable = ifelse(Variable == "daily_deaths",
-                             "cumulative_deaths",
-                             Variable),
-           Variable = ifelse(Variable == "daily_hosps",
-                             "cumulative_hosps",
-                             Variable))
+  # cumulative_summaries <- incidence_summaries %>%
+  #   arrange(SimType, Variable, Date) %>%
+  #   group_by(SimType, Variable) %>%
+  #   mutate_at(c("lower_95", "lower_90", "lower_80", "mean_value", 
+  #                       "median_value", "upper_80", "upper_90", "upper_95"), 
+  #             cumsum) %>%
+  #   ungroup() %>%
+  #   mutate(Variable = ifelse(Variable == "daily_cases",
+  #                            "cumulative_cases",
+  #                            Variable),
+  #          Variable = ifelse(Variable == "daily_deaths",
+  #                            "cumulative_deaths",
+  #                            Variable),
+  #          Variable = ifelse(Variable == "daily_hosps",
+  #                            "cumulative_hosps",
+  #                            Variable))
   
   # Infections over time
   pop_size <- sims %>%
     filter(Date == min(Date)) %>%
     pull(S) %>%
     unique()
+  mydiff <- function(x) {
+    c(0, diff(x))
+  }
   infection_summaries <- sims %>%
     dplyr::select(SimType, Period, Date, S) %>%
     mutate(N = pop_size) %>%
@@ -55,22 +61,53 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
               upper_90 = ceiling(quantile(infections, 0.95, na.rm = TRUE)),
               upper_95 = ceiling(quantile(infections, 0.975, na.rm = TRUE))) %>%
     ungroup() %>%
-    mutate(Variable = "cumulative_all_infections")
+    mutate(Variable = "daily_all_infections") %>%
+    group_by(SimType, Period) %>%
+    arrange(Date) %>%
+    mutate_at(.vars = 4:11, .funs = mydiff) %>%
+    ungroup()
   
   # Mobility covariate (phi)
   dates <- unique(sims$Date) %>%
     tibble::enframe(name = "time", value = "Date")
-  mobility <- pomp_covar@table["rel_beta_change", ] %>%
-    tibble::enframe(name = "time", value = "phi") %>%
+  
+  # mobility <- pomp_covar@table["rel_beta_change", ] %>%
+  #   tibble::enframe(name = "time", value = "phi") %>%
+  #   right_join(dates, by = "time") %>%
+  #   fill(phi, .direction = "down") %>%
+  #   dplyr::select(-time)
+  
+  mobility <- sim_covars %>%
     right_join(dates, by = "time") %>%
-    fill(phi, .direction = "down") %>%
-    dplyr::select(-time)
+    group_by(SimType, Date) %>%
+    summarise(mean_value = mean(rel_beta_change)) %>%
+    ungroup() %>%
+    mutate(Variable = "mobility_trend")
   
   # Latent trend (psi)
-  latent_trend <- sims %>% 
-    group_by(Date) %>%
-    summarise(psi = mean(trendO, na.rm = TRUE)) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi))))
+  obs_latent <- mle_sim %>% 
+    filter(.id == 1) %>%
+    mutate(psi = trendO) %>%
+    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
+    pull(psi)
+  proj_latent <- mean(tail(obs_latent, 30))
+  latent_trend <- mle_sim %>% 
+    filter(.id == 1) %>%
+    mutate(psi = trendO) %>%
+    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
+    dplyr::select(time, psi) %>%
+    right_join(dates, by = "time") %>%
+    mutate(psi = ifelse(is.na(psi), proj_latent, psi)) %>%
+    dplyr::select(-time) %>%
+    rename("mean_value" = psi) %>%
+    mutate(Variable = "latent_trend") %>%
+    mutate(SimType = "status_quo")
+  
+  latent_trend <- latent_trend %>%
+    bind_rows(latent_trend %>%
+                mutate(SimType = "return_normal")) %>%
+    bind_rows(latent_trend %>%
+                mutate(SimType = "linear_increase_sd"))
 
   # Format data
   form_data <- pomp_data %>%
@@ -79,19 +116,16 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
            "daily_deaths" = deaths,
            "Date" = date) %>%
     gather("Variable", "mean_value", -Date) %>%
-    mutate(SimType = "data",
+    mutate(SimType = NA,
            Period = "Past")
   
   # Combine with incidence estimates
   all_summaries <- incidence_summaries %>%
-    bind_rows(cumulative_summaries) %>%
     bind_rows(infection_summaries) %>%
     bind_rows(form_data) %>%
-    left_join(mobility, by = "Date") %>%
-    left_join(latent_trend, by = "Date") %>%
-    rename("mobility_trend" = phi,
-           "latent_trend" = psi,
-           "sim_type" = SimType) %>%
+    bind_rows(mobility) %>%
+    bind_rows(latent_trend) %>%
+    rename("sim_type" = SimType) %>%
     rename_all(tolower) %>%
     arrange(sim_type, date, variable) %>%
     as.data.frame()
@@ -99,7 +133,11 @@ summarize_simulations <- function(sims, pomp_data, pomp_covar, location) {
   locationdf <- data.frame(location = rep(location, times = nrow(all_summaries)))
   
   all_summaries <- locationdf %>%
-    bind_cols(all_summaries)
+    bind_cols(all_summaries) %>%
+    gather(key = "var_type", value = "value", -location, -sim_type, 
+           -period, -date, -variable) %>%
+    mutate(var_type = ifelse(is.na(sim_type), "data", var_type)) %>%
+    filter(!is.na(value))
   
   return(all_summaries)
 }
