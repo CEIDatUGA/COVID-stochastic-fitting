@@ -179,3 +179,6 @@ saveRDS(timestamp, file = here("header/timestamp.rds"))
 datestamp <- Sys.Date()
 dir.create(paste0("output/", datestamp, "/"))
 
+# Create folder to write current fits and projections
+dir.create(paste0("output/current/"))
+

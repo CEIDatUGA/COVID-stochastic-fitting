@@ -44,10 +44,13 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     filter(Date == min(Date)) %>%
     pull(S) %>%
     unique()
+  mydiff <- function(x) {
+    c(0, diff(x))
+  }
   infection_summaries <- sims %>%
     dplyr::select(SimType, Period, Date, S) %>%
     mutate(N = pop_size) %>%
-    mutate(infections = c(0, diff(N - S))) %>%
+    mutate(infections = N - S) %>%
     group_by(SimType, Period, Date) %>%
     summarise(lower_95 = ceiling(quantile(infections, 0.025, na.rm = TRUE)),
               lower_90 = ceiling(quantile(infections, 0.05, na.rm = TRUE)),
@@ -58,7 +61,11 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
               upper_90 = ceiling(quantile(infections, 0.95, na.rm = TRUE)),
               upper_95 = ceiling(quantile(infections, 0.975, na.rm = TRUE))) %>%
     ungroup() %>%
-    mutate(Variable = "daily_all_infections")
+    mutate(Variable = "daily_all_infections") %>%
+    group_by(SimType, Period) %>%
+    arrange(Date) %>%
+    mutate_at(.vars = 4:11, .funs = mydiff) %>%
+    ungroup()
   
   # Mobility covariate (phi)
   dates <- unique(sims$Date) %>%
@@ -109,7 +116,7 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
            "daily_deaths" = deaths,
            "Date" = date) %>%
     gather("Variable", "mean_value", -Date) %>%
-    mutate(SimType = "data",
+    mutate(SimType = NA,
            Period = "Past")
   
   # Combine with incidence estimates
@@ -126,7 +133,11 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
   locationdf <- data.frame(location = rep(location, times = nrow(all_summaries)))
   
   all_summaries <- locationdf %>%
-    bind_cols(all_summaries)
+    bind_cols(all_summaries) %>%
+    gather(key = "var_type", value = "value", -location, -sim_type, 
+           -period, -date, -variable) %>%
+    mutate(var_type = ifelse(is.na(sim_type), "data", var_type)) %>%
+    filter(!is.na(value))
   
   return(all_summaries)
 }
