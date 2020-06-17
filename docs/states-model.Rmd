@@ -183,7 +183,8 @@ Here we show the mobility trends from all 50 states.
 ```{r covariate, fig.height=3, fig.width=5, eval = TRUE}
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
-  dplyr::select(location, date, mean_value)
+  dplyr::select(location, date, mean_value) %>%
+  filter(date <= Sys.Date())
 
 ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
@@ -282,7 +283,8 @@ fixed_parameters %>%
 
 Initial size of the susceptible compartment was set as each state's population size minus the number of individuals in other the other compartments that we fix.
 It is true that the initial size of the susceptible pool will also decrease based on the number of inidividuals estimated to be in the latent infections compartment at $t = 1$.
-However, given the small size of $L_1(t = 1)$ relative to total population size and the fact that total population size is a point estimate with error, we assume that our simple approach of setting $S(t = 1)$ to each state's population size is valid. 
+However, given the small size of $L_1(t = 1)$ relative to total population size and the fact that total population size is a point estimate with error, we assume that our simple approach of setting $S(t = 1)$ to each state's population size is valid.
+For each state, we consider $t=1$ as the date on which the first case is reported in that state.
 
 MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
 To identify the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
@@ -362,7 +364,7 @@ omega_summaries %>%
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
   ylab(expression(omega)) +
   xlab("") +
-  coord_flip() +
+  coord_flip(ylim = c(0, 0.00000125)) +
   theme_minimal() +
   ggtitle("Mean tranmission rates over time", subtitle = "error bars show min and max")
 ```
@@ -505,10 +507,10 @@ if(length(states_with_better_nll) > 2) {
 ```
 
 Here we compare the log likelihood of each state's model at the MLEs to a random walk model.
-In nearly all cases, the log likelihood of the SEIR model is higher (less negative) than the random walk model.
-The `r length(states_with_better_nll)` states where the random walk model outperforms the SEIR model are `r stsprint`.
+In all cases, the log likelihood of the SEIR model is higher (less negative, indicating a better model) than the random walk model.
+<!-- The `r length(states_with_better_nll)` states where the random walk model outperforms the SEIR model are `r stsprint`. -->
 All log likelihoods are compared in the plot below.
-Note that less negative implies a better model.
+Note that less negative -- that is, a larger log likelihood -- implies a better model.
 
 ```{r plotll, fig.height=10}
 logliks %>%
