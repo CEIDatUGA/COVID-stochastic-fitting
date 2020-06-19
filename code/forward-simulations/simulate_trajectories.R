@@ -124,6 +124,7 @@ simulate_trajectories <- function(
       filter(mle_id == init_id$mle_id) %>%
       filter(.id == init_id$.id) %>%
       pull(trendO)
+    trend_trans <- (exp(trend) / (1+exp(trend)))
     
     inits <- obs_sim %>%
       filter(mle_id == init_id$mle_id) %>%
@@ -131,10 +132,10 @@ simulate_trajectories <- function(
       tail(1) %>%
       dplyr::select(-time, -.id, -cases, -hosps, -deaths, -rel_beta_change) %>%
       summarise(S_0=round(mean(S)),
-                E1_0=log(round(mean(E1))), 
-                Ia1_0=log(round(mean(Ia1))), 
-                Isu1_0=log(round(mean(Isu1))), 
-                Isd1_0=log(round(mean(Isd1))),
+                E1_0=log(round(mean(E1)) + 0.001), 
+                Ia1_0=log(round(mean(Ia1)) + 0.001), 
+                Isu1_0=log(round(mean(Isu1)) + 0.001), 
+                Isd1_0=log(round(mean(Isd1)) + 0.001),
                 C1_0 = round(mean(C1)), 
                 H1_0 = round(mean(H1)),
                 R_0=round(mean(R)),
@@ -144,7 +145,6 @@ simulate_trajectories <- function(
     
     param_vals[which(names(param_vals) %in% names(inits))] <- inits
     
-    
     # Update pomp covariate table
     if(covar_action == "status_quo") {
       covars <- pomp_model@covar@table["rel_beta_change", ]
@@ -152,7 +152,12 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      trendmut <- mean(tail(trend_trans, 30))
+      trendmu <- log(trendmut/(1-trendmut))
+      trendlast <- tail(trend, 1)
+      incsim <- seq(trendlast, trendmu, length.out = 14)
+      finalsim <- rep(trendmu, times = (horizon - length(incsim)))
+      trend_sim <- c(trend, incsim, finalsim)
     }
     
     if(covar_action == "more_sd") {
@@ -161,12 +166,18 @@ simulate_trajectories <- function(
       # minval <- min(covars)
       minval <- 0.3  # max observed in NY
       dec <- seq(lastval, minval, length.out = 7)
-      final <- rep(minval, times = (horizon - length(dec)))
+      final <- rep(minval, times = (horizon - length(incsim)))
       covars <- c(covars, dec, final)
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      #trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      trendmut <- mean(tail(trend_trans, 30))
+      trendmu <- log(trendmut/(1-trendmut))
+      trendlast <- tail(trend, 1)
+      incsim <- seq(trendlast, trendmu, length.out = 14)
+      finalsim <- rep(trendmu, times = (horizon - length(incsim)))
+      trend_sim <- c(trend, incsim, finalsim)
     }
     
     if(covar_action == "less_sd") {
@@ -179,7 +190,13 @@ simulate_trajectories <- function(
       covars <- as.data.frame(covars) %>%
         mutate(time = 1:n()) %>%
         rename("rel_beta_change" = covars)
-      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      # trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      trendmut <- mean(tail(trend_trans, 30))
+      trendmu <- log(trendmut/(1-trendmut))
+      trendlast <- tail(trend, 1)
+      incsim <- seq(trendlast, trendmu, length.out = 14)
+      finalsim <- rep(trendmu, times = (horizon - length(incsim)))
+      trend_sim <- c(trend, incsim, finalsim)
     }
     
     if(covar_action == "normal") {
@@ -195,7 +212,13 @@ simulate_trajectories <- function(
       # trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
       # trend_inc <- rep(inits$trendO_0, times = horizon)
       # trend_sim <- c(inits$trendO_0, trend_inc)
-      trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      # trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
+      trendmut <- mean(tail(trend_trans, 30))
+      trendmu <- log(trendmut/(1-trendmut))
+      trendlast <- tail(trend, 1)
+      incsim <- seq(trendlast, trendmu, length.out = 14)
+      finalsim <- rep(trendmu, times = (horizon - length(incsim)))
+      trend_sim <- c(trend, incsim, finalsim)
     }
     
     

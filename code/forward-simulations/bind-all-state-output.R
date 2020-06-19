@@ -16,6 +16,8 @@ us_output <- tibble()  # empty storage tibble
 for(do_file in all_files) {
   tmp_file <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmp_file, stringsAsFactors = FALSE)
+  tmp <- tmp %>%
+    mutate(median_value = ifelse(is.na(sim_type), mean_value, median_value))
   us_output <- bind_rows(us_output, tmp)
 }
 
