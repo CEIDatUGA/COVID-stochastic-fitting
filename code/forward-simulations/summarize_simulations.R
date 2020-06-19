@@ -96,6 +96,26 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     ungroup() %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
+  infection_cumulative <- sims %>%
+    dplyr::select(SimType, Period, Date, S) %>%
+    mutate(N = pop_size) %>%
+    mutate(infections = N - S) %>%
+    group_by(SimType, Period, Date) %>%
+    summarise(lower_95 = ceiling(quantile(infections, 0.025, na.rm = TRUE)),
+              lower_90 = ceiling(quantile(infections, 0.05, na.rm = TRUE)),
+              lower_80 = ceiling(quantile(infections, 0.1, na.rm = TRUE)),
+              mean_value = ceiling(mean(infections, na.rm = TRUE)),
+              median_value = ceiling(median(infections, na.rm = TRUE)),
+              upper_80 = ceiling(quantile(infections, 0.9, na.rm = TRUE)),
+              upper_90 = ceiling(quantile(infections, 0.95, na.rm = TRUE)),
+              upper_95 = ceiling(quantile(infections, 0.975, na.rm = TRUE))) %>%
+    ungroup() %>%
+    mutate(Variable = "cumulative_all_infections") %>%
+    group_by(SimType, Period) %>%
+    arrange(Date) %>%
+    ungroup() %>%
+    gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
+  
   # Mobility covariate (phi)
   dates <- unique(sims$Date) %>%
     tibble::enframe(name = "time", value = "Date")
@@ -160,11 +180,27 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
            Period = "Past") %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
+  cumulative_data <- pomp_data %>%
+    dplyr::select(date, cases, deaths) %>%
+    mutate(cases = ifelse(is.na(cases), 0, cases),
+           deaths = ifelse(is.na(deaths), 0, deaths)) %>%
+    mutate(cases = cumsum(cases),
+           deaths = cumsum(deaths)) %>%
+    rename("actual_cumulative_cases" = cases,
+           "actual_cumulative_deaths" = deaths,
+           "Date" = date) %>%
+    gather("Variable", "mean_value", -Date) %>%
+    mutate(SimType = NA,
+           Period = "Past") %>%
+    gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
+  
   # Combine with incidence estimates
   all_summaries <- incidence_summaries %>%
     bind_rows(cumulative_summaries) %>%
     bind_rows(infection_summaries) %>%
+    bind_rows(infection_cumulative) %>%
     bind_rows(form_data) %>%
+    bind_rows(cumulative_data) %>%
     bind_rows(mobility) %>%
     bind_rows(latent_trend) %>%
     bind_rows(combined_trend) %>%
