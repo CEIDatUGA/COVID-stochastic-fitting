@@ -87,7 +87,7 @@ parallel_info$num_cores <- 32  # on HPC - should ideally be M states * replicate
 # two rounds of MIF are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(175,175)
+mif_settings$mif_num_iterations <- c(150,150)
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
 mif_settings$pf_reps <- 32#replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
@@ -178,12 +178,13 @@ pomp_res$sims <- sim
 
 #save the completed analysis for each state to a file with time-stamp
 #this file could be large, needs checking
-
+filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
+saveRDS(object = pomp_res, file = filename)
 
 # Run scenarios
 pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
 filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
-saveRDS(object = pomp_res, file = filename)
+saveRDS(object = pomp_res, file = filename)  # resave...
 
 # Summarize results
 res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 

@@ -27,7 +27,8 @@ simulate_trajectories <- function(
     mutate(totdif = sum(c(dif1, dif3), na.rm = TRUE)) %>%
     ungroup() %>%
     filter(totdif == min(totdif)) %>%
-    dplyr::select(.id, mle_id)
+    dplyr::select(.id, mle_id) %>%
+    slice(1)
   
   trend <- obs_sim %>%
     filter(mle_id == init_id$mle_id) %>%
@@ -74,8 +75,8 @@ simulate_trajectories <- function(
     lastval <- as.numeric(tail(covars, 1))
     # minval <- min(covars)
     minval <- 0.3  # max observed in NY
-    dec <- seq(lastval, minval, length.out = 7)
-    final <- rep(minval, times = (horizon - length(incsim)))
+    dec <- seq(lastval, minval, length.out = 14)
+    final <- rep(minval, times = (horizon - length(dec)))
     covars <- c(covars, dec, final)
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
@@ -118,7 +119,7 @@ simulate_trajectories <- function(
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
-    # trend_inc <- seq(inits$trendO_0, 100, length.out = 7)
+    # trend_inc <- seq(inits$trendO_0, 100, length.out = 14)
     # trend_inc <- rep(inits$trendO_0, times = horizon)
     # trend_sim <- c(inits$trendO_0, trend_inc)
     # trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
@@ -206,6 +207,8 @@ simulate_trajectories <- function(
     mutate(.id = as.character(.id)) %>%
     bind_rows(calib_rep) %>%
     arrange(.id, Date)
+  
+  covars$latent_trend <- trend_sim
   
   return(list(sims_ret=sims_ret, covars=covars))
 }

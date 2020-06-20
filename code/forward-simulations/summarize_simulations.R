@@ -136,30 +136,13 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   # Latent trend (psi)
-  obs_latent <- mle_sim %>% 
-    filter(.id == 1) %>%
-    mutate(psi = trendO) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
-    pull(psi)
-  proj_latent <- mean(tail(obs_latent, 30))
-  latent_trend <- mle_sim %>% 
-    filter(.id == 1) %>%
-    mutate(psi = trendO) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
-    dplyr::select(time, psi) %>%
+  latent_trend <- sim_covars %>%
     right_join(dates, by = "time") %>%
-    mutate(psi = ifelse(is.na(psi), proj_latent, psi)) %>%
-    dplyr::select(-time) %>%
-    rename("mean_value" = psi) %>%
-    mutate(Variable = "latent_trend") %>%
-    mutate(SimType = "status_quo") %>%
-    mutate(Period = ifelse(Date <= last_obs_date, "Past", "Future"))
-  
-  latent_trend <- latent_trend %>%
-    bind_rows(latent_trend %>%
-                mutate(SimType = "return_normal")) %>%
-    bind_rows(latent_trend %>%
-                mutate(SimType = "linear_increase_sd")) %>%
+    group_by(SimType, Date) %>%
+    summarise(mean_value = mean(latent_trend)) %>%
+    ungroup() %>%
+    mutate(Variable = "latent_trend",
+           Period = ifelse(Date <= last_obs_date, "Past", "Future")) %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   combined_trend <- latent_trend %>%

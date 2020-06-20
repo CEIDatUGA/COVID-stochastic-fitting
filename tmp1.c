@@ -1,6 +1,6 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-06-11 10:41:44.063 -0400 */
-/* Salt: EBA30855A311AA9B03A12100 */
+/* Time: 2020-06-19 10:33:52.791 -0400 */
+/* Salt: BC092B05D5711B4A871EED4A */
 
 #include <pomp.h>
 #include <R_ext/Rdynload.h>
@@ -340,6 +340,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     double beta;
     double dW;  // environmental stochasticity/noise
     double trend;
+    double delta;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -372,7 +373,11 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     if(fit == 0) {
       trend = trend_sim;
     }
-    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
+    delta = rel_beta_change * (exp(trend) / (1+exp(trend)));
+    if(delta > 1) {
+      delta = 1;
+    }
+    beta = delta * exp(log_beta_s);
     foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
   
     // Time-dependent rate of movement through Isd dummy compartments.

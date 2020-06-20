@@ -1,8 +1,8 @@
 library(tidyverse)
 library(here)
 
-state <- "Massachusetts"
-fname <- paste0("output/2020-06-18/",state,"-COV-2020-06-18-14-30.csv")
+state <- "Florida"
+fname <- paste0("output/2020-06-19/",state,"-COV-2020-06-19-10-32.csv")
 dat <- read.csv(fname) %>%
   filter(variable %in% c("actual_daily_cases")) %>%
   mutate(date = as.Date(date))
