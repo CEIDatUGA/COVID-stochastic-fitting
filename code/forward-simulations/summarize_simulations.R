@@ -141,6 +141,7 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     group_by(SimType, Date) %>%
     summarise(mean_value = mean(latent_trend)) %>%
     ungroup() %>%
+    mutate(mean_value = exp(mean_value) / (1+exp(mean_value))) %>%
     mutate(Variable = "latent_trend",
            Period = ifelse(Date <= last_obs_date, "Past", "Future")) %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
