@@ -1,8 +1,8 @@
 library(tidyverse)
 library(here)
 
-state <- "Massachusetts"
-fname <- paste0("output/2020-06-18/",state,"-COV-2020-06-18-14-30.csv")
+state <- "Arkansas"
+fname <- paste0("output/2020-06-21/",state,"-COV-2020-06-21-20-21.csv")
 dat <- read.csv(fname) %>%
   filter(variable %in% c("actual_daily_cases")) %>%
   mutate(date = as.Date(date))
@@ -11,7 +11,7 @@ read.csv(fname) %>%
   filter(variable %in% c("daily_cases")) %>%
   filter(sim_type == "status_quo") %>%
   mutate(date = as.Date(date)) %>%
-  filter(date <= (Sys.Date() + 7*4)) %>%
+  # filter(date <= (Sys.Date() + 7*4)) %>%
   ggplot(aes(x = date, y = median_value)) +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
   geom_line() +

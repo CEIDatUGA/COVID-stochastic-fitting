@@ -92,7 +92,29 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     mutate(Variable = "daily_all_infections") %>%
     group_by(SimType, Period) %>%
     arrange(Date) %>%
+    ungroup() %>%
+    group_by(SimType) %>%
     mutate_at(.vars = 4:11, .funs = mydiff) %>%
+    ungroup() %>%
+    gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
+  
+  infection_cumulative <- sims %>%
+    dplyr::select(SimType, Period, Date, S) %>%
+    mutate(N = pop_size) %>%
+    mutate(infections = N - S) %>%
+    group_by(SimType, Period, Date) %>%
+    summarise(lower_95 = ceiling(quantile(infections, 0.025, na.rm = TRUE)),
+              lower_90 = ceiling(quantile(infections, 0.05, na.rm = TRUE)),
+              lower_80 = ceiling(quantile(infections, 0.1, na.rm = TRUE)),
+              mean_value = ceiling(mean(infections, na.rm = TRUE)),
+              median_value = ceiling(median(infections, na.rm = TRUE)),
+              upper_80 = ceiling(quantile(infections, 0.9, na.rm = TRUE)),
+              upper_90 = ceiling(quantile(infections, 0.95, na.rm = TRUE)),
+              upper_95 = ceiling(quantile(infections, 0.975, na.rm = TRUE))) %>%
+    ungroup() %>%
+    mutate(Variable = "cumulative_all_infections") %>%
+    group_by(SimType, Period) %>%
+    arrange(Date) %>%
     ungroup() %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
@@ -116,30 +138,14 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   # Latent trend (psi)
-  obs_latent <- mle_sim %>% 
-    filter(.id == 1) %>%
-    mutate(psi = trendO) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
-    pull(psi)
-  proj_latent <- mean(tail(obs_latent, 30))
-  latent_trend <- mle_sim %>% 
-    filter(.id == 1) %>%
-    mutate(psi = trendO) %>%
-    mutate(psi = (exp(psi) / (1+exp(psi)))) %>%
-    dplyr::select(time, psi) %>%
+  latent_trend <- sim_covars %>%
     right_join(dates, by = "time") %>%
-    mutate(psi = ifelse(is.na(psi), proj_latent, psi)) %>%
-    dplyr::select(-time) %>%
-    rename("mean_value" = psi) %>%
-    mutate(Variable = "latent_trend") %>%
-    mutate(SimType = "status_quo") %>%
-    mutate(Period = ifelse(Date <= last_obs_date, "Past", "Future"))
-  
-  latent_trend <- latent_trend %>%
-    bind_rows(latent_trend %>%
-                mutate(SimType = "return_normal")) %>%
-    bind_rows(latent_trend %>%
-                mutate(SimType = "linear_increase_sd")) %>%
+    group_by(SimType, Date) %>%
+    summarise(mean_value = mean(latent_trend)) %>%
+    ungroup() %>%
+    mutate(mean_value = exp(mean_value) / (1+exp(mean_value))) %>%
+    mutate(Variable = "latent_trend",
+           Period = ifelse(Date <= last_obs_date, "Past", "Future")) %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   combined_trend <- latent_trend %>%
@@ -160,11 +166,27 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
            Period = "Past") %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
+  cumulative_data <- pomp_data %>%
+    dplyr::select(date, cases, deaths) %>%
+    mutate(cases = ifelse(is.na(cases), 0, cases),
+           deaths = ifelse(is.na(deaths), 0, deaths)) %>%
+    mutate(cases = cumsum(cases),
+           deaths = cumsum(deaths)) %>%
+    rename("actual_cumulative_cases" = cases,
+           "actual_cumulative_deaths" = deaths,
+           "Date" = date) %>%
+    gather("Variable", "mean_value", -Date) %>%
+    mutate(SimType = NA,
+           Period = "Past") %>%
+    gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
+  
   # Combine with incidence estimates
   all_summaries <- incidence_summaries %>%
     bind_rows(cumulative_summaries) %>%
     bind_rows(infection_summaries) %>%
+    bind_rows(infection_cumulative) %>%
     bind_rows(form_data) %>%
+    bind_rows(cumulative_data) %>%
     bind_rows(mobility) %>%
     bind_rows(latent_trend) %>%
     bind_rows(combined_trend) %>%
