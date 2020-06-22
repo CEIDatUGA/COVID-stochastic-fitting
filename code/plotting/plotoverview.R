@@ -67,11 +67,11 @@ lp <- cumcases %>%
 
 # plot transmission rates over time -----------------------------------------------------------------------------------
 
-ggplot(out_sims, aes(date, omega)) +
-  geom_line(color = "salmon") +
-  facet_wrap(~location, ncol = 10) +
-  coord_cartesian(ylim = c(0, 1e-06)) +
-  theme_minimal(base_size = 10) +
-  ylab(expression(omega)) +
-  theme(axis.text.x = element_text(angle = 45)) +
-  ggtitle("Transmission rates over time")
+# ggplot(out_sims, aes(date, omega)) +
+#   geom_line(color = "salmon") +
+#   facet_wrap(~location, ncol = 10) +
+#   coord_cartesian(ylim = c(0, 1e-06)) +
+#   theme_minimal(base_size = 10) +
+#   ylab(expression(omega)) +
+#   theme(axis.text.x = element_text(angle = 45)) +
+#   ggtitle("Transmission rates over time")
