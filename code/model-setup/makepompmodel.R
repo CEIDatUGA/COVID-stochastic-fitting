@@ -32,6 +32,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     double beta;
     double dW;  // environmental stochasticity/noise
     double trend;
+    double delta;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -64,7 +65,11 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     if(fit == 0) {
       trend = trend_sim;
     }
-    beta = rel_beta_change * exp(log_beta_s) * (exp(trend) / (1+exp(trend)));
+    delta = rel_beta_change * (exp(trend) / (1+exp(trend)));
+    if(delta > 1) {
+      delta = 1;
+    }
+    beta = delta * exp(log_beta_s);
     foi = beta * (Isd_tot + Isu_tot + 1/(1+exp(trans_e))*E_tot + 1/(1+exp(trans_a))*Ia_tot + 1/(1+exp(trans_c))*C_tot+ 1/(1+exp(trans_h))*H_tot);
   
     // Time-dependent rate of movement through Isd dummy compartments.

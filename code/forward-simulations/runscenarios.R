@@ -26,9 +26,10 @@ runscenarios <- function(pomp_res, par_var_list, forecast_horizon_days = 6*7, ns
   location = pomp_res$location
   
   # get best fit parameter values for all MIF fits that are within 2 LL of the best LL
-  all_mles <- all_partable %>%
+  all_mles <- all_partable %>% 
     filter(!is.nan(LogLik)) %>%
     filter(LogLik > (max(LogLik, na.rm = TRUE)-2)) %>%
+    arrange(LogLik) %>%
     dplyr::select(-MIF_ID, -LogLik, -LogLik_SE)
   
   # Simulate observation-timed trajectories

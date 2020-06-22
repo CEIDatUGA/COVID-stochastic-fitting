@@ -68,11 +68,12 @@ for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   tmpfile <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmpfile) %>%
-    filter(sim_type %in% c("data", "status_quo"),
-           variable %in% c("daily_cases", "daily_deaths")) %>%
+    spread(key = var_type, value = value) %>%
+    filter(sim_type == "status_quo" | is.na(sim_type),
+           variable %in% c("daily_cases", "daily_deaths", 
+                           "mobility_trend", "latent_trend")) %>%
     mutate(date = as.Date(date)) %>%
-    dplyr::select(location, sim_type, period, date, variable, mean_value,
-                  mobility_trend, latent_trend)
+    dplyr::select(location, sim_type, period, date, variable, data, mean_value)
   
   tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
@@ -90,8 +91,8 @@ for(i in 1:length(all_files)) {
     dplyr::select(location, value, parameter)
   
   tmp <- tmp %>%
-    mutate(beta = tmpparams %>% filter(parameter == "beta_s") %>% pull(value)) %>%
-    mutate(omega = mobility_trend * latent_trend * beta)
+    mutate(beta = tmpparams %>% filter(parameter == "beta_s") %>% pull(value))
+    # mutate(omega = mobility_trend * latent_trend * beta)
   state_summaries <- bind_rows(state_summaries, tmp)
   state_parameters <- bind_rows(state_parameters, tmpparams)
   state_logliks <- bind_rows(state_logliks, tmp_loglik)
@@ -157,12 +158,12 @@ states <- c("Georgia", "New York", "Washington", "Wyoming")
 
 all_data <- state_summaries %>%
   filter(location %in% states) %>%
-  filter(sim_type == "data") %>%
+  filter(is.na(sim_type)) %>%
   mutate(variable = ifelse(variable == "daily_cases", 
                            "Daily case reports", 
                            "Daily death reports"))
 
-ggplot(all_data, aes(x = date, y = mean_value, color = location)) +
+ggplot(all_data, aes(x = date, y = data, color = location)) +
   geom_col(width = 0.3) +
   ylab("Number of persons") +
   facet_wrap(location~variable, scales = "free", ncol = 2) +
@@ -181,11 +182,11 @@ Here we show the mobility trends from all 50 states.
 
 ```{r covariate, fig.height=3, fig.width=5, eval = TRUE}
 all_phi <- state_summaries %>%
-  filter(sim_type == "data") %>%
-  filter(variable == "daily_cases") %>%
-  dplyr::select(location, date, mobility_trend)
+  filter(variable == "mobility_trend") %>%
+  dplyr::select(location, date, mean_value) %>%
+  filter(date <= Sys.Date())
 
-ggplot(all_phi, aes(x = date, y = mobility_trend, color = location)) +
+ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
   ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0, 1)) +
@@ -282,7 +283,8 @@ fixed_parameters %>%
 
 Initial size of the susceptible compartment was set as each state's population size minus the number of individuals in other the other compartments that we fix.
 It is true that the initial size of the susceptible pool will also decrease based on the number of inidividuals estimated to be in the latent infections compartment at $t = 1$.
-However, given the small size of $L_1(t = 1)$ relative to total population size and the fact that total population size is a point estimate with error, we assume that our simple approach of setting $S(t = 1)$ to each state's population size is valid. 
+However, given the small size of $L_1(t = 1)$ relative to total population size and the fact that total population size is a point estimate with error, we assume that our simple approach of setting $S(t = 1)$ to each state's population size is valid.
+For each state, we consider $t=1$ as the date on which the first case is reported in that state.
 
 MIF relies on particle filtering, which estimates the likelihood of fixed parameters by integrating state variables of a stochastic system.
 To identify the maximum likelihood estimates, MIF lets parameters take a random walk during the filtering process and selectively propagates forward parameter sets (i.e., particles) with the highest likelihood.
@@ -332,9 +334,13 @@ The estimated values of $\beta$ for each state are informative, but to understan
 
 ```{r trends, fig.width = 10}
 omega_summaries <- state_summaries %>%
-  group_by(location, date) %>%
-  filter(period == "Past") %>%
-  summarise(omega = mean(omega))
+  filter(variable %in% c("mobility_trend", "latent_trend"),
+         sim_type == "status_quo",
+         date < Sys.Date()) %>%
+  dplyr::select(-period, -data, -sim_type) %>%
+  spread(key = variable, value = mean_value) %>%
+  mutate(omega = beta*latent_trend*mobility_trend)
+
 ggplot(omega_summaries, aes(date, omega)) +
   geom_line(color = "salmon") +
   facet_wrap(~location, ncol = 10) +
@@ -348,9 +354,8 @@ ggplot(omega_summaries, aes(date, omega)) +
 Here we plot the average $\omega$ over time.
 
 ```{r avgomega}
-state_summaries %>%
+omega_summaries %>%
   group_by(location) %>%
-  filter(period == "Past") %>%
   summarise(mean_omega = mean(omega),
             lower = min(omega),
             upper = max(omega)) %>%
@@ -359,7 +364,7 @@ state_summaries %>%
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
   ylab(expression(omega)) +
   xlab("") +
-  coord_flip() +
+  coord_flip(ylim = c(0, 0.00000125)) +
   theme_minimal() +
   ggtitle("Mean tranmission rates over time", subtitle = "error bars show min and max")
 ```
@@ -369,9 +374,8 @@ Transmission is stayed relatively constant through April and May, with a slight 
 See plot below that shows $\omega(t)$ for each state (grey lines) and the overall trend (blue line).
 
 ```{r omegatime}
-state_summaries %>%
+omega_summaries %>%
   filter(date >= "2020-03-01") %>%
-  filter(period == "Past") %>%
   ggplot(aes(x = date, y = omega)) +
   geom_line(color = "grey", aes(group = location), size = 0.5) +
   geom_smooth(se = FALSE, color = "dodgerblue", size = 1.2) +
@@ -392,11 +396,9 @@ state_parameters %>%
   spread(parameter, value) %>%
   rename("L0" = E1_0) -> latents
 
-state_summaries %>%
+omega_summaries %>%
   group_by(location) %>%
   filter(date == min(date)) %>%
-  filter(variable == "daily_cases") %>% 
-  filter(sim_type == "status_quo") %>%
   ungroup() %>%
   dplyr::select(location, omega) -> omegas
 
@@ -440,9 +442,9 @@ for(do_state in unique(state_summaries$location)) {
   tmp_summary <- state_summaries %>%
     filter(location == do_state)
   dat <- tmp_summary %>%
-    filter(sim_type == "data") %>%
-    dplyr::select(date, variable, mean_value) %>%
-    spread(variable, mean_value) %>%
+    filter(!is.na(data)) %>%
+    dplyr::select(date, variable, data) %>%
+    spread(variable, data) %>%
     rename("cases" = daily_cases,
            "deaths" = daily_deaths)
 
@@ -476,9 +478,9 @@ for(do_state in unique(state_summaries$location)) {
     filter(location == do_state) %>%
     pull(log_lik)
   pomp_data <- tmp_summary %>%
-    filter(sim_type == "data") %>%
-    dplyr::select(date, variable, mean_value) %>%
-    spread(variable, mean_value) %>%
+    filter(!is.na(data)) %>%
+    dplyr::select(date, variable, data) %>%
+    spread(variable, data) %>%
     rename("cases" = daily_cases,
            "deaths" = daily_deaths)
   cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
@@ -505,10 +507,10 @@ if(length(states_with_better_nll) > 2) {
 ```
 
 Here we compare the log likelihood of each state's model at the MLEs to a random walk model.
-In nearly all cases, the log likelihood of the SEIR model is higher (less negative) than the random walk model.
-The `r length(states_with_better_nll)` states where the random walk model outperforms the SEIR model are `r stsprint`.
+In all cases, the log likelihood of the SEIR model is higher (less negative, indicating a better model) than the random walk model.
+<!-- The `r length(states_with_better_nll)` states where the random walk model outperforms the SEIR model are `r stsprint`. -->
 All log likelihoods are compared in the plot below.
-Note that less negative implies a better model.
+Note that less negative -- that is, a larger log likelihood -- implies a better model.
 
 ```{r plotll, fig.height=10}
 logliks %>%

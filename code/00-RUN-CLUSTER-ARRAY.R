@@ -89,7 +89,7 @@ mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
 mif_settings$mif_num_iterations <- c(150,150)
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
-mif_settings$pf_reps <- 10 #replicates for particle filter following mif
+mif_settings$pf_reps <- 32#replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$replicates <- 32 #number of different starting conditions - this is parallelized
 
@@ -178,15 +178,16 @@ pomp_res$sims <- sim
 
 #save the completed analysis for each state to a file with time-stamp
 #this file could be large, needs checking
-
+filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
+saveRDS(object = pomp_res, file = filename)
 
 # Run scenarios
 pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
 filename = paste0('../output/', pomp_res$filename_label, '_results.rds')
-saveRDS(object = pomp_res, file = filename)
+saveRDS(object = pomp_res, file = filename)  # resave...
 
 # Summarize results
-res_summary <- summarize_simulations(sims = pomp_res$scenarios$sims, 
+res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 
                                      pomp_data = pomp_res$pomp_data,
                                      pomp_covar = pomp_res$pomp_covar, 
                                      location = pomp_res$location,
@@ -244,6 +245,35 @@ saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-
 #   # Store parameter estimates
 #   saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
 # }
+
+
+all_files <- list.files("../output/", pattern = ".rds")
+for(do_file in all_files) {
+  pomp_res <- readRDS(paste0("../output/", do_file))
+  # Summarize results
+  res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 
+                                       pomp_data = pomp_res$pomp_data,
+                                       pomp_covar = pomp_res$pomp_covar, 
+                                       location = pomp_res$location,
+                                       mle_sim = pomp_res$sims)
+
+  # Store for benchmarking
+  rundate <- strsplit(pomp_res$filename_label, split = "-")[[1]][3:5]
+  rundate <- paste0(rundate, collapse = "-")
+  outdir <- paste0("../output/", rundate, "/")
+  outfile <- paste0(outdir, pomp_res$filename_label, '.csv')
+  write.csv(res_summary, outfile, row.names = FALSE)
+
+  # Store for updating
+  outdir <- "../output/current/"
+  fname <- strsplit(pomp_res$filename_label, split = "-")[[1]][1:2]
+  fname <- paste0(fname, collapse = "-")
+  outfile <- paste0(outdir, fname, '.csv')
+  write.csv(res_summary, outfile, row.names = FALSE)
+
+  # Store parameter estimates
+  saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
+}
 
 
 
