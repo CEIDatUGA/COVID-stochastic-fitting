@@ -11,17 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 
-allfiles <- list.files("../output/2020-06-19")
+allfiles <- list.files("../output/2020-06-21/")
 
 for(f in allfiles) {
-  fname <- paste0("../output/2020-06-19/",f)
+  fname <- paste0("../output/2020-06-21/",f)
 dat <- read.csv(fname) %>%
   filter(variable %in% c("actual_daily_cases")) %>%
   mutate(date = as.Date(date))
 
 read.csv(fname) %>%
   filter(variable %in% c("daily_cases")) %>%
-  filter(sim_type == "linear_increase_sd") %>%
+  filter(sim_type == "status_quo") %>%
   mutate(date = as.Date(date)) %>%
   filter(date <= (Sys.Date() + 7*4)) %>%
   ggplot(aes(x = date, y = median_value)) +
