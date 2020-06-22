@@ -92,6 +92,8 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     mutate(Variable = "daily_all_infections") %>%
     group_by(SimType, Period) %>%
     arrange(Date) %>%
+    ungroup() %>%
+    group_by(SimType) %>%
     mutate_at(.vars = 4:11, .funs = mydiff) %>%
     ungroup() %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
