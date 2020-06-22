@@ -62,7 +62,7 @@ simulate_trajectories <- function(
     covars <- as.data.frame(covars) %>%
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
-    trendmut <- mean(tail(trend_trans, 30))
+    trendmut <- mean(tail(trend_trans, 30)[1:20])
     trendmu <- log(trendmut/(1-trendmut))
     trendlast <- tail(trend, 1)
     incsim <- seq(trendlast, trendmu, length.out = 14)
@@ -82,7 +82,7 @@ simulate_trajectories <- function(
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
     #trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
-    trendmut <- mean(tail(trend_trans, 30))
+    trendmut <- mean(tail(trend_trans, 30)[1:20])
     trendmu <- log(trendmut/(1-trendmut))
     trendlast <- tail(trend, 1)
     incsim <- seq(trendlast, trendmu, length.out = 14)
@@ -101,7 +101,7 @@ simulate_trajectories <- function(
       mutate(time = 1:n()) %>%
       rename("rel_beta_change" = covars)
     # trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
-    trendmut <- mean(tail(trend_trans, 30))
+    trendmut <- mean(tail(trend_trans, 30)[1:20])
     trendmu <- log(trendmut/(1-trendmut))
     trendlast <- tail(trend, 1)
     incsim <- seq(trendlast, trendmu, length.out = 14)
@@ -123,7 +123,7 @@ simulate_trajectories <- function(
     # trend_inc <- rep(inits$trendO_0, times = horizon)
     # trend_sim <- c(inits$trendO_0, trend_inc)
     # trend_sim <- rep(mean(tail(trend, 30)), nrow(covars))
-    trendmut <- mean(tail(trend_trans, 30))
+    trendmut <- mean(tail(trend_trans, 30)[1:20])
     trendmu <- log(trendmut/(1-trendmut))
     trendlast <- tail(trend, 1)
     incsim <- seq(trendlast, trendmu, length.out = 14)
