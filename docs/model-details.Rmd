@@ -1,6 +1,4 @@
 ---
-title: "Model of COVID&#8209;19 transmission in the U.S.A. by state"
-date: Updated `r format(Sys.time(), '%B %d, %Y')`
 output:
   html_document:
     df_print: paged
@@ -15,12 +13,15 @@ library(here)
 library(tidyverse)
 ```
 
+## Model of COVID&#8209;19 transmission in the U.S.A. by state
+Updated `r format(Sys.time(), '%B %d, %Y')`
+
 The epidemiology of COVID-19 is poorly understood.
 To better understand the potential range of epidemic outcomes in the U.S.A, we developed a model based on the accumulation of knowledge from various locations and fit it to state-level observations of the number of reported cases and deaths.
 
-## Data
+### Data
 
-### Incident Case Data & Death Reports
+#### Incident Case Data & Death Reports
 
 We fit the model to incident case and death reports for each state in the USA, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
 We show a subset of the state-level data here for Georgia, New York, Washington, and Wyoming.
@@ -210,7 +211,7 @@ dash
 
 ```
 
-### Social distancing / mobility data
+#### Social distancing / mobility data
 
 To date, the primary intervention in all states has been the adoption of social distancing behaviors and improved hygiene.
 We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps, colected by <a href="https://www.unacast.com/covid19/social-distancing-scoreboard" target="_blank">Unacast</a>.
@@ -238,7 +239,7 @@ p <- g %>% plotly::ggplotly() %>%
 p
 ```
 
-## Scenarios
+### Scenarios
 
 We explore a range of scenarios for transmission.
 Simulations in each state start on the data on which at least 1 case was first reported.
@@ -258,7 +259,7 @@ We ignore the last 10 days to avoid undue influence of the latent trend as it ad
 4. **Return to normal.** Social distancing returns to a level of human movement equivalent to baseline. 
 
 
-## Model details
+### Model details
 
 Key features of this model include:
 
@@ -298,7 +299,7 @@ The flow diagram for this model shown below.
 knitr::include_graphics(here("docs",'pomp-model.png'))
 ```
 
-### Interventions
+#### Interventions
 
 The following interventions are implemented:
 
@@ -306,7 +307,7 @@ The following interventions are implemented:
 * Decreasing time to diagnosis, which speeds up the transition from the detected class (I_sd) to the diagnosed cases class (C).
 * Improving detection, which is assumed to increase the fraction of symptomatic individuals that move into the $I_{sd}$ compartment and will eventually be diagnosed. It is assumed to increase sigmoidally up to a maximum value.
 
-### Parameterization
+#### Parameterization
 
 This model was initially parameterized using clinical outcome reports from the epidemic in Hubei province, China and further calibrated with information about COVID-19 elsewhere in China and the United States.
 Transmissibility of the virus is assumed to be proportional to the level of human movement.
