@@ -30,8 +30,6 @@ Changing human mobility (as results from practicing social distancing) has the e
 
 The plot below shows the mean forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next four weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
-To explore forecasts for every state in detail, go to the [State Forecasts](https://covid19.uga.edu/forecast.html#state-forecasts) tab.
-
 ```{r plot_overview}
 
 fig_outpath <- here("output/figures/")
