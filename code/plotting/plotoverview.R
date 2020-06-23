@@ -75,7 +75,7 @@ cumcases.lp <- cumcases %>%
 
 dailycases <- out_sims %>% filter(variable == 'daily_cases')
 
-up_popsize <- readRDS('data/us_popsize.rds')
+up_popsize <- readRDS(here('data/us_popsize.rds'))
 idx <- match(x = dailycases$location, table = up_popsize$state_full)
 dailycases$pop <- up_popsize$total_pop[idx]
 
@@ -118,13 +118,18 @@ dailycases.lp <- dailycases %>%
   geom_line(data = filter(dailycases, sim_type == 'return_normal' & period == 'Past'),
             color = mycols['black'], size = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
-  facet_wrap(~location, ncol = 9) +
+  facet_wrap(~location, ncol = ceiling(length(topstates)/2)) +
   ylab("") +
   scale_y_continuous(labels = scales::comma, limits = dailycases.ylim) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Daily confirmed cases per 100,000 people")
-dailycases.lp
+
+p_dailycases.lp <- dailycases.lp %>% 
+  plotly::ggplotly()
+
+fig_outpath <- here("output/figures/")
+p_dailycases.lp %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "topstates.html"))
 
 # plot transmission rates over time -----------------------------------------------------------------------------------
 
