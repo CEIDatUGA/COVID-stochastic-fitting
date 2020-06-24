@@ -17,6 +17,25 @@ for(do_file in all_files) {
   tmp_file <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmp_file, stringsAsFactors = FALSE)
   
+  day1 <- tmp %>%
+    filter(period == "Future") %>%
+    filter(date == min(date)) %>%
+    pull(date) %>%
+    unique()
+  tmp <- tmp %>%
+    mutate(lower_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_80),
+           lower_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_90),
+           lower_95 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_95),
+           mean_value = ifelse(date == day1 & variable == "daily_all_infections", NA, mean_value),
+           median_value = ifelse(date == day1 & variable == "daily_all_infections", NA, median_value),
+           upper_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_80),
+           upper_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_90),
+           upper_85 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_95))
+  # tmp %>% 
+  #   filter(sim_type == "status_quo") %>%
+  #   filter(variable %in% c("cumulative_all_infections", "daily_all_infections")) %>%
+  #   dplyr::select(period, date, variable, mean_value) %>%
+  #   spread(variable, mean_value) -> test
   # data <- tmp %>%
   #   filter(is.na(sim_type)) %>%
   #   dplyr::select(location, period, date, variable, mean_value) %>%

@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 
-allfiles <- list.files("../output/2020-06-21/")
+allfiles <- list.files("../output/2020-06-22/")
 
 for(f in allfiles) {
-  fname <- paste0("../output/2020-06-21/",f)
+  fname <- paste0("../output/2020-06-22/",f)
 dat <- read.csv(fname) %>%
   filter(variable %in% c("actual_daily_cases")) %>%
   mutate(date = as.Date(date))
@@ -33,7 +33,7 @@ print(out)
 
 read.csv(fname) %>%
   filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
-  filter(sim_type == "linear_increase_sd") %>%
+  filter(sim_type == "status_quo") %>%
   mutate(date = as.Date(date)) %>%
   ggplot(aes(x = date, y = mean_value)) +
   geom_point(aes(color = variable)) +
