@@ -184,7 +184,8 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
   
   # Remove bad WY data point
   pomp_data <- pomp_data %>%
-    mutate(cases = ifelse(location == "Wyoming" & cases > 100, NA, cases))
+    mutate(cases = ifelse(location == "Wyoming" & cases > 100 & date < "2020-05-01", NA, cases),
+           cases = ifelse(location == "Maryland" & cases > 2500 & date < "2020-04-01", NA, cases))
   
   # Apply 7-day moving average to the data
   ma <- function(x) {

@@ -5,7 +5,7 @@
 #PBS -l walltime=12:00:00
 #PBS -l pmem=3500mb
 #PBS -M atredennick@west-inc.com
-#PBS -t 1-10
+#PBS -t 1-50
 
 cd $PBS_O_WORKDIR
 
