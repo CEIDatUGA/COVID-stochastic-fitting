@@ -2,8 +2,6 @@
 output:
   html_document:
     df_print: paged
-  word_document: default
-  pdf_document: default
 header-includes: \usepackage{amsmath}
 ---
 
@@ -142,8 +140,9 @@ fixed_parameters <- tmpparams %>%
 <!--   #theme_dark() -->
 <!-- ``` -->
 
+![](data-legend.png){ width=280px }
 
-```{r read-data}
+```{r read-data, fig.width=7}
 all_data <- state_summaries %>%
   filter(is.na(sim_type)) %>%
   mutate(variable = ifelse(variable == "actual_daily_cases", "cases", "deaths"))
@@ -191,7 +190,7 @@ plot_data <- function(database, state, legend = FALSE) {
 }
 
 plots <- list()
-plots[[1]] <- plot_data(all_data, "Georgia", legend = TRUE) 
+plots[[1]] <- plot_data(all_data, "Georgia", legend = FALSE) 
 plots[[2]] <- plot_data(all_data, "New York") 
 plots[[3]] <- plot_data(all_data, "Washington") 
 plots[[4]] <- plot_data(all_data, "Wyoming") 
@@ -219,7 +218,7 @@ We summarize the effectiveness of social distancing behaviors as the average dev
 
 The trajectories of human mobility in all 50 states is shown below.
 
-```{r covariate, fig.height=3, fig.width=5, eval = TRUE}
+```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
   dplyr::select(location, date, mean_value) %>%
@@ -227,7 +226,7 @@ all_phi <- state_summaries %>%
 
 g <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
-  ylab("Human movement\n(% of normal)") +
+  # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
@@ -235,7 +234,10 @@ g <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   guides(color = FALSE)
 
 p <- g %>% plotly::ggplotly() %>% 
-  plotly::layout(showlegend = FALSE)
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "Human movement\n(% of normal)\n&nbsp;")
+                 )
 p
 ```
 
