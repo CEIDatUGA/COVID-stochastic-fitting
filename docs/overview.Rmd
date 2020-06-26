@@ -18,7 +18,7 @@ Here we present a model for the transmission of SARS-CoV-2 in all states of the 
 
 Our model takes into account the effect of human mobility on transmission (i.e., social distancing), as well as hard to quantify human behaviors and environemntal factors, and is calibrated to the history of incident case and death reports. 
 
-For each state, we use our model to forecast reported cases, deaths, and total number of infections (including unreported infections) four weeks into the future, under three scenarios: 
+For each state, we use our model to forecast reported cases, deaths, and total number of infections (including unreported infections) six weeks into the future, under three scenarios: 
 
 1. **Increasing social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Maintaining social distancing.** Maintaining social distancing holds human mobility at the level last observed in mobility data.
@@ -26,11 +26,11 @@ For each state, we use our model to forecast reported cases, deaths, and total n
 
 Changing human mobility (as results from practicing social distancing) has the effect of changing transmission rates. Transmission tends to decrease as mobility decreases. Many other factors (environmental and behavioral) also affect transmission rate, but as it is difficult to collect data on these factors, we do not attempt to model them directly. Instead, we capture the trend in transmission rate with human mobility subtracted (i.e. the "latent trend"), and use the latent trend in combination with mobility-based scenarios to forecast outcomes. We also make assumptions about testing and case reporting improving over time and build those into our model.
 
-### States with largest forecasted outbreaks as proportion of population 
+### States with highest forecasted peak outbreak size as proportion of population
 
-The plot below shows the median forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next four weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
+The plot below shows the median forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next six weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
-```{r plot_overview}
+```{r plot_overview, height = 7}
 
 fig_outpath <- here("output/figures/")
 
@@ -106,9 +106,44 @@ dailycases$pop <- up_popsize$total_pop[idx]
 dailycases <- dailycases %>% 
   mutate(median_value_per100k = 100000*median_value/pop)
 
-# select 3 states
-# dailycases <- dailycases %>% 
-#   filter(location %in% c('California','New York','Georgia'))
+# Landing Page figure
+# select a few states
+selectstates <- c('California','New York','Georgia','Illinois','Maryland','Pennsylvania','Virginia')
+selectstates <- c('California','Georgia','Maryland','Pennsylvania')
+dailycases_subset <- dailycases %>%
+  filter(location %in% selectstates)
+dailycases.maxy <- dailycases_subset %>% 
+  pull(median_value_per100k) %>% max() %>% 
+  plyr::round_any(accuracy = 10, f = ceiling)
+dailycases.ylim <- c(0,dailycases.maxy)
+
+g_dailycases.landingpage <- dailycases_subset %>% 
+  ggplot(aes(x = date, y = median_value_per100k, group = sim_type,
+             text = sprintf("New cases per 100k: %s", format(round(median_value_per100k)))
+             )
+         ) +
+  # text = sprintf("New cases per 100k: %s", format(round(median_value_per100k))
+  geom_line(data = filter(dailycases_subset, sim_type == 'return_normal'),
+            color = alpha(mycols['red'], .7), size = 1) +
+  geom_line(data = filter(dailycases_subset, sim_type == 'status_quo'),
+            color = alpha(mycols['green'], .7), size = 1) +
+  geom_line(data = filter(dailycases_subset, sim_type == 'linear_increase_sd'),
+            color = alpha(mycols['lightblue'], .7), size = 1) +
+  geom_line(data = filter(dailycases_subset, sim_type == 'return_normal' & period == 'Past'),
+            color = mycols['black'], size = 1) +
+  geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
+  facet_wrap(~location, ncol = ceiling(length(selectstates))) +
+  ylab("") +
+  scale_y_continuous(labels = scales::comma, limits = dailycases.ylim) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  ggtitle("Daily confirmed cases per 100,000 people")
+
+p_dailycases.landingpage <- g_dailycases.landingpage %>% 
+  plotly::ggplotly(tooltip=c("x", "text"))
+
+fig_outpath <- here("output/figures/")
+p_dailycases.landingpage %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing_page_fig.html"))
 
 # states with max daily cases / 100 k > 250
 # topstates <- dailycases[dailycases$median_value_per100k > 250,]$location %>% unique
@@ -121,41 +156,43 @@ dailycases <- dailycases %>%
 #   filter(location %in% topstates)
 
 # states with max daily cases / 100 k > 100 in status quo scenario
-topstates <- dailycases[dailycases$sim_type == 'status_quo' & dailycases$median_value_per100k > 100,]$location %>% unique
-dailycases <- dailycases %>%
+threshold <- 100
+topstates <- dailycases[dailycases$sim_type == 'status_quo' & dailycases$median_value_per100k > threshold,]$location %>% unique
+dailycases_subset <- dailycases %>%
   filter(location %in% topstates)
-
-dailycases.maxy <- dailycases %>% 
+dailycases.maxy <- dailycases_subset %>% 
   pull(median_value_per100k) %>% max() %>% 
   plyr::round_any(accuracy = 10, f = ceiling)
 dailycases.ylim <- c(0,dailycases.maxy)
 
-dailycases.lp <- dailycases %>% 
-  ggplot(aes(x = date, y = median_value_per100k)) +
-  geom_line(data = filter(dailycases, sim_type == 'return_normal'),
+g_dailycases.topstates <- dailycases_subset %>% 
+  ggplot(aes(x = date, y = median_value_per100k, group = sim_type,
+             text = sprintf("New cases per 100k: %s", format(round(median_value_per100k)))
+             )
+         ) +
+  geom_line(data = filter(dailycases_subset, sim_type == 'return_normal'),
             color = alpha(mycols['red'], .7), size = 1) +
-  geom_line(data = filter(dailycases, sim_type == 'status_quo'),
+  geom_line(data = filter(dailycases_subset, sim_type == 'status_quo'),
             color = alpha(mycols['green'], .7), size = 1) +
-  geom_line(data = filter(dailycases, sim_type == 'linear_increase_sd'),
+  geom_line(data = filter(dailycases_subset, sim_type == 'linear_increase_sd'),
             color = alpha(mycols['lightblue'], .7), size = 1) +
-  geom_line(data = filter(dailycases, sim_type == 'return_normal' & period == 'Past'),
+  geom_line(data = filter(dailycases_subset, sim_type == 'return_normal' & period == 'Past'),
             color = mycols['black'], size = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
-  facet_wrap(~location, ncol = ceiling(length(topstates)/2)) +
+  facet_wrap(~location, ncol = min(ceiling(length(topstates)/2),8)) +
   ylab("") +
   scale_y_continuous(labels = scales::comma, limits = dailycases.ylim) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Daily confirmed cases per 100,000 people")
 
-p_dailycases.lp <- dailycases.lp %>% 
-  plotly::ggplotly()
+p_dailycases.topstates <- g_dailycases.topstates %>% 
+  plotly::ggplotly(tooltip=c("x", "text"))
 
 fig_outpath <- here("output/figures/")
-p_dailycases.lp %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "topstates.html"))
+p_dailycases.topstates %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "topstates.html"))
 
-p_dailycases.lp
-
+p_dailycases.topstates
 # plot transmission rates over time -----------------------------------------------------------------------------------
 
 # ggplot(out_sims, aes(date, omega)) +
@@ -169,3 +206,4 @@ p_dailycases.lp
 
 ```
 
+![](legend-scens-fit.png){ width=400px }
