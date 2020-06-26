@@ -157,6 +157,7 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
 
   # Format data
   form_data <- pomp_data %>%
+    ungroup() %>%
     dplyr::select(date, cases, deaths) %>%
     rename("actual_daily_cases" = cases,
            "actual_daily_deaths" = deaths,
@@ -167,6 +168,7 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   cumulative_data <- pomp_data %>%
+    ungroup() %>%
     dplyr::select(date, cases, deaths) %>%
     mutate(cases = ifelse(is.na(cases), 0, cases),
            deaths = ifelse(is.na(deaths), 0, deaths)) %>%
