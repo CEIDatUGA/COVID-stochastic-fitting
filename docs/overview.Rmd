@@ -107,8 +107,9 @@ dailycases <- dailycases %>%
   mutate(median_value_per100k = 100000*median_value/pop)
 
 # Landing Page figure
-# select 3 states
+# select a few states
 selectstates <- c('California','New York','Georgia','Illinois','Maryland','Pennsylvania','Virginia')
+selectstates <- c('California','Georgia','Maryland','Pennsylvania')
 dailycases_subset <- dailycases %>%
   filter(location %in% selectstates)
 dailycases.maxy <- dailycases_subset %>% 
