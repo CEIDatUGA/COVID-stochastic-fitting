@@ -106,14 +106,12 @@ timestamp <- readRDS("../header/timestamp.rds")
 # done in parallel and batches of 10 states each
 # --------------------------------------------------
 
-# states_map <- tibble(state = state.name) %>%
-#   mutate(num = 1:n()) %>%
-#   filter(state %in% c("California", "Colorado", "Georgia",
-#                       "New York", "Washington", "Montana",
-#                       "Texas", "Minnesota", "Wyoming"))
-# myargument <- states_map %>%
-#   slice(myargument) %>%
-#   pull(num)
+states_map <- tibble(state = state.name) %>%
+  mutate(num = 1:n()) %>%
+  filter(state %in% c("New York", "Washington"))
+myargument <- states_map %>%
+  slice(myargument) %>%
+  pull(num)
 
 
 pomp_listr <- readRDS("../header/pomp_list.rds")

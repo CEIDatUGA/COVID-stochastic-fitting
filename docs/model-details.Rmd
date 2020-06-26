@@ -40,7 +40,7 @@ for(i in 1:length(all_files)) {
                            "actual_daily_cases", "actual_daily_deaths",
                            "mobility_trend", "latent_trend")) %>%
     mutate(date = as.Date(date)) %>%
-    dplyr::select(location, sim_type, period, date, variable, mean_value)
+    dplyr::select(location, sim_type, period, date, variable, median_value)
   
   tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
@@ -130,7 +130,7 @@ fixed_parameters <- tmpparams %>%
 <!--                            "Daily case reports",  -->
 <!--                            "Daily death reports")) -->
 
-<!-- ggplot(all_data, aes(x = date, y = mean_value, color = location)) + -->
+<!-- ggplot(all_data, aes(x = date, y = median_value, color = location)) + -->
 <!--   geom_col(width = 0.3) + -->
 <!--   ylab("Number of persons") + -->
 <!--   facet_wrap(location~variable, scales = "free", ncol = 2) + -->
@@ -149,9 +149,9 @@ all_data <- state_summaries %>%
 
 plot_data <- function(database, state, legend = FALSE) {
   
-  statedata <- database %>% filter(location == state) %>% select(date, variable, mean_value) %>% 
+  statedata <- database %>% filter(location == state) %>% select(date, variable, median_value) %>% 
     pivot_wider(names_from = variable,
-                values_from = mean_value)
+                values_from = median_value)
   
   col.cases <- 'rgba(0, 0, 0, .35)'
   col.deaths <- 'rgba(0, 0, 0, 1.0)'
@@ -221,10 +221,10 @@ The trajectories of human mobility in all 50 states is shown below.
 ```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
-  dplyr::select(location, date, mean_value) %>%
+  dplyr::select(location, date, median_value) %>%
   filter(date <= Sys.Date())
 
-g <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
+g <- ggplot(all_phi, aes(x = date, y = median_value, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
