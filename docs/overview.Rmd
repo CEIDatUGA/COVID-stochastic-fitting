@@ -28,7 +28,7 @@ Changing human mobility (as results from practicing social distancing) has the e
 
 ### States with largest forecasted outbreaks as proportion of population 
 
-The plot below shows the mean forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next four weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
+The plot below shows the median forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next four weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
 ```{r plot_overview}
 
@@ -73,12 +73,12 @@ scen_labs <- c("1. Increase social distancing",
 # cumcases <- out_sims %>% filter(variable == 'cumulative_cases')
 # 
 # cumcases.maxy <- cumcases %>% 
-#   pull(mean_value) %>% max() %>% 
+#   pull(median_value) %>% max() %>% 
 #   plyr::round_any(accuracy = 20000, f = ceiling)
 # cases.ylim <- c(0,cumcases.maxy)
 # 
 # cumcases.lp <- cumcases %>% 
-#   ggplot(aes(x = date, y = mean_value)) +
+#   ggplot(aes(x = date, y = median_value)) +
 #   geom_line(data = filter(cumcases, sim_type == 'return_normal'),
 #             color = alpha(mycols['red'], .7), size = 1) +
 #   geom_line(data = filter(cumcases, sim_type == 'status_quo'),
@@ -104,34 +104,34 @@ idx <- match(x = dailycases$location, table = up_popsize$state_full)
 dailycases$pop <- up_popsize$total_pop[idx]
 
 dailycases <- dailycases %>% 
-  mutate(mean_value_per100k = 100000*mean_value/pop)
+  mutate(median_value_per100k = 100000*median_value/pop)
 
 # select 3 states
 # dailycases <- dailycases %>% 
 #   filter(location %in% c('California','New York','Georgia'))
 
 # states with max daily cases / 100 k > 250
-# topstates <- dailycases[dailycases$mean_value_per100k > 250,]$location %>% unique
+# topstates <- dailycases[dailycases$median_value_per100k > 250,]$location %>% unique
 # dailycases <- dailycases %>%
 #   filter(location %in% topstates)
 
 # states with max daily cases / 100 k > 250
-# topstates <- dailycases[dailycases$mean_value_per100k > 250,]$location %>% unique
+# topstates <- dailycases[dailycases$median_value_per100k > 250,]$location %>% unique
 # dailycases <- dailycases %>%
 #   filter(location %in% topstates)
 
 # states with max daily cases / 100 k > 100 in status quo scenario
-topstates <- dailycases[dailycases$sim_type == 'status_quo' & dailycases$mean_value_per100k > 100,]$location %>% unique
+topstates <- dailycases[dailycases$sim_type == 'status_quo' & dailycases$median_value_per100k > 100,]$location %>% unique
 dailycases <- dailycases %>%
   filter(location %in% topstates)
 
 dailycases.maxy <- dailycases %>% 
-  pull(mean_value_per100k) %>% max() %>% 
+  pull(median_value_per100k) %>% max() %>% 
   plyr::round_any(accuracy = 10, f = ceiling)
 dailycases.ylim <- c(0,dailycases.maxy)
 
 dailycases.lp <- dailycases %>% 
-  ggplot(aes(x = date, y = mean_value_per100k)) +
+  ggplot(aes(x = date, y = median_value_per100k)) +
   geom_line(data = filter(dailycases, sim_type == 'return_normal'),
             color = alpha(mycols['red'], .7), size = 1) +
   geom_line(data = filter(dailycases, sim_type == 'status_quo'),
