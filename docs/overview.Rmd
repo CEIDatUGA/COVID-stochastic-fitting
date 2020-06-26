@@ -18,7 +18,7 @@ Here we present a model for the transmission of SARS-CoV-2 in all states of the 
 
 Our model takes into account the effect of human mobility on transmission (i.e., social distancing), as well as hard to quantify human behaviors and environemntal factors, and is calibrated to the history of incident case and death reports. 
 
-For each state, we use our model to forecast reported cases, deaths, and total number of infections (including unreported infections) four weeks into the future, under three scenarios: 
+For each state, we use our model to forecast reported cases, deaths, and total number of infections (including unreported infections) six weeks into the future, under three scenarios: 
 
 1. **Increasing social distancing.** Increasing social distancing reduces human movements from the current level to 30% of normal, which is the reduction observed in New York City that enabled transmission to decline there.
 2. **Maintaining social distancing.** Maintaining social distancing holds human mobility at the level last observed in mobility data.
@@ -28,7 +28,7 @@ Changing human mobility (as results from practicing social distancing) has the e
 
 ### States with highest forecasted peak outbreak size as proportion of population
 
-The plot below shows the median forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next four weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
+The plot below shows the median forecast under each of three scenarios for several states. The shown are all forecasted to exceed 100 cases per 100,000 people on a daily basis at some time in the next six weeks the "status quo" (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
 ```{r plot_overview, height = 7}
 
