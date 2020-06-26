@@ -210,7 +210,7 @@ write.csv(res_summary, outfile, row.names = FALSE)
 # Store parameter estimates
 saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
 
-source("../code/forward-simulations/bind-all-state-output.R")
+# source("../code/forward-simulations/bind-all-state-output.R")
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
 
