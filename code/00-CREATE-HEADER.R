@@ -93,6 +93,10 @@ all_states_pomp_data <- loadcleandata(datasource = datasource,
                                       timestamp = timestamp,
                                       smooth = FALSE)
 
+all_states_pomp_data <- all_states_pomp_data %>%
+  group_by(location) %>%
+  filter(date < max(date))
+
 all_states_pomp_covar <- loadcleanucmobility(
   location = statevec, 
   pomp_data = all_states_pomp_data, 
