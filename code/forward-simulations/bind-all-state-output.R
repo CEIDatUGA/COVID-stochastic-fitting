@@ -11,10 +11,10 @@ library(here)
 
 # Loop over files and row bind --------------------------------------------
 
-all_files <- list.files("../output/current/", ".csv")
+all_files <- list.files(here("/output/current/"), ".csv")
 us_output <- tibble()  # empty storage tibble
 for(do_file in all_files) {
-  tmp_file <- paste0("../output/current/", do_file)
+  tmp_file <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmp_file, stringsAsFactors = FALSE)
   
   day1 <- tmp %>%
@@ -76,4 +76,4 @@ for(do_file in all_files) {
   us_output <- bind_rows(us_output, tmp)
 }
 
-write_csv(us_output, "../output/us_current_results.csv")
+write_csv(us_output, here("/output/us_current_results.csv"))

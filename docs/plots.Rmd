@@ -11,10 +11,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 
-allfiles <- list.files("../output/2020-06-22/")
+allfiles <- list.files("../output/current/", ".csv")
 
 for(f in allfiles) {
-  fname <- paste0("../output/2020-06-22/",f)
+  fname <- paste0("../output/current/",f)
 dat <- read.csv(fname) %>%
   filter(variable %in% c("actual_daily_cases")) %>%
   mutate(date = as.Date(date))
