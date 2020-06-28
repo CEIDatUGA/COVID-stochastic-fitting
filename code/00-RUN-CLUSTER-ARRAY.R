@@ -125,6 +125,10 @@ pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list,
                             n_knots = n_knots)
 this_pomp$pomp_model <- pomp_model
 
+if(this_pomp$location %in% c("New York", "Washington")) {
+  mif_settings$mif_num_iterations <- c(200,200)
+}
+
 mif_res <- runmif_allstates(parallel_info = parallel_info, 
                             mif_settings = mif_settings, 
                             pomp_list = this_pomp, 
