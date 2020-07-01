@@ -23,7 +23,7 @@ loadcleanucmobility <- function(locations, pomp_data, timestamp)
   state_map <- data.frame(state_name = state.name,
                           state_abb = state.abb, stringsAsFactors = FALSE) 
   
-  allfiles <- list.files(here("data/ucmobility/state_breakdown/"))
+  allfiles <- list.files(here("data/ucmobility/state_breakdown/"), pattern = ".rds")
   
   uc_mobility <- tibble()
   for(i in 1:length(allfiles)) {

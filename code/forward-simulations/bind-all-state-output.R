@@ -11,10 +11,10 @@ library(here)
 
 # Loop over files and row bind --------------------------------------------
 
-all_files <- list.files("../output/current/", ".csv")
+all_files <- list.files(here("/output/current/"), ".csv")
 us_output <- tibble()  # empty storage tibble
 for(do_file in all_files) {
-  tmp_file <- paste0("../output/current/", do_file)
+  tmp_file <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmp_file, stringsAsFactors = FALSE)
   
   day1 <- tmp %>%
@@ -22,15 +22,41 @@ for(do_file in all_files) {
     filter(date == min(date)) %>%
     pull(date) %>%
     unique()
+  day0 <-  tmp %>%
+    filter(period == "Past") %>%
+    filter(date == max(date)) %>%
+    pull(date) %>%
+    unique()
+  day2 <-  tmp %>%
+    filter(period == "Future") %>%
+    filter(date == (min(as.Date(date))+1)) %>%
+    pull(date) %>%
+    unique()
+  
+  avg <- tmp %>%
+    filter(variable == "daily_all_infections") %>%
+    filter(date %in% c(day0, day2)) %>%
+    group_by(sim_type) %>%
+    mutate_at(.vars = 6:13, .funs = mean) %>%
+    ungroup() %>%
+    dplyr::select(-period, -date) %>%
+    distinct() %>%
+    mutate(period = "Future", date = day1)
+  
+  rms <- which(tmp$variable == "daily_all_infections" & tmp$date == day1)
   tmp <- tmp %>%
-    mutate(lower_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_80),
-           lower_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_90),
-           lower_95 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_95),
-           mean_value = ifelse(date == day1 & variable == "daily_all_infections", NA, mean_value),
-           median_value = ifelse(date == day1 & variable == "daily_all_infections", NA, median_value),
-           upper_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_80),
-           upper_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_90),
-           upper_85 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_95))
+    slice(-rms) %>%
+    bind_rows(avg)
+  
+  # tmp <- tmp %>%
+  #   mutate(lower_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_80),
+  #          lower_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_90),
+  #          lower_95 = ifelse(date == day1 & variable == "daily_all_infections", NA, lower_95),
+  #          mean_value = ifelse(date == day1 & variable == "daily_all_infections", NA, mean_value),
+  #          median_value = ifelse(date == day1 & variable == "daily_all_infections", NA, median_value),
+  #          upper_80 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_80),
+  #          upper_90 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_90),
+  #          upper_85 = ifelse(date == day1 & variable == "daily_all_infections", NA, upper_95))
   # tmp %>% 
   #   filter(sim_type == "status_quo") %>%
   #   filter(variable %in% c("cumulative_all_infections", "daily_all_infections")) %>%
@@ -76,4 +102,4 @@ for(do_file in all_files) {
   us_output <- bind_rows(us_output, tmp)
 }
 
-write_csv(us_output, "../output/us_current_results.csv")
+write_csv(us_output, here("/output/us_current_results.csv"))
