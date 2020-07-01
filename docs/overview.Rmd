@@ -11,7 +11,6 @@ header-includes: \usepackage{amsmath}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(here)
 library(tidyverse)
-# source(here("code/plotting/plotoverview.R"))
 ```
 
 Here we present a model for the transmission of SARS-CoV-2 in all states of the United States of America. The model builds on a previous model developed for the state of Georgia.
