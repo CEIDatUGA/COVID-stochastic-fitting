@@ -76,10 +76,15 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     c(0, diff(x))
   }
   infection_summaries <- sims %>%
-    dplyr::select(SimType, Period, Date, S) %>%
+    dplyr::select(SimType, Period, Date, S, rep_id) %>%
     mutate(N = pop_size) %>%
     mutate(infections = N - S) %>%
-    group_by(SimType, Period, Date) %>%
+    group_by(SimType, Period, rep_id) %>%
+    arrange(Date) %>%
+    mutate(infections = c(0, diff(infections))) %>%
+    ungroup() %>%
+    arrange(rep_id, Date) %>%
+    group_by(SimType, Date, Period) %>%
     summarise(lower_95 = ceiling(quantile(infections, 0.025, na.rm = TRUE)),
               lower_90 = ceiling(quantile(infections, 0.05, na.rm = TRUE)),
               lower_80 = ceiling(quantile(infections, 0.1, na.rm = TRUE)),
@@ -90,12 +95,6 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
               upper_95 = ceiling(quantile(infections, 0.975, na.rm = TRUE))) %>%
     ungroup() %>%
     mutate(Variable = "daily_all_infections") %>%
-    group_by(SimType, Period) %>%
-    arrange(Date) %>%
-    ungroup() %>%
-    group_by(SimType) %>%
-    mutate_at(.vars = 4:11, .funs = mydiff) %>%
-    ungroup() %>%
     gather(key = "value_type", value = "value", -SimType, -Period, -Date, -Variable)
   
   infection_cumulative <- sims %>%
