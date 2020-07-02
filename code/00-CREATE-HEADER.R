@@ -107,7 +107,7 @@ all_states_pomp_covar <- loadcleanucmobility(
 
 pomp_list <- vector("list",length(statevec)) #large list that will hold pomp model and other info for each state
 ct = 1 #an indexer
-for (dolocation in statevec)
+for (dolocation in rev(statevec))
 {
   print(sprintf('starting state %s',dolocation))
   
@@ -123,7 +123,7 @@ for (dolocation in statevec)
     filter(location == dolocation)
   
   n_knots <- round(nrow(pomp_data) / 10 )
-  est_these_pars = c("log_sigma_dw", "log_beta_s", "frac_dead",
+  est_these_pars = c("log_sigma_dw", "frac_dead",
                      "log_theta_cases", "log_theta_deaths")
   est_these_inivals = c("E1_0")
   # est_these_inivals = ""
@@ -147,7 +147,7 @@ for (dolocation in statevec)
       degree=3
     ),
     rel_beta_change = as.matrix(tmp_covar$rel_beta_change),
-    trend_sim = as.matrix(rep(100, times = nrow(tmp_covar))),
+    trend_sim = as.matrix(rep(10, times = nrow(tmp_covar))),
     fit = 1,
     times="t",
     order = "constant"

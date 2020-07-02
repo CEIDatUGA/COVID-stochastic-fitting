@@ -1,4 +1,4 @@
-setparsvars <- function(est_these_pars, est_these_inivals, population)
+setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught = 3)
 {
 
   #this is a simple script that specifies model parameters, and variable names
@@ -31,7 +31,7 @@ setparsvars <- function(est_these_pars, est_these_inivals, population)
                H1_0 = 0, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
                R_0 = 0,
                D_0 = 0,
-               trendO_0 = 100
+               trendO_0 = 10
   )
   
   Ntot <- sum(inivals)  # total population size - needed below
@@ -44,7 +44,8 @@ setparsvars <- function(est_these_pars, est_these_inivals, population)
   
   #note that a lot of parameters below are transformed versions of what the meaning specifies
   #see the Google sheet for detailed definitions and explanations
-  parvals <- c(log_beta_s = log(0.45/Ntot), #rate of infection of symptomatic 
+  beta <- rnaught/10
+  parvals <- c(log_beta_s = log(beta/population), #rate of infection of symptomatic 
                trans_e = 2, 
                trans_a = 0, 
                trans_c = 1,  
