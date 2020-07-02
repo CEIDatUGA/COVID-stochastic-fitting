@@ -1,0 +1,63 @@
+---
+title: "Calculation of the reproduction number"
+author: "Eamon O'Dea"
+date: "6/6/2020"
+output: html_document
+---
+
+## The Model
+The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
+The following compartments are included:  
+
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{I_a}$ - Individuals who are *infected* and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are *infected* and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are *infected* and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will be diagnosed and move to $C$.
+* $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
+* $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
+* $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
+* $\boldsymbol{D}$ - Individuals who *died* from the infection. 
+
+To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.^[Hurtado and Kirosingh 2019 (https://link.springer.com/article/10.1007/s00285-019-01412-w)]
+
+* $\boldsymbol{L}$ - 4 compartments
+* $\boldsymbol{I_a}$ - 4 compartments 
+* $\boldsymbol{I_{su}}$ - 4 compartments
+* $\boldsymbol{I_{sd}}$ - 4 compartments
+* $\boldsymbol{C}$ - 4 compartments
+* $\boldsymbol{H}$ - 4 compartments
+
+The vector field for all compartments that represent infected individuals in a deterministic version of our model is as follows.
+
+$$ \begin{aligned} \dot{L}_1 &= S \omega(t) \left( b_{I_{sd}} \sum_{i = 1}^4 I_{sd_i} +  b_{I_{su}} \sum_{i = 1}^4 I_{su_i} + b_L \sum_{i = 1}^4 L_i + b_{I_a} \sum_{i = 1}^4 I_{a_i} + b_C \sum_{i = 1}^4 C_{i} + b_H \sum_{i = 1}^4 H_{i} \right) - \gamma_L L_1  \\
+ \dot{L}_2 &= \gamma_L L_1 - \gamma_L L_2 \\
+ \dot{L}_3 &= \gamma_L L_2 - \gamma_L L_3 \\
+ \dot{L}_4 &= \gamma_L L_3 - \gamma_L L_4 \\
+ \dot{I}_{a_1} &= \gamma_L L_4  a - \gamma_{I_a} I_{a_1} \\
+ \dot{I}_{a_2} &= \gamma_{I_a} I_{a_1}  - \gamma_{I_a} I_{a_2} \\
+ \dot{I}_{a_3} &= \gamma_{I_a} I_{a_2} - \gamma_{I_a} I_{a_3} \\
+ \dot{I}_{a_4} &= \gamma_{I_a} I_{a_3} - \gamma_{I_a} I_{a_4} \\
+ \dot{I}_{su_1} &= \gamma_L L_4  (1 - a) (1 - q) - \gamma_{I_{su}} I_{su_1} \\
+ \dot{I}_{su_2} &= \gamma_{I_{su}} I_{su_1}  - \gamma_{I_{su}} I_{su_2} \\
+ \dot{I}_{su_3} &= \gamma_{I_{su}} I_{su_2} - \gamma_{I_{su}} I_{su_3} \\
+ \dot{I}_{su_4} &= \gamma_{I_{su}} I_{su_3} - \gamma_{I_{su}} I_{su_4} \\
+ \dot{I}_{sd_1} &= \gamma_L L_4  (1 - a) q - \gamma_{I_{sd}} I_{sd_1} s(t) \\
+ \dot{I}_{sd_2} &= \gamma_{I_{sd}} I_{sd_1} s(t) - \gamma_{I_{sd}} I_{sd_2} s(t) \\
+ \dot{I}_{sd_3} &= \gamma_{I_{sd}} I_{sd_2} s(t) - \gamma_{I_{sd}} I_{sd_3} s(t) \\
+ \dot{I}_{sd_4} &= \gamma_{I_{sd}} I_{sd_3} s(t) - \gamma_{I_{sd}} I_{sd_4} s(t) \\
+ \dot{I}_{C_1} &= \gamma_{I_{sd}} I_{sd_4} s(t) - \gamma_C / s(t) C_1 \\
+ \dot{I}_{C_2} &= \gamma_C / s(t) C_1 - \gamma_C / s(t) C_2 \\
+ \dot{I}_{C_3} &= \gamma_C / s(t) C_2 - \gamma_C / s(t) C_3 \\
+ \dot{I}_{C_4} &= \gamma_C / s(t) C_3 - \gamma_C / s(t) C_4 \\
+  \dot{I}_{H_1} &= h \gamma_C / s(t) C_4 - \gamma_H H_1 \\
+ \dot{I}_{H_2} &= \gamma_H  H_1 - \gamma_H  H_2 \\
+ \dot{I}_{H_3} &= \gamma_H  H_2 - \gamma_H  H_3 \\
+ \dot{I}_{H_4} &= \gamma_H  H_3 - \gamma_H  H_4
+ \end{aligned}$$
+ 
+ Assuming that all of the time dependent functions, $S, \omega, s, q$, are changing slowly over the course of an individual's infection, the expected number of new cases each case generates, $\mathcal{R}_e$, may be approximated as$$
+ \mathcal{R}_e \approx S \omega 4 \left[b_L / \gamma_L +  (1 - a) \left(q (b_{I_{sd}} / (s \gamma_{I_{sd}})  + b_C s / \gamma_C + h b_H /\gamma_H) + (1 - q)  b_{I_{su}} / \gamma_{I_{su}}\right) + a b_{I_a} / \gamma_{I_a} \right].
+ $$
+ We derived this equation by applying the next-generation matrix approach for the calcuation of $\mathcal{R}_0$ and removing the constraint that $S$ be at the disease-free equilibrium value. To be more specific, we followed the next-generation matrix approach described by van den Driessche and Watmough (2002)^[https://doi.org/10.1016/S0025-5564(02)00108-6].
+ 
