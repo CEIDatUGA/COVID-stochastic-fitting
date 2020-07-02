@@ -1,4 +1,4 @@
-setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught = 3)
+setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught = 6)
 {
 
   #this is a simple script that specifies model parameters, and variable names

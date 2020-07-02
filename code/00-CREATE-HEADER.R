@@ -133,7 +133,8 @@ for (dolocation in rev(statevec))
   # Set the parameter values and initial conditions
   par_var_list <- setparsvars(est_these_pars = est_these_pars, 
                               est_these_inivals = est_these_inivals,
-                              population = population)
+                              population = population,
+                              rnaught = 6)
   
   # Get covariate 
   tmp_covar <- all_states_pomp_covar %>%
