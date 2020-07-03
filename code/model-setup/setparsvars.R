@@ -27,7 +27,7 @@ setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught =
                Ia1_0 = log(1), #Ia2_0 = 22, Ia3_0 = 22, Ia4_0 = 22, 
                Isu1_0 = log(1),# Isu2_0 = 90, Isu3_0 = 90, Isu4_0 = 90, 
                Isd1_0 = log(1), #Isd2_0 = 14, Isd3_0 = 14, Isd4_0 = 14, 
-               C1_0 = 2, #C2_0 = 2, C3_0 = 2, C4_0 = 2, 
+               C1_0 = 1, #C2_0 = 2, C3_0 = 2, C4_0 = 2, 
                H1_0 = 0, #H2_0 = 2, H3_0 = 2, H4_0 = 2, 
                R_0 = 0,
                D_0 = 0,
@@ -77,7 +77,11 @@ setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught =
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))
-               frac_dead = 1.2, #fraction hospitalized that die
+               # frac_dead = 1.2, #fraction hospitalized that die
+               df1 = 1.2,
+               df2 = 1.2,
+               td = log(40),
+               
                log_theta_cases = log(10),
                log_theta_hosps = log(10),
                log_theta_deaths = log(10),

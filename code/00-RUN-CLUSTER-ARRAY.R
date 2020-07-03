@@ -129,6 +129,12 @@ if(this_pomp$location %in% c("New York", "Washington")) {
   mif_settings$mif_num_iterations <- c(250,200)
 }
 
+# params <- this_pomp$par_var_list$allparvals
+# params["df2"] <- 0.00000001
+# params["td"] <- log(1)
+# ttt <- simulate(pomp_model, nsim = 1, params = params, format = "data.frame")
+# plot(ttt$deaths)
+
 mif_res <- runmif_allstates(parallel_info = parallel_info, 
                             mif_settings = mif_settings, 
                             pomp_list = this_pomp, 

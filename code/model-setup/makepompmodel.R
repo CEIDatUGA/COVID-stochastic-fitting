@@ -33,6 +33,7 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     double dW;  // environmental stochasticity/noise
     double trend;
     double delta;
+    double frac_dead;
   
     E_tot = E1+E2+E3+E4;  // all pre-symptomatic
     Ia_tot = Ia1+Ia2+Ia3+Ia4;  // all asymptomatic
@@ -88,6 +89,13 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
     detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
+    // Time dependent fraction deaths
+    if(t <= exp(td)) {
+      frac_dead = df1;
+    } 
+    if(t > exp(td)) {
+      frac_dead = df2;
+    }
     
     // -----------------------------------
     // Compute the transition rates
