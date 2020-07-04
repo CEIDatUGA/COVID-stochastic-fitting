@@ -151,7 +151,8 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
                    "loginv", "loginv", "loginv", "loginv", "loginv", "loginv", #gi
                    "logplus", "log", "log", #diag
                    "logis", "log", "log", "log",  #detect
-                   "logis", "logis", "logis", #frac
+                   "logis", "logis", "logis", "logis", #frac
+                   "log", # d change time
                    "log", "log", "log", #theta
                    "log", #sigma
                    rep("lin", times = n_knots),
@@ -175,7 +176,7 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
                        "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
                        "max_diag_factor", "diag_rampup", "t_half_diag",
                        "max_detect_frac", "detect_rampup", "t_half_detect", "base_detect_frac",
-                       "frac_asym", "frac_hosp", "frac_dead", 
+                       "frac_asym", "frac_hosp", "frac_dead1", "frac_dead2", "time_d_change", 
                       "theta_cases", "theta_hosps", "theta_deaths", 
                       "sigma_dw", 
                       paste0("b",1:n_knots),
