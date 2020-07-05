@@ -68,19 +68,19 @@ for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   tmpfile <- paste0(here("output/current/"), "/", do_file)
   tmp <- read.csv(tmpfile) %>%
-    spread(key = var_type, value = value) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths", 
+                           "actual_daily_cases", "actual_daily_deaths",
                            "mobility_trend", "latent_trend")) %>%
     mutate(date = as.Date(date)) %>%
-    dplyr::select(location, sim_type, period, date, variable, data, mean_value)
+    dplyr::select(location, sim_type, period, date, variable, mean_value)
   
   tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
-  tmpparams <- readRDS(tmpparamfile)
+  tmpparams_z <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
-                        log_lik = tmpparams["LogLik", 2])
-  rnms <- row.names(tmpparams)
-  tmpparams <- tmpparams %>%
+                        log_lik = tmpparams_z["LogLik", 2])
+  rnms <- row.names(tmpparams_z)
+  tmpparams <- tmpparams_z %>%
     mutate(parameter = rnms) %>%
     filter(is_fitted == "yes") %>%
     dplyr::select(-is_fitted) %>%
@@ -89,9 +89,20 @@ for(i in 1:length(all_files)) {
     dplyr::select(-key) %>%
     mutate(location = unique(tmp$location)) %>%
     dplyr::select(location, value, parameter)
+   beta <- tmpparams_z %>%
+    mutate(parameter = rnms) %>%
+    filter(is_fitted == "no") %>%
+    dplyr::select(-is_fitted) %>%
+    gather("key", "value", -parameter) %>%
+    filter(key == "X1") %>%
+    dplyr::select(-key) %>%
+    mutate(location = unique(tmp$location)) %>%
+    dplyr::select(location, value, parameter) %>%
+    filter(parameter == "beta_s") %>%
+    pull(value)
   
   tmp <- tmp %>%
-    mutate(beta = tmpparams %>% filter(parameter == "beta_s") %>% pull(value))
+    mutate(beta = beta)
     # mutate(omega = mobility_trend * latent_trend * beta)
   state_summaries <- bind_rows(state_summaries, tmp)
   state_parameters <- bind_rows(state_parameters, tmpparams)
@@ -121,7 +132,9 @@ des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood",
                 "Minimum fraction detected at t = 1",
                 "Fraction of latent infections that move to aysmptomatic",
                 "Fraction of detected cases that are hospitalized",
-                "Fraction of hospitalizations that result in death",
+                "Fraction of hospitalizations that result in death (before t = tD)",
+                "Fraction of hospitalizations that result in death (after t = tD)",
+                "Time at which death fraction changes",
                 "Dispersion parameter for case reporting observation process",
                 "Dispersion parameter for hospitalization reporting observation process",
                 "Dispersion parameter for death reporting obsercation process",
@@ -141,7 +154,7 @@ tmpparams <- readRDS(tmpparamfile)
 rnms <- row.names(tmpparams)
 params_map <- tibble(Parameter = rnms,
                      Description = des_string)
-fixed_parameters <- tmpparams %>%
+fixed_parameters <- tmpparams_z %>%
   mutate(Parameter = rnms) %>%
   filter(is_fitted == "no") %>%
   dplyr::select(-is_fitted) %>%
@@ -159,11 +172,11 @@ states <- c("Georgia", "New York", "Washington", "Wyoming")
 all_data <- state_summaries %>%
   filter(location %in% states) %>%
   filter(is.na(sim_type)) %>%
-  mutate(variable = ifelse(variable == "daily_cases", 
+  mutate(variable = ifelse(variable == "actual_daily_cases", 
                            "Daily case reports", 
                            "Daily death reports"))
 
-ggplot(all_data, aes(x = date, y = data, color = location)) +
+ggplot(all_data, aes(x = date, y = mean_value, color = location)) +
   geom_col(width = 0.3) +
   ylab("Number of persons") +
   facet_wrap(location~variable, scales = "free", ncol = 2) +
@@ -277,6 +290,7 @@ All other parameters were fixed at the following values:
 
 ```{r params, eval = TRUE}
 fixed_parameters %>%
+  dplyr::mutate_if(is.numeric, funs(as.character(signif(., 3)))) %>%
   knitr::kable(digits = 2, format = "html") %>%
   kableExtra::kable_styling(full_width = F)
 ```
@@ -333,20 +347,24 @@ The estimated latent trend in transmission reduction is combined with mobility d
 The estimated values of $\beta$ for each state are informative, but to understand the tranmission rate as implemented in the model we need to look at $\omega(t)$, which is plotted below.
 
 ```{r trends, fig.width = 10}
+pops <- readRDS(here("data/us_popsize.rds")) %>%
+  rename("location" = state_full)
 omega_summaries <- state_summaries %>%
   filter(variable %in% c("mobility_trend", "latent_trend"),
          sim_type == "status_quo",
          date < Sys.Date()) %>%
-  dplyr::select(-period, -data, -sim_type) %>%
+  dplyr::select(-period, -sim_type) %>%
   spread(key = variable, value = mean_value) %>%
-  mutate(omega = beta*latent_trend*mobility_trend)
+  mutate(omega = beta*latent_trend*mobility_trend) %>%
+  left_join(pops, by = "location") %>%
+  mutate(transmission = omega*total_pop)
 
-ggplot(omega_summaries, aes(date, omega)) +
+ggplot(omega_summaries, aes(date, transmission)) +
   geom_line(color = "salmon") +
   facet_wrap(~location, ncol = 10) +
-  coord_cartesian(ylim = c(0, 1e-06)) +
+  # coord_cartesian(ylim = c(0, 1e-06)) +
   theme_minimal(base_size = 10) +
-  ylab(expression(omega)) +
+  ylab(bquote(omega%*%N)) +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Transmission rates over time")
 ```
@@ -356,15 +374,15 @@ Here we plot the average $\omega$ over time.
 ```{r avgomega}
 omega_summaries %>%
   group_by(location) %>%
-  summarise(mean_omega = mean(omega),
-            lower = min(omega),
-            upper = max(omega)) %>%
+  summarise(mean_omega = mean(transmission),
+            lower = quantile(transmission, 0.1),
+            upper = quantile(transmission, 0.9)) %>%
   ggplot(aes(y = mean_omega, x = reorder(location, mean_omega))) +
   geom_point() +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  ylab(expression(omega)) +
+  ylab(bquote(omega%*%N)) +
   xlab("") +
-  coord_flip(ylim = c(0, 0.00000125)) +
+  coord_flip() +
   theme_minimal() +
   ggtitle("Mean tranmission rates over time", subtitle = "error bars show min and max")
 ```
@@ -376,45 +394,51 @@ See plot below that shows $\omega(t)$ for each state (grey lines) and the overal
 ```{r omegatime}
 omega_summaries %>%
   filter(date >= "2020-03-01") %>%
-  ggplot(aes(x = date, y = omega)) +
+  ggplot(aes(x = date, y = transmission)) +
   geom_line(color = "grey", aes(group = location), size = 0.5) +
   geom_smooth(se = FALSE, color = "dodgerblue", size = 1.2) +
-  coord_cartesian(ylim = c(0, 1e-06)) +
-  ylab(expression(omega)) +
+  # coord_cartesian(ylim = c(0, 1e-06)) +
+  ylab(bquote(omega%*%N)) +
   theme_minimal() +
   ggtitle("Transmission rate over time")
 ```
 
 ## Initial number of infectious individuals
-Our model is initialized with 2 individuals in the $C_1$ compartment and 1 individual in each of the $I_1$ compartments. 
-We estimated the initial size of the latent compartment, $L_1$.
-Below we plot the MLE of $L_1$ for each state and the relationship between $L_1$ and $\omega(t=1)$ in each state.
+Our model is initialized with 1 individual in the $C_1$ compartment, the initial conditions of all other latent states were estimated.
+Below we plot the MLE of these latent states for each U.S. state and the relationship.
 
 ```{r latents}
 state_parameters %>%
-  filter(parameter == "E1_0") %>%
+  filter(parameter %in% c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")) %>%
   spread(parameter, value) %>%
-  rename("L0" = E1_0) -> latents
+  gather("latent_state", "MLE", -location) %>%
+  mutate(MLE = round(MLE, 0)) -> latents
 
-omega_summaries %>%
-  group_by(location) %>%
-  filter(date == min(date)) %>%
-  ungroup() %>%
-  dplyr::select(location, omega) -> omegas
+# omega_summaries %>%
+#   group_by(location) %>%
+#   filter(date == min(date)) %>%
+#   ungroup() %>%
+#   dplyr::select(location, omega) -> omegas
 
-latents <- latents %>%
-  left_join(omegas, by = c("location"))
+# latents <- latents %>%
+  # left_join(omegas, by = c("location"))
 
-ggplot(latents, aes(y = L0, x = reorder(location, L0))) +
-  geom_col(fill = "dodgerblue") +
-  coord_flip() +
-  xlab("") + ylab("Estimated initial size of latent compartment") +
-  theme_minimal()
+# ggplot(latents, aes(y = value, x = reorder(location, L0))) +
+#   geom_col(fill = "dodgerblue") +
+#   coord_flip() +
+#   xlab("") + ylab("Estimated initial size of latent compartment") +
+#   theme_minimal()
 
-ggplot(latents, aes(x = L0, y = omega)) +
-  geom_point() +
-  ylab(expression(omega)) + xlab("L0") +
-  theme_minimal()
+# ggplot(latents, aes(x = L0, y = omega)) +
+#   geom_point() +
+#   ylab(expression(omega)) + xlab("L0") +
+#   theme_minimal()
+
+latents %>%
+  spread(latent_state, MLE) %>%
+  rename("L1_0" = E1_0) %>%
+  knitr::kable(formate = "html") %>%
+   kableExtra::kable_styling(full_width = F)
 ```
 
 ## Log likelihoods
@@ -442,11 +466,11 @@ for(do_state in unique(state_summaries$location)) {
   tmp_summary <- state_summaries %>%
     filter(location == do_state)
   dat <- tmp_summary %>%
-    filter(!is.na(data)) %>%
-    dplyr::select(date, variable, data) %>%
-    spread(variable, data) %>%
-    rename("cases" = daily_cases,
-           "deaths" = daily_deaths)
+    filter(variable %in% c("actual_daily_cases", "actual_daily_deaths")) %>%
+    dplyr::select(date, variable, mean_value) %>%
+    spread(variable, mean_value) %>%
+    rename("cases" = actual_daily_cases,
+           "deaths" = actual_daily_deaths)
 
   # Apply 7-day moving average to the data
   dat <- dat %>%
@@ -478,11 +502,11 @@ for(do_state in unique(state_summaries$location)) {
     filter(location == do_state) %>%
     pull(log_lik)
   pomp_data <- tmp_summary %>%
-    filter(!is.na(data)) %>%
-    dplyr::select(date, variable, data) %>%
-    spread(variable, data) %>%
-    rename("cases" = daily_cases,
-           "deaths" = daily_deaths)
+    filter(variable %in% c("actual_daily_cases", "actual_daily_deaths")) %>%
+    dplyr::select(date, variable, mean_value) %>%
+    spread(variable, mean_value) %>%
+    rename("cases" = actual_daily_cases,
+           "deaths" = actual_daily_deaths)
   cnll <- loglik_naive(pomp_data$cases[!is.na(pomp_data$cases)])
   dnll <- loglik_naive(pomp_data$deaths[!is.na(pomp_data$deaths)])
   nll <- cnll + dnll
