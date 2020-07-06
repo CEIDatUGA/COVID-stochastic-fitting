@@ -2,7 +2,7 @@
 #PBS -q covid19_q
 #PBS -N covstates
 #PBS -l nodes=1:ppn=32
-#PBS -l walltime=12:00:00
+#PBS -l walltime=24:00:00
 #PBS -l pmem=3500mb
 #PBS -M atredennick@west-inc.com
 #PBS -t 1-50
