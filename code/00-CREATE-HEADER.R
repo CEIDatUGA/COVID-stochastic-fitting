@@ -33,9 +33,9 @@ library('vctrs')
 # --------------------------------------------------
 # Source all needed functions/scripts
 # --------------------------------------------------
-source(here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
-source(here("code/data-processing/loadcleandata.R")) #data processing function
-source(here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
+source(here::here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
+source(here::here("code/data-processing/loadcleandata.R")) #data processing function
+source(here::here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
 
 
 # --------------------------------------------------
@@ -85,7 +85,7 @@ timestamp <- paste(lubridate::date(tm),
 # 'District of Columbia',  'Puerto Rico', 'Guam', 'American Samoa', 'Mariana Islands', 'Virgin Islands' #could include those
 
 statevec <- state.name  # internal R vector of 50 state names
-state_pops <- readRDS(here("data/us_popsize.rds"))
+state_pops <- readRDS(here::here("data/us_popsize.rds"))
 
 # Run data cleaning script.
 all_states_pomp_data <- loadcleandata(datasource = datasource, 
@@ -173,8 +173,8 @@ for (dolocation in rev(statevec))
 
 
 # Save the outputs
-saveRDS(pomp_list, file = here("header/pomp_list.rds"))
-saveRDS(timestamp, file = here("header/timestamp.rds"))
+saveRDS(pomp_list, file = here::here("header/pomp_list.rds"))
+saveRDS(timestamp, file = here::here("header/timestamp.rds"))
 
 # Create new folder for benchmark storage
 datestamp <- Sys.Date()

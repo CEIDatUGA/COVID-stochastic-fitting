@@ -552,11 +552,12 @@ logliks %>%
 ## Mean absolute errors
 
 Here we show the MAEs for each state for daily case reports and daily death reports.
-The MAE is truncated to 350 for visualization purposes.
 
 ```{r maes}
 ggplot(all_maes %>%
-         mutate(mae = ifelse(mae > 350, 350, mae)) %>%
+         left_join(pops, by  = "location") %>%
+         # mutate(mae = mae/(total_pop/100000)) %>%
+         # mutate(mae = ifelse(mae > 350, 350, mae)) %>%
          mutate(variable = ifelse(variable == "daily_cases", 
                                   "Daily reported cases", 
                                   "Daily reported deaths")), 
