@@ -1,4 +1,4 @@
-loadcleanucmobility <- function(locations, pomp_data, timestamp)
+loadcleanucmobility <- function(location, pomp_data, timestamp)
 {
 
   
@@ -46,7 +46,7 @@ loadcleanucmobility <- function(locations, pomp_data, timestamp)
            "date" = Date) 
   
   out <- tibble()
-  for(dostate in unique(uc_mobility$location)) {
+  for(dostate in location) {
 
     startdate <- dates %>%
       filter(location == dostate) %>%
