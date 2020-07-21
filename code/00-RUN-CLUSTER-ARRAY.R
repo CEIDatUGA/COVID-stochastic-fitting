@@ -125,8 +125,8 @@ pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list,
                             n_knots = n_knots)
 this_pomp$pomp_model <- pomp_model
 
-if(this_pomp$location %in% c("New York", "Washington")) {
-  mif_settings$mif_num_iterations <- c(250,200)
+if(this_pomp$location %in% c("New York", "Washington", "New Jersey")) {
+  mif_settings$mif_num_iterations <- c(350,150)
 }
 
 # params <- this_pomp$par_var_list$allparvals

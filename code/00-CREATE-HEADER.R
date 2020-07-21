@@ -85,6 +85,8 @@ timestamp <- paste(lubridate::date(tm),
 # 'District of Columbia',  'Puerto Rico', 'Guam', 'American Samoa', 'Mariana Islands', 'Virgin Islands' #could include those
 
 statevec <- state.name  # internal R vector of 50 state names
+rmids <- which(statevec %in% c("Washington", "New York", "New Jersey"))
+statevec <- c(statevec[rmids], statevec[-rmids])
 state_pops <- readRDS(here::here("data/us_popsize.rds"))
 
 # Run data cleaning script.
@@ -107,7 +109,7 @@ all_states_pomp_covar <- loadcleanucmobility(
 
 pomp_list <- vector("list",length(statevec)) #large list that will hold pomp model and other info for each state
 ct = 1 #an indexer
-for (dolocation in rev(statevec))
+for (dolocation in statevec)
 {
   print(sprintf('starting state %s',dolocation))
   
