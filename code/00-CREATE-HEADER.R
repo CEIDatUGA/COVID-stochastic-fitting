@@ -133,10 +133,15 @@ for (dolocation in statevec)
   est_these_pars <- c(est_these_pars, knot_coefs)
   
   # Set the parameter values and initial conditions
+  if(dolocation %in% c("Washington", "New York", "New Jersey")) {
+    r0 <- 10
+  } else {
+    r0 <- 6
+  }
   par_var_list <- setparsvars(est_these_pars = est_these_pars, 
                               est_these_inivals = est_these_inivals,
                               population = population,
-                              rnaught = 6)
+                              rnaught = r0)
   
   # Get covariate 
   tmp_covar <- all_states_pomp_covar %>%
