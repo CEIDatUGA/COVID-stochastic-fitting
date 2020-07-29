@@ -1,8 +1,5 @@
 # Script to run the workflow locally for trouble-shooting
 
-# Start with a clean workspace to avoid downstream errors -----------------
-rm(list = ls(all.names = TRUE))
-
 # --------------------------------------------------
 # Load necessary libraries 
 # --------------------------------------------------
@@ -19,6 +16,9 @@ library('tidyr')
 library('here')
 library('vctrs')
 
+# Start with a clean workspace to avoid downstream errors -----------------
+rm(list = ls(all.names = TRUE))
+
 
 # --------------------------------------------------
 # Source all needed functions/scripts
@@ -26,7 +26,7 @@ library('vctrs')
 source(here::here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
 source(here::here("code/data-processing/loadcleandata.R")) #data processing function
 source(here::here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
-source(here::here("code/model-fitting/runmif_allstates_array.R")) #runs mif fitting
+source(here::here("code/model-fitting/runmif_allstates_local.R")) #runs mif fitting
 source(here::here("code/result-exploration/exploremifresults.R")) #explore mif results
 source(here::here("code/forward-simulations/simulate_trajectories.R"))
 source(here::here("code/forward-simulations/runscenarios.R")) #run forward simulations for best fit mif results
@@ -50,7 +50,7 @@ timestamp <- paste(lubridate::date(tm),
 # --------------------------------------------------
 # specify which states to run as a vector 
 # --------------------------------------------------
-statevec <- "Washington"
+statevec <- c("Washington","Georgia")
 state_pops <- readRDS(here::here("data/us_popsize.rds"))
 
 # Run data cleaning script.
@@ -89,7 +89,7 @@ for (dolocation in rev(statevec))
     filter(location == dolocation)
   
   n_knots <- round(nrow(pomp_data) / 10 )
-  est_these_pars = c("log_sigma_dw", "df1", "df2", "td",
+  est_these_pars = c("log_sigma_dw", "min_frac_dead", "max_frac_dead", "log_half_dead",
                      "log_theta_cases", "log_theta_deaths")
   est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
   # est_these_inivals = ""  # to not estimate any initial values
@@ -127,6 +127,15 @@ for (dolocation in rev(statevec))
   pomp_list[[ct]]$pomp_covar = covar
   pomp_list[[ct]]$location = dolocation
   pomp_list[[ct]]$par_var_list = par_var_list
+  pomp_list[[ct]]$n_knots <- round(nrow(pomp_list[[ct]]$pomp_data) / 10 )
+  
+  # Make the pomp model
+  pomp_model <- makepompmodel(par_var_list = pomp_list[[ct]]$par_var_list, 
+                              pomp_data = pomp_list[[ct]]$pomp_data, 
+                              pomp_covar = pomp_list[[ct]]$pomp_covar,
+                              n_knots = pomp_list[[ct]]$n_knots)
+  
+  pomp_list[[ct]]$pomp_model <- pomp_model
   
   ct = ct + 1
 } #done serial loop over all states that creates pomp object and other info 
@@ -150,61 +159,61 @@ mif_settings$pf_reps <- 2#replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
 mif_settings$replicates <- 2 #number of different starting conditions - this is parallelized
 
-this_pomp <- pomp_list[[1]]
-n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
+# MIF 
+# run all states
+# each state is run in series
+# for a given state, MIF runs are parallelized
 
-# Make the pomp model
-pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
-                            pomp_data = this_pomp$pomp_data, 
-                            pomp_covar = this_pomp$pomp_covar,
-                            n_knots = n_knots)
-this_pomp$pomp_model <- pomp_model
+pomp_res <- runmif_allstates_local(parallel_info = parallel_info, 
+                                   mif_settings = mif_settings, 
+                                   pomp_list = pomp_list, 
+                                   par_var_list = par_var_list)
 
-# MIF
-mif_res <- runmif_allstates(parallel_info = parallel_info, 
-                            mif_settings = mif_settings, 
-                            pomp_list = this_pomp, 
-                            par_var_list = this_pomp$par_var_list)
 
-pomp_res = this_pomp #current state
-rm(this_pomp) #remove the old object
-pomp_res$mif_res = mif_res #add mif results for each state to overall pomp object
+for (ct in 1:length(pomp_list))
+{
 
-mif_explore <- exploremifresults(pomp_res = pomp_res, 
-                                 par_var_list = pomp_res$par_var_list,
-                                 n_knots = n_knots) #compute trace plot and best param tables for mif
-#add resutls computed to the pomp_res object
-pomp_res$traceplot = mif_explore$traceplot
-pomp_res$all_partable = mif_explore$all_partable
-pomp_res$est_partable = mif_explore$est_partable
-pomp_res$partable_natural = mif_explore$partable_natural
 
-# Simulate from the model at best MLE
-params <- pomp_res$all_partable %>%
-  slice(1) %>%
-  dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) %>%
-  gather() %>%
-  tibble::deframe()
-sim <- pomp::simulate(pomp_res$pomp_model, params = params, 
-                      nsim = 100, format = "data.frame")
-pomp_res$sims <- sim 
+  pomp_list[[ct]]$pomp_res = pomp_res #add mif results for each state to overall pomp object
 
-#save the completed analysis for each state to a file with time-stamp
-#this file could be large, needs checking
-filename = paste0('output-local/', pomp_res$filename_label, '_results.rds')
-saveRDS(object = pomp_res, file = filename)
+  mif_explore <- exploremifresults(pomp_res = pomp_list[[ct]]$pomp_res, 
+                                 par_var_list = pomp_list[[ct]]$par_var_list,
+                                 n_knots = pomp_list[[ct]]$n_knots) #compute trace plot and best param tables for mif
 
-# Run scenarios
-pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
-filename = paste0('output-local/', pomp_res$filename_label, '_results.rds')
-saveRDS(object = pomp_res, file = filename)  # resave/overwrite...
 
-# Summarize results
-res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 
-                                     pomp_data = pomp_res$pomp_data,
-                                     pomp_covar = pomp_res$pomp_covar, 
-                                     location = pomp_res$location,
-                                     mle_sim = pomp_res$sims)
-
-outfile <- paste0("output-local/", pomp_res$filename_label, '.csv')
-write.csv(res_summary, outfile, row.names = FALSE)
+  #add results computed to the pomp_res object
+  pomp_res$traceplot = mif_explore$traceplot
+  pomp_res$all_partable = mif_explore$all_partable
+  pomp_res$est_partable = mif_explore$est_partable
+  pomp_res$partable_natural = mif_explore$partable_natural
+  
+  # Simulate from the model at best MLE
+  params <- pomp_res$all_partable %>%
+    slice(1) %>%
+    dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) %>%
+    gather() %>%
+    tibble::deframe()
+  sim <- pomp::simulate(pomp_res$pomp_model, params = params, 
+                        nsim = 100, format = "data.frame")
+  pomp_res$sims <- sim 
+  
+  #save the completed analysis for each state to a file with time-stamp
+  #this file could be large, needs checking
+  filename = paste0('output-local/', pomp_res$filename_label, '_results.rds')
+  saveRDS(object = pomp_res, file = filename)
+  
+  # Run scenarios
+  pomp_res$scenarios <- runscenarios(pomp_res, par_var_list = pomp_res$par_var_list)
+  filename = paste0('output-local/', pomp_res$filename_label, '_results.rds')
+  saveRDS(object = pomp_res, file = filename)  # resave/overwrite...
+  
+  # Summarize results
+  res_summary <- summarize_simulations(sims_out = pomp_res$scenarios, 
+                                       pomp_data = pomp_res$pomp_data,
+                                       pomp_covar = pomp_res$pomp_covar, 
+                                       location = pomp_res$location,
+                                       mle_sim = pomp_res$sims)
+  
+  outfile <- paste0("output-local/", pomp_res$filename_label, '.csv')
+  write.csv(res_summary, outfile, row.names = FALSE)
+} #end loop over states
