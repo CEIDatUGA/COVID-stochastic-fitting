@@ -176,13 +176,15 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
                        "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
                        "max_diag_factor", "diag_rampup", "t_half_diag",
                        "max_detect_frac", "detect_rampup", "t_half_detect", "base_detect_frac",
-                       "frac_asym", "frac_hosp", "frac_dead1", "frac_dead2", "time_d_change", 
+                       "frac_asym", "frac_hosp", 
+                       "min_frac_dead", "max_frac_dead", "log_half_dead", 
                       "theta_cases", "theta_hosps", "theta_deaths", 
                       "sigma_dw", 
                       paste0("b",1:n_knots),
                       "S_0",
                       "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
-                      "C1_0","H1_0","R_0","D_0", "trend_start")
+                      "C1_0","H1_0","R_0","D_0", 
+                      "trend_start")
   
   colnames(natural_par_df) <- param_nat_names
   
