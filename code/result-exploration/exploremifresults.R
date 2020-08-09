@@ -147,19 +147,19 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
   
   #this needs to be in the same order as the parameters listed in allparvals 
   param_trans <- c("log", 
-                   "logis", "logis", "logis", "logis", #trans
-                   "loginv", "loginv", "loginv", "loginv", "loginv", "loginv", #gi
-                   "logplus", "log", "log", #diag
-                   "logis", "log", "log", "log",  #detect
-                   "logis", "logis", "logis", "logis", #frac
-                   "log", # d change time
-                   "log", "log", "log", #theta
+                   "logis", "logis", "logis", "logis", #trans rates
+                   "loginv", "loginv", "loginv", "loginv", "loginv", "loginv", #gi rates
+                   "logplus", "log", "log", #diagnostic params
+                   "logis", "log", "log", "log",  #detect params
+                   "logis", "logis", #frac asymp and frac hosp
+                   "logis", "logis", "log", #min/max/half-time for frac dead
+                   "log", "log", "log", #theta params
                    "log", #sigma
                    rep("lin", times = n_knots),
                    "lin", #S0 
                    "log", "log", "log","log", #E/Ia/Isu/Isd
                    "lin", "lin", "lin", "lin", #C/H/R/D
-                   "lin"
+                   "lin" #trend
                    )
   
   # do this for all parameters, even fixed ones
@@ -176,13 +176,15 @@ exploremifresults <- function(pomp_res, par_var_list, n_knots)
                        "time_e", "time_a", "time_su", "time_sd", "time_c", "time_h", 
                        "max_diag_factor", "diag_rampup", "t_half_diag",
                        "max_detect_frac", "detect_rampup", "t_half_detect", "base_detect_frac",
-                       "frac_asym", "frac_hosp", "frac_dead1", "frac_dead2", "time_d_change", 
+                       "frac_asym", "frac_hosp", 
+                       "min_frac_dead", "max_frac_dead", "log_half_dead", 
                       "theta_cases", "theta_hosps", "theta_deaths", 
                       "sigma_dw", 
                       paste0("b",1:n_knots),
                       "S_0",
                       "E1_0", "Ia1_0", "Isu1_0", "Isd1_0",
-                      "C1_0","H1_0","R_0","D_0", "trend_start")
+                      "C1_0","H1_0","R_0","D_0", 
+                      "trend_start")
   
   colnames(natural_par_df) <- param_nat_names
   
