@@ -1,11 +1,11 @@
 /* pomp C snippet file: tmp1 */
-/* Time: 2020-07-15 17:21:55.307 -0600 */
-/* Salt: 326966F473E152D9B417C426 */
+/* Time: 2020-07-30 08:28:34.095 -0400 */
+/* Salt: FEEB5E9D3D1713DFEBC8FD6C */
 
-#include <C:/Users/atredennick/Documents/R/win-library/3.6/pomp/include/pomp.h>
+#include <C:/Users/andre/Documents/R/win-library/4.0/pomp/include/pomp.h>
 #include <R_ext/Rdynload.h>
 
-int K = 18; 
+int K = 19; 
 
 
 /* C snippet: 'rinit' */
@@ -29,9 +29,9 @@ int K = 18;
 #define base_detect_frac		(__p[__parindex[17]])
 #define frac_asym		(__p[__parindex[18]])
 #define frac_hosp		(__p[__parindex[19]])
-#define df1		(__p[__parindex[20]])
-#define df2		(__p[__parindex[21]])
-#define td		(__p[__parindex[22]])
+#define min_frac_dead		(__p[__parindex[20]])
+#define max_frac_dead		(__p[__parindex[21]])
+#define log_half_dead		(__p[__parindex[22]])
 #define log_theta_cases		(__p[__parindex[23]])
 #define log_theta_hosps		(__p[__parindex[24]])
 #define log_theta_deaths		(__p[__parindex[25]])
@@ -54,16 +54,17 @@ int K = 18;
 #define b16		(__p[__parindex[42]])
 #define b17		(__p[__parindex[43]])
 #define b18		(__p[__parindex[44]])
-#define S_0		(__p[__parindex[45]])
-#define E1_0		(__p[__parindex[46]])
-#define Ia1_0		(__p[__parindex[47]])
-#define Isu1_0		(__p[__parindex[48]])
-#define Isd1_0		(__p[__parindex[49]])
-#define C1_0		(__p[__parindex[50]])
-#define H1_0		(__p[__parindex[51]])
-#define R_0		(__p[__parindex[52]])
-#define D_0		(__p[__parindex[53]])
-#define trendO_0		(__p[__parindex[54]])
+#define b19		(__p[__parindex[45]])
+#define S_0		(__p[__parindex[46]])
+#define E1_0		(__p[__parindex[47]])
+#define Ia1_0		(__p[__parindex[48]])
+#define Isu1_0		(__p[__parindex[49]])
+#define Isd1_0		(__p[__parindex[50]])
+#define C1_0		(__p[__parindex[51]])
+#define H1_0		(__p[__parindex[52]])
+#define R_0		(__p[__parindex[53]])
+#define D_0		(__p[__parindex[54]])
+#define trendO_0		(__p[__parindex[55]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -85,6 +86,7 @@ int K = 18;
 #define seas_16		(__covars[__covindex[18]])
 #define seas_17		(__covars[__covindex[19]])
 #define seas_18		(__covars[__covindex[20]])
+#define seas_19		(__covars[__covindex[21]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -181,9 +183,9 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
-#undef df1
-#undef df2
-#undef td
+#undef min_frac_dead
+#undef max_frac_dead
+#undef log_half_dead
 #undef log_theta_cases
 #undef log_theta_hosps
 #undef log_theta_deaths
@@ -206,6 +208,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef b16
 #undef b17
 #undef b18
+#undef b19
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -237,6 +240,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #undef seas_16
 #undef seas_17
 #undef seas_18
+#undef seas_19
 #undef S
 #undef E1
 #undef E2
@@ -290,9 +294,9 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define base_detect_frac		(__p[__parindex[17]])
 #define frac_asym		(__p[__parindex[18]])
 #define frac_hosp		(__p[__parindex[19]])
-#define df1		(__p[__parindex[20]])
-#define df2		(__p[__parindex[21]])
-#define td		(__p[__parindex[22]])
+#define min_frac_dead		(__p[__parindex[20]])
+#define max_frac_dead		(__p[__parindex[21]])
+#define log_half_dead		(__p[__parindex[22]])
 #define log_theta_cases		(__p[__parindex[23]])
 #define log_theta_hosps		(__p[__parindex[24]])
 #define log_theta_deaths		(__p[__parindex[25]])
@@ -315,16 +319,17 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define b16		(__p[__parindex[42]])
 #define b17		(__p[__parindex[43]])
 #define b18		(__p[__parindex[44]])
-#define S_0		(__p[__parindex[45]])
-#define E1_0		(__p[__parindex[46]])
-#define Ia1_0		(__p[__parindex[47]])
-#define Isu1_0		(__p[__parindex[48]])
-#define Isd1_0		(__p[__parindex[49]])
-#define C1_0		(__p[__parindex[50]])
-#define H1_0		(__p[__parindex[51]])
-#define R_0		(__p[__parindex[52]])
-#define D_0		(__p[__parindex[53]])
-#define trendO_0		(__p[__parindex[54]])
+#define b19		(__p[__parindex[45]])
+#define S_0		(__p[__parindex[46]])
+#define E1_0		(__p[__parindex[47]])
+#define Ia1_0		(__p[__parindex[48]])
+#define Isu1_0		(__p[__parindex[49]])
+#define Isd1_0		(__p[__parindex[50]])
+#define C1_0		(__p[__parindex[51]])
+#define H1_0		(__p[__parindex[52]])
+#define R_0		(__p[__parindex[53]])
+#define D_0		(__p[__parindex[54]])
+#define trendO_0		(__p[__parindex[55]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -346,6 +351,7 @@ void __pomp_rinit (double *__x, const double *__p, double t, const int *__statei
 #define seas_16		(__covars[__covindex[18]])
 #define seas_17		(__covars[__covindex[19]])
 #define seas_18		(__covars[__covindex[20]])
+#define seas_19		(__covars[__covindex[21]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -451,13 +457,12 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
     detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
-    // Time dependent fraction deaths
-    if(t <= exp(td)) {
-      frac_dead = df1;
-    } 
-    if(t > exp(td)) {
-      frac_dead = df2;
-    }
+     // Time-dependent fraction of deaths
+     // starts at some max rate, moves to some min rate 
+     // max, min and time at which half-max is reached are fitted. exponent dictating rate of transition is fixed to 1 (could be changed to make it steeper).
+    //fuction is dmin + (dmax-dmin)*(t/(t+halfdead))
+    //dmin and dmax are fractions, thus are transformed accordingly. halfdead is positive, also transformed.
+    frac_dead = 1/(1+exp(min_frac_dead)) + (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (1 - t/(t+exp(log_half_dead)) );
     
     // -----------------------------------
     // Compute the transition rates
@@ -477,8 +482,8 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
     rate[11] = g_c * (1 - 1/(1+exp(frac_hosp)));  //movement from C to R  
   
     rate[12] = exp(log_g_h);  //movement through H stages  
-    rate[13] = exp(log_g_h) *  1/(1+exp(frac_dead));  //movement from H to D  
-    rate[14] = exp(log_g_h) * (1 - 1/(1+exp(frac_dead)));  //movement from H to R  
+    rate[13] = exp(log_g_h) *  frac_dead;  //movement from H to D  
+    rate[14] = exp(log_g_h) * (1 - frac_dead);  //movement from H to R  
     
     
     // ------------------------------------------
@@ -607,9 +612,9 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
-#undef df1
-#undef df2
-#undef td
+#undef min_frac_dead
+#undef max_frac_dead
+#undef log_half_dead
 #undef log_theta_cases
 #undef log_theta_hosps
 #undef log_theta_deaths
@@ -632,6 +637,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef b16
 #undef b17
 #undef b18
+#undef b19
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -663,6 +669,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #undef seas_16
 #undef seas_17
 #undef seas_18
+#undef seas_19
 #undef S
 #undef E1
 #undef E2
@@ -716,9 +723,9 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define base_detect_frac		(__p[__parindex[17]])
 #define frac_asym		(__p[__parindex[18]])
 #define frac_hosp		(__p[__parindex[19]])
-#define df1		(__p[__parindex[20]])
-#define df2		(__p[__parindex[21]])
-#define td		(__p[__parindex[22]])
+#define min_frac_dead		(__p[__parindex[20]])
+#define max_frac_dead		(__p[__parindex[21]])
+#define log_half_dead		(__p[__parindex[22]])
 #define log_theta_cases		(__p[__parindex[23]])
 #define log_theta_hosps		(__p[__parindex[24]])
 #define log_theta_deaths		(__p[__parindex[25]])
@@ -741,16 +748,17 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define b16		(__p[__parindex[42]])
 #define b17		(__p[__parindex[43]])
 #define b18		(__p[__parindex[44]])
-#define S_0		(__p[__parindex[45]])
-#define E1_0		(__p[__parindex[46]])
-#define Ia1_0		(__p[__parindex[47]])
-#define Isu1_0		(__p[__parindex[48]])
-#define Isd1_0		(__p[__parindex[49]])
-#define C1_0		(__p[__parindex[50]])
-#define H1_0		(__p[__parindex[51]])
-#define R_0		(__p[__parindex[52]])
-#define D_0		(__p[__parindex[53]])
-#define trendO_0		(__p[__parindex[54]])
+#define b19		(__p[__parindex[45]])
+#define S_0		(__p[__parindex[46]])
+#define E1_0		(__p[__parindex[47]])
+#define Ia1_0		(__p[__parindex[48]])
+#define Isu1_0		(__p[__parindex[49]])
+#define Isd1_0		(__p[__parindex[50]])
+#define C1_0		(__p[__parindex[51]])
+#define H1_0		(__p[__parindex[52]])
+#define R_0		(__p[__parindex[53]])
+#define D_0		(__p[__parindex[54]])
+#define trendO_0		(__p[__parindex[55]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -772,6 +780,7 @@ void __pomp_stepfn (double *__x, const double *__p, const int *__stateindex, con
 #define seas_16		(__covars[__covindex[18]])
 #define seas_17		(__covars[__covindex[19]])
 #define seas_18		(__covars[__covindex[20]])
+#define seas_19		(__covars[__covindex[21]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -839,9 +848,9 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
-#undef df1
-#undef df2
-#undef td
+#undef min_frac_dead
+#undef max_frac_dead
+#undef log_half_dead
 #undef log_theta_cases
 #undef log_theta_hosps
 #undef log_theta_deaths
@@ -864,6 +873,7 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef b16
 #undef b17
 #undef b18
+#undef b19
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -895,6 +905,7 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #undef seas_16
 #undef seas_17
 #undef seas_18
+#undef seas_19
 #undef S
 #undef E1
 #undef E2
@@ -950,9 +961,9 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define base_detect_frac		(__p[__parindex[17]])
 #define frac_asym		(__p[__parindex[18]])
 #define frac_hosp		(__p[__parindex[19]])
-#define df1		(__p[__parindex[20]])
-#define df2		(__p[__parindex[21]])
-#define td		(__p[__parindex[22]])
+#define min_frac_dead		(__p[__parindex[20]])
+#define max_frac_dead		(__p[__parindex[21]])
+#define log_half_dead		(__p[__parindex[22]])
 #define log_theta_cases		(__p[__parindex[23]])
 #define log_theta_hosps		(__p[__parindex[24]])
 #define log_theta_deaths		(__p[__parindex[25]])
@@ -975,16 +986,17 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define b16		(__p[__parindex[42]])
 #define b17		(__p[__parindex[43]])
 #define b18		(__p[__parindex[44]])
-#define S_0		(__p[__parindex[45]])
-#define E1_0		(__p[__parindex[46]])
-#define Ia1_0		(__p[__parindex[47]])
-#define Isu1_0		(__p[__parindex[48]])
-#define Isd1_0		(__p[__parindex[49]])
-#define C1_0		(__p[__parindex[50]])
-#define H1_0		(__p[__parindex[51]])
-#define R_0		(__p[__parindex[52]])
-#define D_0		(__p[__parindex[53]])
-#define trendO_0		(__p[__parindex[54]])
+#define b19		(__p[__parindex[45]])
+#define S_0		(__p[__parindex[46]])
+#define E1_0		(__p[__parindex[47]])
+#define Ia1_0		(__p[__parindex[48]])
+#define Isu1_0		(__p[__parindex[49]])
+#define Isd1_0		(__p[__parindex[50]])
+#define C1_0		(__p[__parindex[51]])
+#define H1_0		(__p[__parindex[52]])
+#define R_0		(__p[__parindex[53]])
+#define D_0		(__p[__parindex[54]])
+#define trendO_0		(__p[__parindex[55]])
 #define rel_beta_change		(__covars[__covindex[0]])
 #define trend_sim		(__covars[__covindex[1]])
 #define fit		(__covars[__covindex[2]])
@@ -1006,6 +1018,7 @@ void __pomp_rmeasure (double *__y, const double *__x, const double *__p, const i
 #define seas_16		(__covars[__covindex[18]])
 #define seas_17		(__covars[__covindex[19]])
 #define seas_18		(__covars[__covindex[20]])
+#define seas_19		(__covars[__covindex[21]])
 #define S		(__x[__stateindex[0]])
 #define E1		(__x[__stateindex[1]])
 #define E2		(__x[__stateindex[2]])
@@ -1093,9 +1106,9 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef base_detect_frac
 #undef frac_asym
 #undef frac_hosp
-#undef df1
-#undef df2
-#undef td
+#undef min_frac_dead
+#undef max_frac_dead
+#undef log_half_dead
 #undef log_theta_cases
 #undef log_theta_hosps
 #undef log_theta_deaths
@@ -1118,6 +1131,7 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef b16
 #undef b17
 #undef b18
+#undef b19
 #undef S_0
 #undef E1_0
 #undef Ia1_0
@@ -1149,6 +1163,7 @@ void __pomp_dmeasure (double *__lik, const double *__y, const double *__x, const
 #undef seas_16
 #undef seas_17
 #undef seas_18
+#undef seas_19
 #undef S
 #undef E1
 #undef E2

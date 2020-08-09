@@ -57,14 +57,6 @@ setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught =
                log_g_sd = log(4/3),
                log_g_c = log(4/3),
                log_g_h = log(4/6),
-               # log_g_h = log(4/12),
-               
-               # log_g_e = rev_logistic(1/4), #rate of movement through E/Ia/Isu/Isd/C/H compartments
-               # log_g_a = rev_logistic(1/3.5),
-               # log_g_su = rev_logistic(1/6),
-               # log_g_sd = rev_logistic(1/3),
-               # log_g_c = rev_logistic(1/3),  
-               # log_g_h = rev_logistic(1/12),
                
                log_max_diag = log(1), #max for factor by which movement through Isd happens faster (quicker diagnosis). value of 1 means double speed to diagnosis 
                log_diag_inc_rate = log(1.1), #rate at which faster diagnosis ramps up to max, value close to 1 is slow ramp-up, larger values means steeper ramp-up
@@ -77,10 +69,9 @@ setparsvars <- function(est_these_pars, est_these_inivals, population, rnaught =
                
                frac_asym = 1.5, #fraction asymptomatic
                frac_hosp = 2, #fraction diagnosed that go into hospital, modeled as 1/(1+exp(frac_hosp))
-               # frac_dead = 1.2, #fraction hospitalized that die
-               df1 = 1.2,
-               df2 = 1.2,
-               td = log(40),
+               min_frac_dead = 4, #fraction hospitalized that die at end (min), modeled as above, so a value of 4 is about 1.8% dead 
+               max_frac_dead = 2, #fraction hospitalized that die at start (max). value of 2 is about 12% dead 
+               log_half_dead = log(30), #days at which death rate is half between max and min
                
                log_theta_cases = log(10),
                log_theta_hosps = log(10),
