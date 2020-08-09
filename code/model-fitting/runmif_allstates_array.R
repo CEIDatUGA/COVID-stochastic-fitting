@@ -54,8 +54,10 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   
   # this string is being fed into sw.rd inside mif 
   # below in a way suggested by Aaron
-  if (inivals_to_estimate == "") {
-    perts_string <- paste0("rw.sd(",param_perts_string,")")
+  if (length(inivals_to_estimate) == 1) {
+    if (inivals_to_estimate == ""){
+      perts_string <- paste0("rw.sd(",param_perts_string,")")
+    }
   } else {
     perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
   }
