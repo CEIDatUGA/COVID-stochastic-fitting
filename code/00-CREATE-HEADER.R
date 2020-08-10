@@ -125,7 +125,8 @@ for (dolocation in statevec)
     filter(location == dolocation)
   
   n_knots <- round(nrow(pomp_data) / 10 )
-  est_these_pars = c("log_sigma_dw", "df1", "df2", "td",
+  est_these_pars = c("log_sigma_dw", 
+                     "min_frac_dead", "max_frac_dead", "log_half_dead",
                      "log_theta_cases", "log_theta_deaths")
   est_these_inivals = c("E1_0", "Ia1_0", "Isu1_0", "Isd1_0")
   # est_these_inivals = ""

@@ -35,7 +35,8 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
            "cumulative_hosps" = H_new) %>%
     gather(key = "Variable", value = "Value", -SimType, -Period, -Date, -rep_id, -mle_id) %>%
     group_by(SimType, Variable, rep_id) %>%
-    arrange(Date) %>%
+    arrange(SimType, Variable, rep_id, Date) %>%
+    group_by(SimType, Variable, rep_id) %>%
     mutate(Value = cumsum(Value)) %>%
     ungroup() %>%
     group_by(SimType, Period, Date, Variable) %>%
@@ -80,7 +81,8 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
     mutate(N = pop_size) %>%
     mutate(infections = N - S) %>%
     group_by(SimType, Period, rep_id) %>%
-    arrange(Date) %>%
+    arrange(SimType, Period, rep_id, Date) %>%
+    group_by(SimType, Period, rep_id) %>%
     mutate(infections = c(0, diff(infections))) %>%
     ungroup() %>%
     arrange(rep_id, Date) %>%

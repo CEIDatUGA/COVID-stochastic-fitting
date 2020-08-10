@@ -1,4 +1,4 @@
-runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_list)
+runmif_allstates_local <- function(parallel_info, mif_settings, pomp_list, par_var_list)
 {
 
   # This uses the pomp::mif2() function to estimate parameters
@@ -16,8 +16,16 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   if (parallel_run == TRUE) {
     # Set up parallel structure 
     n_cores <- parallel_info$num_cores
-    cl <- makeCluster(n_cores)
+    cl <- makeCluster(n_cores) 
     registerDoParallel(cl)
+    
+    #below is for cluster
+    #slaves <- parallel_info$num_cores
+    #cl <- makeCluster(slaves, type="MPI")  # number of MPI tasks to use
+    #registerDoParallel(cl)
+    
+    # cluster_mpi <- startMPIcluster(count = parallel_info$num_cores - 1)
+    # registerDoMPI(cluster_mpi)
     
   } else { #if not run in parallel, set this to 1
     n_cores <- 1
@@ -54,25 +62,23 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   
   # this string is being fed into sw.rd inside mif 
   # below in a way suggested by Aaron
-  if (length(inivals_to_estimate) == 1) {
-    if (inivals_to_estimate == ""){
-      perts_string <- paste0("rw.sd(",param_perts_string,")")
-    }
+  if (length(inivals_to_estimate) < 1) {
+    perts_string <- paste0("rw.sd(",param_perts_string,")")
   } else {
     perts_string <- paste0("rw.sd(",param_perts_string,", ",ini_perts_string,")")
   }
-  
+
   
   # Define function that runs the whole mif --------------------------
   # function that runs the whole mif, either in parallel or not
   # does it in 2 parts. 
   
-  run_mif <- function(pomp_list, params_table, params_id, num_mif_iterations, num_particles, 
+  run_mif <- function(pomp_list, pomp_model_id, params_table, params_id, num_mif_iterations, num_particles, 
                       c_frac, param_perts, verbose) 
   {
     
     
-    pomp_model = pomp_list$pomp_model
+    pomp_model = pomp_list[[pomp_model_id]]$pomp_model
     start_params = params_table[params_id,]
 
     out_mif <- pomp::mif2(pomp_model, # first part of mif run to converge
@@ -140,6 +146,8 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   
   tstart=Sys.time(); #capture current time, for benchmarking
   
+  
+  
   # Run MIF not-parallel
   if (parallel_run == FALSE)
   {
@@ -149,11 +157,13 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
     {
       out_mif = list() #list containing results for each MIF for a given state
       tstart2=Sys.time(); #capture current time, for benchmarking
-      
-      # print(sprintf('Starting state %s at time %s',pomp_list[[n]]$location,as.character(tstart2)))
+
+      print(sprintf('Starting state %s at time %s',pomp_list$location,as.character(tstart2)))
       for (i in 1:mif_settings$replicates) 
       {
+        
       out_mif[[i]] <- run_mif(pomp_list = pomp_list,
+                              pomp_model_id = n,
                               params_table = params_table,
                               params_id = i,
                               num_mif_iterations = mif_num_iterations, 
@@ -173,10 +183,12 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   # Run MIF parallel
   if (parallel_run == TRUE)
   {
-    # print(sprintf('Starting MIF2 + pfilter parallel at time %s',as.character(tstart)))
-    all_mifs <- foreach(i=1:mif_settings$replicates, .packages = c("pomp")) %dopar% 
+    print(sprintf('Starting MIF2 + pfilter parallel at time %s',as.character(tstart)))
+    all_mifs <-  foreach(n=1:length(pomp_list)) %:%
+                    foreach(i=1:mif_settings$replicates, .packages = c("pomp")) %dopar% 
                     {
                       run_mif(pomp_list = pomp_list,
+                              pomp_model_id = n,
                               params_table = params_table,
                               params_id = i,
                               num_mif_iterations = mif_num_iterations, 
@@ -189,11 +201,11 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
     stopCluster(cl)
   } # end code section that does mif followed by pfilter for parallel setup
   
-  # tend=Sys.time(); #capture current time
-  # tdiff=as.numeric(difftime(tend,tstart,units='mins'))
-  # print(sprintf('Finished MIF2 + pfilter at time %s',as.character(tend)))
-  # print(sprintf('MIF took %f minutes using %d particles and %d MIF iterations',tdiff,mif_num_particles[1],sum(mif_num_iterations)))
-  # 
+  tend=Sys.time(); #capture current time
+  tdiff=as.numeric(difftime(tend,tstart,units='mins'))
+  print(sprintf('Finished MIF2 + pfilter at time %s',as.character(tend)))
+  print(sprintf('MIF took %f minutes using %d particles and %d MIF iterations',tdiff,mif_num_particles[1],sum(mif_num_iterations)))
+  
   # return output -------------------------------------------------------------
   return(all_mifs)
 }

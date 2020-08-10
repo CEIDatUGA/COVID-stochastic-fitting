@@ -32,7 +32,9 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
   us_ct_data <- read_csv("https://covidtracking.com/api/v1/states/daily.csv")
   us_ct_clean <- us_ct_data %>% dplyr::select(c("date","state","positive","negative","total","hospitalized","death")) %>%
     mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
-    group_by(state) %>% arrange(date) %>%
+    group_by(state) %>%
+    arrange(state, date) %>%
+    group_by(state) %>%
     mutate(Daily_Test_Positive = c(0,diff(positive))) %>% 
     mutate(Daily_Test_Negative = c(0,diff(negative))) %>% 
     mutate(Daily_Test_All = c(0,diff(total))) %>% 
@@ -170,17 +172,19 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
   us_dat <- dplyr::bind_rows(us_ct_clean, us_nyt_clean, us_jhu_clean, usafct_clean) 
   
  
-  pomp_data <- us_dat %>% dplyr::filter(source == datasource) %>%
-                          dplyr::filter(Location %in% locations) %>%
-                          rename(cases = Daily_Cases,
-                          hosps = Daily_Hospitalized, 
-                          deaths = Daily_Deaths) %>%
-                          dplyr::select(Date, Location, cases, hosps, deaths) %>% 
-                          rename(date = Date, location = Location) %>% #consistent lower case spelling for variables
-                          group_by(location) %>% 
-                          arrange(date) %>%
-                          mutate(time = 1:n()) %>%
-                          ungroup()
+  pomp_data <- us_dat %>% 
+    dplyr::filter(source == datasource) %>%
+    dplyr::filter(Location %in% locations) %>%
+    rename(cases = Daily_Cases,
+    hosps = Daily_Hospitalized, 
+    deaths = Daily_Deaths) %>%
+    dplyr::select(Date, Location, cases, hosps, deaths) %>% 
+    rename(date = Date, location = Location) %>% #consistent lower case spelling for variables
+    group_by(location) %>% 
+    arrange(location, date) %>%
+    group_by(location) %>%
+    mutate(time = 1:n()) %>%
+    ungroup()
   
   # Remove bad WY data point
   pomp_data <- pomp_data %>%
