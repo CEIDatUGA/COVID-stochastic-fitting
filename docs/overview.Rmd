@@ -155,8 +155,10 @@ p_dailycases.landingpage %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, 
 #   filter(location %in% topstates)
 
 # states with max daily cases / 100 k > 100 in status quo scenario
-threshold <- 100
-topstates <- dailycases[dailycases$sim_type == 'status_quo' & dailycases$median_value_per100k > threshold,]$location %>% unique
+threshold <- 90
+topstates <- dailycases[dailycases$date > foredate 
+                        & dailycases$sim_type == 'status_quo' 
+                        & dailycases$median_value_per100k > threshold,]$location %>% unique
 dailycases_subset <- dailycases %>%
   filter(location %in% topstates)
 dailycases.maxy <- dailycases_subset %>% 
@@ -178,6 +180,7 @@ g_dailycases.topstates <- dailycases_subset %>%
   geom_line(data = filter(dailycases_subset, sim_type == 'return_normal' & period == 'Past'),
             color = mycols['black'], size = 1) +
   geom_vline(aes(xintercept = as.numeric(foredate)), color = "grey35", linetype = 2) +
+  geom_hline(aes(yintercept = 100/7), color = "red", linetype = 1) +
   facet_wrap(~location, ncol = min(ceiling(length(topstates)/2),8)) +
   ylab("") +
   scale_y_continuous(labels = scales::comma, limits = dailycases.ylim) +
