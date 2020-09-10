@@ -72,7 +72,7 @@ statedf <- state_pops %>%
     TRUE ~ 6 # default initial R0
   )) %>% 
   
-  # Mif runs
+  # Mif runs for each state
   dplyr::mutate(mifruns = dplyr::case_when(
     state_full %in% c("Washington", "New York", "New Jersey") ~ list(c(350,150)),
     TRUE ~ list(c(150,150)) # default mif runs vector
