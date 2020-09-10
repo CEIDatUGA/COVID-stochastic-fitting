@@ -54,19 +54,28 @@ timestamp <- paste(lubridate::date(tm),
 statevec <- "Washington"
 
 # --------------------------------------------------
-# specify how to initialize parameters for each state 
+# specify parameter initialization and mif runs for each state 
 # --------------------------------------------------
 state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
+  
+  # warm start spec for each state
   dplyr::mutate(init = dplyr::case_when(
     state_full %in% c("New York") ~ "fresh", # fit from scratch
     state_full == "California" ~ "2020-07-23", # specify date of last good fit for warm start
     TRUE ~ "last" # default to last fit for warm start
   )) %>% 
-  # R0 at beginning of epidemic
+  
+  # R0 at beginning of epidemic for each state
   dplyr::mutate(initR0 = dplyr::case_when(
     state_full %in% c("Washington", "New York", "New Jersey") ~ 10, 
     TRUE ~ 6 # default initial R0
+  )) %>% 
+  
+  # Mif runs
+  dplyr::mutate(mifruns = dplyr::case_when(
+    state_full %in% c("Washington", "New York", "New Jersey") ~ list(c(350,150)),
+    TRUE ~ list(c(150,150)) # default mif runs vector
   ))
   
 # Run data cleaning script.
@@ -170,6 +179,8 @@ for (i in 1:length(statevec))
   pomp_list[[i]]$pomp_covar <- covar
   pomp_list[[i]]$location <- dolocation
   pomp_list[[i]]$par_var_list <- par_var_list
+  pomp_list[[i]]$mifruns <- statedf %>% 
+    filter(state_full == dolocation) %>% pull(mifruns)
 
 } #done serial loop over all states that creates pomp object and other info 
 
