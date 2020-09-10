@@ -44,7 +44,9 @@ setparsvars_warm <- function(iniparvals, est_these_pars, est_these_inivals, popu
   #see the Google sheet for detailed definitions and explanations
   beta <- rnaught/10
   
-  if(iniparvals == "fresh") {
+  fresh <- length(iniparvals) == 1 & iniparvals[[1]] == "fresh"
+  
+  if(fresh == FALSE) {
     parvals <- c(log_beta_s = log(beta/population), #rate of infection of symptomatic 
                  trans_e = 2, 
                  trans_a = 0, 

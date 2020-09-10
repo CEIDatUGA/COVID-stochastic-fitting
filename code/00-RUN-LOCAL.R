@@ -23,7 +23,8 @@ library('vctrs')
 # --------------------------------------------------
 # Source all needed functions/scripts
 # --------------------------------------------------
-source(here::here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
+# source(here::here("code/model-setup/setparsvars.R")) #set all parameters, specifying those to fit
+source(here::here("code/model-setup/setparsvars_warm.R")) #set all parameters, specifying those to fit (warm start)
 source(here::here("code/data-processing/loadcleandata.R")) #data processing function
 source(here::here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
 source(here::here("code/model-fitting/runmif_allstates_array.R")) #runs mif fitting
@@ -51,11 +52,11 @@ timestamp <- paste(lubridate::date(tm),
 # specify which states to run as a vector 
 # --------------------------------------------------
 statevec <- "Washington"
-state_pops <- readRDS(here::here("data/us_popsize.rds"))
 
 # --------------------------------------------------
 # specify how to initialize parameters for each state 
 # --------------------------------------------------
+state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
   dplyr::mutate(init = dplyr::case_when(
     state_full %in% c("New York") ~ "fresh", # fit from scratch
@@ -186,10 +187,10 @@ parallel_info$num_cores <- 2  # on HPC - should ideally be M states * replicates
 mif_settings <- list()
 mif_settings$mif_num_particles  <- c(200,200)
 mif_settings$mif_num_iterations <- c(15,15)
-mif_settings$pf_num_particles <- 50 #particles for filter run following mif
-mif_settings$pf_reps <- 2#replicates for particle filter following mif
+mif_settings$pf_num_particles <- 50  # particles for filter run following mif
+mif_settings$pf_reps <- 2  # replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
-mif_settings$replicates <- 2 #number of different starting conditions - this is parallelized
+mif_settings$replicates <- 2  # number of different starting conditions - this is parallelized
 
 this_pomp <- pomp_list[[1]]
 n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
