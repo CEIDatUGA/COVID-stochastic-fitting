@@ -33,7 +33,7 @@ library('vctrs')
 # --------------------------------------------------
 # Source all needed functions/scripts
 # --------------------------------------------------
-source(here::here("code/model-setup/setparsvars.R")) #setting all parameters, specifying those that are  fitted
+source(here::here("code/model-setup/setparsvars_warm.R")) #setting all parameters, specifying those that are  fitted
 source(here::here("code/data-processing/loadcleandata.R")) #data processing function
 source(here::here("code/data-processing/loadcleanucmobility.R")) #function that processes and retrieves covariate
 
@@ -95,9 +95,10 @@ state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
   # warm start spec for each state
   dplyr::mutate(init = dplyr::case_when(
-    state_full %in% c("New York") ~ "fresh", # fit from scratch
-    state_full == "California" ~ "2020-07-23", # specify date of last good fit for warm start
-    TRUE ~ "last" # default to last fit for warm start
+    # state_full %in% c("New York") ~ "fresh", # fit from scratch
+    # state_full == "California" ~ "2020-07-23", # specify date of last good fit for warm start
+    # TRUE ~ "last", # default to last fit for warm start
+    TRUE ~ "fresh"
   )) %>% 
   
   # R0 at beginning of epidemic for each state
