@@ -58,6 +58,10 @@ source("../code/forward-simulations/runscenarios.R") #run forward simulations fo
 source("../code/model-setup/makepompmodel.R") #function that generates the pomp model
 source("../code/forward-simulations/summarize_simulations.R")
 
+# Load the pomp information
+pomp_listr <- readRDS("../header/pomp_list.rds")
+this_pomp <- pomp_listr[[myargument]]
+n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
 
 # --------------------------------------------------
 # Specify if functions that are able to run in parallel will do so
@@ -87,7 +91,8 @@ parallel_info$num_cores <- 32  # on HPC - should ideally be M states * replicate
 # two rounds of MIF are currently hard-coded into runmif
 mif_settings = list()
 mif_settings$mif_num_particles  <- c(2000,2000)
-mif_settings$mif_num_iterations <- c(150,150)
+# mif_settings$mif_num_iterations <- c(150,150)
+mif_settings$mif_num_iterations <- this_pomp$mifruns %>% unlist()
 mif_settings$pf_num_particles <- 5000 #particles for filter run following mif
 mif_settings$pf_reps <- 32#replicates for particle filter following mif
 mif_settings$mif_cooling_fracs <- c(0.9, 0.7)
@@ -112,11 +117,6 @@ timestamp <- readRDS("../header/timestamp.rds")
 # myargument <- states_map %>%
 #   slice(myargument) %>%
 #   pull(num)
-
-
-pomp_listr <- readRDS("../header/pomp_list.rds")
-this_pomp <- pomp_listr[[myargument]]
-n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
 
 # Make the pomp model
 pomp_model <- makepompmodel(par_var_list = this_pomp$par_var_list, 
@@ -216,7 +216,11 @@ outfile <- paste0(outdir, fname, '.csv')
 write.csv(res_summary, outfile, row.names = FALSE)
 
 # Store parameter estimates
-saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params.rds"))
+saveRDS(pomp_res$partable_natural, file = paste0("../output/current/", fname, "-params-natural.rds"))
+outdir <- paste0("../output/", rundate, "/")
+outfile <- paste0(outdir, 'param-estimates.rds')
+saveRDS(pomp_res$all_partable, file = outfile)
+
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
 
