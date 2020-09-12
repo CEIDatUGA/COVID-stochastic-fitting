@@ -224,6 +224,10 @@ outdir <- paste0("../output/", rundate, "/")
 outfile <- paste0(outdir, 'parameter-estimates-', pomp_res$filename_label ,'.rds')
 saveRDS(params, file = outfile)
 
+outdir <- paste0("../output/current/")
+outfile <- paste0(outdir, 'parameter-estimates-', pomp_res$filename_label ,'.rds')
+saveRDS(params, file = outfile)
+
 
 # all_df = rbind(all_df, all_scenarios) #add all states together into a long data frame, will be saved below and used by shiny
 

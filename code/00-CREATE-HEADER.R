@@ -97,8 +97,7 @@ statedf <- state_pops %>%
   dplyr::mutate(init = dplyr::case_when(
     # state_full %in% c("New York") ~ "fresh", # fit from scratch
     # state_full == "California" ~ "2020-07-23", # specify date of last good fit for warm start
-    # TRUE ~ "last", # default to last fit for warm start
-    TRUE ~ "fresh"
+    TRUE ~ "last" # default to last fit for warm start
   )) %>% 
   
   # R0 at beginning of epidemic for each state
@@ -173,14 +172,12 @@ for (i in 1:length(statevec))
       
       # if init = 'last'
       ## edit source file location for 00-CREATE-HEADER.R
-      last = readRDS(here::here(paste0("output/", filename_label, "_results.rds")))$all_partable %>% 
-        dplyr::arrange(-LogLik) %>% dplyr::slice(1) %>% as.list(),
+      last = readRDS(here::here(paste0("output/current/parameter-estimates-", filename_label, ".rds"))) %>% as.list(),
       
       # else
       ## does not exist for 00-Run-LOCAL.R
       ## edit source file location as needed for 00-CREATE-HEADER.R
-      readRDS(here::here(paste0("output/", initdate, "/", filename_label, "_results.rds")))$all_partable %>% 
-        dplyr::arrange(-LogLik) %>% dplyr::slice(1) %>% as.list()
+      readRDS(here::here(paste0("output/", initdate, "/parameter-estimates-", filename_label, ".rds"))) %>% as.list()
     )
   
   # Set the parameter values and initial conditions
