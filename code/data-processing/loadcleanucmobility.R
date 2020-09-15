@@ -7,7 +7,7 @@ loadcleanucmobility <- function(location, pomp_data, timestamp)
    library(tidyr)
    library('readr')
 
-  us_popsize <- readRDS(here("data","us_popsize.rds")) %>% 
+  us_popsize <- readRDS(here::here("data","us_popsize.rds")) %>% 
     rename(state_abr = state, state = state_full)
   
   # Start and end dates by state
@@ -23,13 +23,13 @@ loadcleanucmobility <- function(location, pomp_data, timestamp)
   state_map <- data.frame(state_name = state.name,
                           state_abb = state.abb, stringsAsFactors = FALSE) 
   
-  allfiles <- list.files(here("data/ucmobility/state_breakdown/"), pattern = ".rds")
+  allfiles <- list.files(here::here("data/ucmobility/state_breakdown/"), pattern = ".rds")
   
   uc_mobility <- tibble()
   for(i in 1:length(allfiles)) {
     fname <- allfiles[i]
     stateabb <- strsplit(strsplit(fname, "_")[[1]][2], "[.]")[[1]][1]
-    tmp <- readRDS(here("data/ucmobility/state_breakdown/", fname)) %>%
+    tmp <- readRDS(here::here("data/ucmobility/state_breakdown/", fname)) %>%
       mutate(state_abb = stateabb) %>%
       group_by(state, Date, time, state_abb) %>%
       summarise(rel_beta_change = mean(rel_beta_change)) %>%
