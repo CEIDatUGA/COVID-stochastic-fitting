@@ -31,9 +31,37 @@ current_path <- here("output/current/")
 
 simfiles <- list.files(path = here('output/current'), ".csv")
 paramfiles <- list.files(path = here('output/current'), "params-natural.rds")
-paramfiles_natural <- list.files(path = here('output/current'), "parameter-estimates")
+paramfiles_transformed <- list.files(path = here('output/current'), "parameter-estimates")
+state_metadata <- readRDS(here('data/us_popsize.rds'))
 
-## simulations
+# State metadata, max ll,  and param sets ----------------------------------------------------------------------------
+
+paramfile <- paste0(current_path,paramfiles[1])
+state_full <- strsplit(paramfiles[1],"-")[[1]][1]
+out_params <- readRDS(paramfile) %>% select(X1) %>% t() %>% as_tibble() %>% 
+  add_column(state_full = state_full, .before = 1)
+
+
+for(i in 2:length(paramfiles)) {
+  paramfile <- paste0(current_path,paramfiles[i])
+  state_full <- strsplit(paramfiles[i],"-")[[1]][1]
+  o <- readRDS(paramfile) %>% select(X1) %>% t() %>% as_tibble() %>% 
+    add_column(state_full = state_full, .before = 1)
+  out_params <- bind_rows(out_params, o)
+}
+
+state_metadata <- full_join(state_metadata,out_params) 
+
+all_maes <- readRDS(paste0(here("output/"),"us_all_maes.rds"))
+cases_maes <- all_maes %>% filter(variable == "daily_cases") %>% 
+  rename(mae_cases = mae) %>% select(-variable)
+deaths_maes <- all_maes %>% filter(variable == "daily_deaths") %>% 
+  rename(mae_deaths = mae) %>% select(-variable)
+all_maes <- full_join(cases_maes,deaths_maes) %>% rename(state_full = location)
+state_metadata <- full_join(state_metadata,all_maes) %>% 
+  dplyr::relocate(c(state_full, state, total_pop, MIF_ID, LogLik, LogLik_SE, mae_cases, mae_deaths))
+
+# Simulations ----
 simfile <- paste0(current_path,simfiles[1])
 out_sims <- read_csv(simfile)
 
@@ -43,29 +71,30 @@ for(i in 2:length(simfiles)) {
   out_sims <- bind_rows(out_sims, o)
 }
 
-# Dates
+# Dates ----
 foredate <- out_sims %>% filter(period == "Past") %>% pull(date) %>% max()
 end_date <- max(out_sims$date)
 start_date <- min(out_sims$date)
 
-# Daily Cases
+# Daily Cases ----
 dailycases <- out_sims %>% filter(variable == 'daily_cases')
-up_popsize <- readRDS(here('data/us_popsize.rds'))
-idx <- match(x = dailycases$location, table = up_popsize$state_full)
-dailycases$pop <- up_popsize$total_pop[idx]
+idx <- match(x = dailycases$location, table = state_metadata$state_full)
+dailycases$pop <- state_metadata$total_pop[idx]
 dailycases <- dailycases %>% 
   mutate(median_value_per100k = 100000*median_value/pop)
 
 dailycases.hotzone <- 15 # new cases per day per 100k
-dailycases.threshold <- 30 # new cases per day per 100k
+dailycases.threshold <- 25 # new cases per day per 100k
+dailycases.mae.theshold <- 425 # max MAE to allow
 
-# Cum cases
+# Cum cases ----
 cumcases <- out_sims %>% filter(variable == 'cumulative_cases')
 
 cumcases.maxy <- cumcases %>%
   pull(median_value) %>% max() %>%
   plyr::round_any(accuracy = 20000, f = ceiling)
 cumcases.ylim <- c(0,cumcases.maxy)
+
 
 # Visual Variables ----------------------------------------------------------------------------
 
@@ -84,9 +113,13 @@ scen_labs <- c("1. Increase social distancing",
 
 ```
 
-### States with forecasted peak outbreak size $>$ `r dailycases.threshold` cases per 100k per day
+```{r logliks}
+# plotly::plot_ly(type = "bar", x = state_metadata$state_full, y=state_metadata$mae_cases)
+```
 
-The plot below shows the median forecast under each of three scenarios for several states. The states shown are all forecasted to exceed `r dailycases.threshold` cases per 100,000 people on a daily basis at some time in the next six weeks under the status quo scenario (i.e. "Maintaining social distancing," green lines). In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. The dotted grey line indicates a threshold for designation as a "hot zone" for new cases, defined here as `r dailycases.hotzone` cases per 100,000 people per day. Model updated `r format(Sys.time(), '%B %d, %Y')`.
+### States with forecasted peak outbreak size > `r dailycases.threshold` cases per 100k per day
+
+The plot below shows the median forecast under each of three scenarios for several states. The states shown are all forecasted to exceed `r dailycases.threshold` cases per 100,000 people on a daily basis at some time in the next six weeks under the status quo scenario (i.e. "Maintaining social distancing," green lines). (States with poor model fits to data may be omitted.) In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. The dotted grey line indicates a threshold for designation as a "hot zone" for new cases, defined here as `r dailycases.hotzone` cases per 100,000 people per day. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
 ```{r plot_overview, height = 7}
 
@@ -114,9 +147,16 @@ The plot below shows the median forecast under each of three scenarios for sever
 
 # pot daily cases, top states, for landing page -----------
 
+# states with acceptable fits
+goodfits <- state_metadata[state_metadata$mae_cases < dailycases.mae.theshold 
+                           & !is.na(state_metadata$mae_cases),
+                           ]$state_full
+goodfits <- goodfits[!goodfits %in% 'Kansas']
+
 # states with max daily cases / 100 k > dailycases.threshold in status quo scenario
 topstates <- dailycases[dailycases$date > foredate 
-                        & dailycases$sim_type == 'status_quo' 
+                        & dailycases$sim_type == 'status_quo'
+                        & dailycases$location %in% goodfits
                         & dailycases$median_value_per100k > dailycases.threshold,]$location %>% unique
 dailycases_subset <- dailycases %>%
   filter(location %in% topstates)
@@ -176,7 +216,7 @@ p_dailycases.topstates
 
 # Landing Page figure
 # select a few states
-selectstates <- c('Georgia', 'Washington', 'North Dakota', 'South Dakota')
+selectstates <- c('Georgia', 'North Dakota', 'South Dakota', 'Delaware')
 dailycases_subset <- dailycases %>%
   filter(location %in% selectstates)
 dailycases.maxy <- dailycases_subset %>% 
