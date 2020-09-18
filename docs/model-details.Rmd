@@ -28,13 +28,13 @@ We did not smooth the reported data but we did exclude all negative case and dea
 
 ```{r collate-data}
 all_files <- list.files(path = here("output/current/"), pattern = ".csv")
-param_files <- list.files(path = here("output/current/"), pattern = ".rds")
+param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
-  tmpfile <- paste0(here("output/current/"), "/", do_file)
+  tmpfile <- paste0(here("output/current/"), do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths",
@@ -43,7 +43,7 @@ for(i in 1:length(all_files)) {
     mutate(date = as.Date(date)) %>%
     dplyr::select(location, sim_type, period, date, variable, median_value)
   
-  tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
+  tmpparamfile <- paste0(here("output/current/"), param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
