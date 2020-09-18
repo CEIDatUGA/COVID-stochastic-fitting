@@ -34,7 +34,7 @@ state_parameters <- tibble()
 state_logliks <- tibble()
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
-  tmpfile <- paste0(here("output/current/"), do_file)
+  tmpfile <- here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths",
@@ -43,7 +43,7 @@ for(i in 1:length(all_files)) {
     mutate(date = as.Date(date)) %>%
     dplyr::select(location, sim_type, period, date, variable, median_value)
   
-  tmpparamfile <- paste0(here("output/current/"), param_files[i])
+  tmpparamfile <- here("output/current", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
@@ -57,7 +57,7 @@ for(i in 1:length(all_files)) {
     dplyr::select(-key) %>%
     mutate(location = unique(tmp$location)) %>%
     dplyr::select(location, value, parameter)
-  
+
   tmp <- tmp %>%
     mutate(beta = tmpparams %>% filter(parameter == "beta_s") %>% pull(value))
     # mutate(omega = mobility_trend * latent_trend * beta)
