@@ -85,30 +85,36 @@ names(spline_coefficients) <- betas_names
 params_vec <- c(MIF_ID = "MIF id", 
                 LogLik = "Log Likelihood", 
                 LogLik_SE = "SE of Log Likelihood", 
-                beta_s = "Transmission rate", 
+                beta_s = "Transmission rate",
+                # Relative Transmissibility
                 frac_trans_e = "Relative transmissibility of latent infections",
                 frac_trans_a = "Relative transmissibility of asymptomatic individuals",
                 frac_trans_c = "Relative transmissibility of detected symptomatic individuals post-reporting",
                 frac_trans_h = "Relative transmissibility of hospitalized individuals",
+                # Time in compartments
                 time_e = "Time spent in latent compartments (days)",
                 time_a = "Time spent in asymptomatic compartments (days)",
                 time_su = "Time spent in symptomatic, undetected compartments (days)",
                 time_sd = "Time spent in symptomatic, detected compartments (days)",
                 time_c = "Time spent in diagnosed cases compartments (days)",
                 time_h = "Time spent in hospitalized compartments (days)",
+                # Detection time
                 max_diag_factor = "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
                 diag_rampup = "Rate at which faster diagnosis ramps up to max",
                 t_half_diag = "Time at which diagnosis is at 50% of max (in days since t = 1)",
+                # Detection fraction
                 max_detect_frac = "Maximum fraction of cases that are detected",
                 detect_rampup = "Speed at which fraction detected ramps up",
-                t_half_detect = "Time at which infection detection fraction is at 50% of max (days since t = 1)",
+                t_half_detect = "Time at which infection detection fraction is at 50% of max (in days since t = 1)",
                 base_detect_frac = "Minimum fraction detected at t = 1",
-                frac_asym = "Fraction of latent infections that move to aysmptomatic",
+                # Fraction asymptomatic
+                frac_asym = "Fraction of latent infections that move to asymptomatic",
+                # Fraction hosptilized
                 frac_hosp = "Fraction of detected cases that are hospitalized",
                 # Fraction of hospitalizations that result in death
-                min_frac_dead = "",
-                max_frac_dead = "",
-                log_half_dead = "",
+                min_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                max_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                log_half_dead = "Time at which death fraction is at 50% of max (in days since t = 1)",
                 # Dispersion parameters
                 theta_cases = "Dispersion parameter for case reporting observation process",
                 theta_hosps = "Dispersion parameter for hospitalization reporting observation process",
@@ -127,6 +133,7 @@ params_vec <- c(MIF_ID = "MIF id",
                 R_0 = "Initial number of recovered individuals on t = 1",
                 D_0 = "Initial number of deaths after hospitalization on t = 1",
                 trend_start = "Trend")
+
 tmpparams <- readRDS(tmpparamfile)
 rnms <- row.names(tmpparams)
 params_map <- tibble(Parameter = names(params_vec),
