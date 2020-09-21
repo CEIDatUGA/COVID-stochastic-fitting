@@ -3,8 +3,8 @@ library(here)
 
 fig_outpath <- here("output/figures/")
 
-simfiles <- list.files(path = here('output/current'), "COV.csv")
-covarfiles <- list.files(path = here('output/current'), "params.rds")
+simfiles <- list.files(path = here('output/current'), ".csv")
+covarfiles <- list.files(path = here('output/current'), "params-natural.rds")
 # miffile <- here("output/current", filename_mif)
 
 
