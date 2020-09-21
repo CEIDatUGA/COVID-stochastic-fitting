@@ -295,5 +295,9 @@ saveRDS(params, file = outfile)
 # }
 # 
 
-
+# pass state dataframe to /output/current
+saveRDS(
+  readRDS("../header/statedf.rds"), 
+  file = paste0(outdir,"statedf.rds")
+  )
 

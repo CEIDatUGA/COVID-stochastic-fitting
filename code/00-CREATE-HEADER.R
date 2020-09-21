@@ -226,6 +226,7 @@ for (i in 1:length(statevec))
 # Save the outputs
 saveRDS(pomp_list, file = here::here("header/pomp_list.rds"))
 saveRDS(timestamp, file = here::here("header/timestamp.rds"))
+saveRDS(statedf, file = here::here("header/statedf.rds"))
 
 # Create new folder for benchmark storage
 datestamp <- Sys.Date()
