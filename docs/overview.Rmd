@@ -216,7 +216,7 @@ p_dailycases.topstates
 
 # Landing Page figure
 # select a few states
-selectstates <- c('Georgia', 'North Dakota', 'South Dakota', 'Delaware')
+selectstates <- c('Georgia', 'North Dakota', 'Wisconsin')
 dailycases_subset <- dailycases %>%
   filter(location %in% selectstates)
 dailycases.maxy <- dailycases_subset %>% 
