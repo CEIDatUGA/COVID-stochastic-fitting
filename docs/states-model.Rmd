@@ -3,6 +3,8 @@ title: "Transmission model for SARS-CoV-2 in US states"
 author: 
   - John M. Drake^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
   - Andreas Handel^[Department of Epidemiology and Biostatistics and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Éric Marty^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
+  - Eamon B. O'Dea^[Odum School of Ecology and Center for the Ecology of Infectious Diseases, University of Georgia]
   - Andrew T. Tredennick^[Western EcoSystems Technology, Inc.]
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
@@ -18,6 +20,7 @@ knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
 library(here)
 library(tidyverse)
 library(cowplot)
+library(yardstick)
 ```
 
 ---
@@ -39,9 +42,10 @@ Key features of this model include:
 2. Realistic interval distributions for presymptomatic and symptomatic periods.
 3. Transmission is allowed at different rates for asymptomatic, presymptomatic, and symptomatic individuals.
 4. Time varying rates of case detection, isolation, and case notification.
-5. Realistic intervention scenarios.
-6. Affect of human mobility on transmission (i.e., social distancing).
-7. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks).
+5. Time varying mortality rate.
+6. Realistic intervention scenarios.
+7. Affect of human mobility on transmission (i.e., social distancing).
+8. A latent process that allows transmission to vary over time due to environmental factors and other behavioral measures that can reduce transmission but are difficult to include with data (e.g., wearing face masks).
 
 This model contains both fixed and fitted parameter values.
 Fixed parameters were defined using clinical outcome reports.
@@ -60,27 +64,43 @@ We did not smooth the reported data but we did exclude all negative case and dea
 
 ```{r collate-data}
 all_files <- list.files(path = here("output/current/"), pattern = ".csv")
-param_files <- list.files(path = here("output/current/"), pattern = ".rds")
+param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
+statedf <-readRDS(here("output/current", "statedf.rds"))
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
-  tmpfile <- paste0(here("output/current/"), "/", do_file)
+  location <- sub(".csv", "", do_file)
+  state_metadata <- statedf %>% filter(state_full == sub(".csv", "", do_file))
+  state_pop <- state_metadata %>% pull(total_pop)
+  state_initR0 <- state_metadata %>% pull(initR0)
+  state_beta_s <- (state_initR0*.1)
+  
+  tmpfile <- here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
-           variable %in% c("daily_cases", "daily_deaths", 
+           variable %in% c("daily_cases", "daily_deaths",
                            "actual_daily_cases", "actual_daily_deaths",
                            "mobility_trend", "latent_trend")) %>%
     mutate(date = as.Date(date)) %>%
-    dplyr::select(location, sim_type, period, date, variable, mean_value)
-  
-  tmpparamfile <- paste0(here("output/current/"), "/", param_files[i])
-  tmpparams_z <- readRDS(tmpparamfile)
+    dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
+    pivot_wider(names_from = variable, values_from = mean_value) %>%
+    mutate(beta_s = state_beta_s) %>% 
+    mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
+    pivot_longer(cols = !c(location, sim_type, period, date), 
+                 names_to = "variable", 
+                 values_to = "mean_value",
+                 values_drop_na = TRUE)
+
+  state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
+
+  tmpparamfile <- here("output/current", param_files[i])
+  tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
-                        log_lik = tmpparams_z["LogLik", 2])
-  rnms <- row.names(tmpparams_z)
-  tmpparams <- tmpparams_z %>%
+                        log_lik = tmpparams["LogLik", 2])
+  rnms <- row.names(tmpparams)
+  tmpparams <- tmpparams %>%
     mutate(parameter = rnms) %>%
     filter(is_fitted == "yes") %>%
     dplyr::select(-is_fitted) %>%
@@ -89,72 +109,73 @@ for(i in 1:length(all_files)) {
     dplyr::select(-key) %>%
     mutate(location = unique(tmp$location)) %>%
     dplyr::select(location, value, parameter)
-   beta <- tmpparams_z %>%
-    mutate(parameter = rnms) %>%
-    filter(is_fitted == "no") %>%
-    dplyr::select(-is_fitted) %>%
-    gather("key", "value", -parameter) %>%
-    filter(key == "X1") %>%
-    dplyr::select(-key) %>%
-    mutate(location = unique(tmp$location)) %>%
-    dplyr::select(location, value, parameter) %>%
-    filter(parameter == "beta_s") %>%
-    pull(value)
   
-  tmp <- tmp %>%
-    mutate(beta = beta)
-    # mutate(omega = mobility_trend * latent_trend * beta)
-  state_summaries <- bind_rows(state_summaries, tmp)
   state_parameters <- bind_rows(state_parameters, tmpparams)
   state_logliks <- bind_rows(state_logliks, tmp_loglik)
 }
 
 # Fixed parameters table
-nbetas <- length(grep("b", rnms)) - 2
-des_string <- c("MIF id", "Log Likelihood", "SE of Log Likelihood", 
-                "Transmission rate", 
-                "Relative transmissibility of latent infections",
-                "Relative transmissibility of asymptomatic individuals",
-                "Relative transmissibility of detected symptomatic individuals post-reporting",
-                "Relative transmissibility of hospitalized individuals",
-                "Time spent in latent compartments (days)",
-                "Time spent in asymptomatic compartments (days)",
-                "Time spent in symptomatic, undetected compartments (days)",
-                "Time spent in symptomatic, detected compartments (days)",
-                "Time spent in diagnosed cases compartments (days)",
-                "Time spent in hospitalized compartments (days)",
-                "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
-                "Rate at which faster diagnosis ramps up to max",
-                "Time at which diagnosis is at 50% of max (in days since t = 1)",
-                "Maximum fraction of cases that are detected",
-                "Speed at which fraction detected ramps up",
-                "Time at which infection detection fraction is at 50% of max (days since t = 1)",
-                "Minimum fraction detected at t = 1",
-                "Fraction of latent infections that move to aysmptomatic",
-                "Fraction of detected cases that are hospitalized",
-                "Fraction of hospitalizations that result in death (before t = tD)",
-                "Fraction of hospitalizations that result in death (after t = tD)",
-                "Time at which death fraction changes",
-                "Dispersion parameter for case reporting observation process",
-                "Dispersion parameter for hospitalization reporting observation process",
-                "Dispersion parameter for death reporting obsercation process",
-                "Variance of the stochastics process noise",
-                rep("Spline coefficient", nbetas),
-                "Initial number of susceptible individuals on t = 1",
-                "Initial number of latent infectious individuals on t = 1",
-                "Initial number of asymptomatic individuals on t = 1",
-                "Initial number of symptomatic, undetected individuals on t = 1",
-                "Initial number of symptomatic, detected individuals on t = 1",
-                "Initial number of diagnosed cases on t = 1",
-                "Initial number of hospitalized cases on t = 1",
-                "Initial number of recovered individuals on t = 1",
-                "Initial number of deaths after hospitalization on t = 1",
-                "Trend")
+betas_names <- rnms[grep("b[0-9]+", rnms)] # find parameters starting with b followed by any number
+spline_coefficients <- paste("Spline coefficient", gsub("b","", betas_names))
+names(spline_coefficients) <- betas_names
+
+params_vec <- c(MIF_ID = "MIF id", 
+                LogLik = "Log Likelihood", 
+                LogLik_SE = "SE of Log Likelihood", 
+                beta_s = "Transmission rate",
+                # Relative Transmissibility
+                frac_trans_e = "Relative transmissibility of latent infections",
+                frac_trans_a = "Relative transmissibility of asymptomatic individuals",
+                frac_trans_c = "Relative transmissibility of detected symptomatic individuals post-reporting",
+                frac_trans_h = "Relative transmissibility of hospitalized individuals",
+                # Time in compartments
+                time_e = "Time spent in latent compartments (days)",
+                time_a = "Time spent in asymptomatic compartments (days)",
+                time_su = "Time spent in symptomatic, undetected compartments (days)",
+                time_sd = "Time spent in symptomatic, detected compartments (days)",
+                time_c = "Time spent in diagnosed cases compartments (days)",
+                time_h = "Time spent in hospitalized compartments (days)",
+                # Detection time
+                max_diag_factor = "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
+                diag_rampup = "Rate at which faster diagnosis ramps up to max",
+                t_half_diag = "Time at which diagnosis is at 50% of max (in days since t = 1)",
+                # Detection fraction
+                max_detect_frac = "Maximum fraction of cases that are detected",
+                detect_rampup = "Speed at which fraction detected ramps up",
+                t_half_detect = "Time at which infection detection fraction is at 50% of max (in days since t = 1)",
+                base_detect_frac = "Minimum fraction detected at t = 1",
+                # Fraction asymptomatic
+                frac_asym = "Fraction of latent infections that move to asymptomatic",
+                # Fraction hosptilized
+                frac_hosp = "Fraction of detected cases that are hospitalized",
+                # Fraction of hospitalizations that result in death
+                min_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                max_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                log_half_dead = "Time at which death fraction is at 50% of max (in days since t = 1)",
+                # Dispersion parameters
+                theta_cases = "Dispersion parameter for case reporting observation process",
+                theta_hosps = "Dispersion parameter for hospitalization reporting observation process",
+                theta_deaths = "Dispersion parameter for death reporting obsercation process",
+                sigma_dw = "Variance of the stochastics process noise",
+                # Spline coefficients
+                spline_coefficients,
+                # Initial conditions
+                S_0 = "Initial number of susceptible individuals on t = 1",
+                E1_0 = "Initial number of latent infectious individuals on t = 1",
+                Ia1_0 = "Initial number of asymptomatic individuals on t = 1",
+                Isu1_0 = "Initial number of symptomatic, undetected individuals on t = 1",
+                Isd1_0 = "Initial number of symptomatic, detected individuals on t = 1",
+                C1_0 = "Initial number of diagnosed cases on t = 1",
+                H1_0 = "Initial number of hospitalized cases on t = 1",
+                R_0 = "Initial number of recovered individuals on t = 1",
+                D_0 = "Initial number of deaths after hospitalization on t = 1",
+                trend_start = "Trend")
+
 tmpparams <- readRDS(tmpparamfile)
 rnms <- row.names(tmpparams)
-params_map <- tibble(Parameter = rnms,
-                     Description = des_string)
-fixed_parameters <- tmpparams_z %>%
+params_map <- tibble(Parameter = names(params_vec),
+                     Description = params_vec)
+fixed_parameters <- tmpparams %>%
   mutate(Parameter = rnms) %>%
   filter(is_fitted == "no") %>%
   dplyr::select(-is_fitted) %>%
@@ -164,6 +185,7 @@ fixed_parameters <- tmpparams_z %>%
   filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps", "S_0")) %>%
   dplyr::select(Parameter, Description, value) %>%
   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
+
 ```
 
 ```{r read-data, fig.height = 10, fig.width = 8}
@@ -193,19 +215,27 @@ We smooth the raw data from Unacast using a spline fit, resulting in the traject
 This covariate is used to reduce baseline transmission.
 Here we show the mobility trends from all 50 states.
 
-```{r covariate, fig.height=3, fig.width=5, eval = TRUE}
+```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
   dplyr::select(location, date, mean_value) %>%
   filter(date <= Sys.Date())
 
-ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
+g <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
-  ylab("Human movement\n(% of normal)") +
-  scale_y_continuous(limits = c(0, 1)) +
-  scale_color_viridis_d() +
-  theme_dark(base_line_size = 0.5) +
+  # ylab("Human movement\n(% of normal)") +
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  theme_minimal() +
   guides(color = FALSE)
+
+p <- g %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "Human movement\n(% of normal)\n&nbsp;")
+                 )
+p
 ```
 
 
@@ -242,7 +272,7 @@ knitr::include_graphics(here("docs",'pomp-model.png'))
 We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
 All transitions among the compartments in our model were modeled using the Euler multinomial approximation (`reulermultinom` in **pomp** syntax) given the size of the "donating" compartment and the specified or fitted rate of transition.
 
-Note that tranmission rate at time $t$ is $\omega(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$, resulting the force of infection $f(t) = \omega(t) \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
+Note that transmission rate at time $t$ is $\omega(t) = \frac{\beta}{N} \psi(t) \phi(t) \Gamma(t)$, resulting the force of infection $f(t) = \omega(t) \left(I(t) \right)$, where, for simplicity, $I$ stands for all infectious individuals at time $t$.
 $\phi(t)$ is the human mobiltiy metric shown in the figure above.
 $\psi(t)$ is the result of a latent trend process that is modeled using a fitted spline:
 
@@ -320,7 +350,7 @@ Note that $\text{cases}(t)$ and $\text{deaths}(t)$ are the observed number of ca
 ## Model Fitting
 We fit the model using Maximization by Iterated particle Filtering (MIF).
 Observations (daily case and death reports) were modeled as arising from a negative binomial reporting process (see above).
-We estimated six parameters for each state: baseline transmission rate ($\beta$), the fraction of hospitalized cases that result in death ($m$), a parameter accounting for extra-demographic process noise ($\sigma$), two negative binomial dispersion parameters ($\theta_c$ and $\theta_d$), and the initial size of the latent infectious class ($L_{1}(t=1)$.
+We estimated six parameters for each state: baseline transmission rate ($\beta$), the time varying fraction of hospitalized cases that result in death ($m(t)$), a parameter accounting for extra-demographic process noise ($\sigma$), two negative binomial dispersion parameters ($\theta_c$ and $\theta_d$), and the initial size of the latent infectious class ($L_{1}(t=1)$. For the fraction of hospitalized cases that result in death $m(t)$ we estimate the minimum and maximum values of a sigmoid function and the time to half of maximum. 
 The start date for model simulation and estimation was defined as the data of the first case report in each state.
 In addition, we estimated the basis function parameters ($g_i$), whose number depend on the length of the time series at the time of fitting.
 
@@ -344,13 +374,15 @@ The variance of the random walk decreases at each iteration of MIF, where a MIF 
 In theory, this procedure converges toward the maximimum likelihood estimates (MLEs).
 
 We used the IF2 algorithm^[Ionides et al. 2015 (https://www.pnas.org/content/112/3/719)] implemented in the R^[R Core Team 2019 (https://www.r-project.org/)] package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)] to conduct the MIF procedure.
-To initialize MIF, we generated 32 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data.
-We then performed two rounds of MIF, each for 150 iterations with 2,000 particles and geometric cooling.
+To initialize MIF, we generated 32 parameter sets with values normally distributed around our prior expectations based on a literature review and line list data. 
+We then performed two rounds of MIF, each for 150 iterations with 2,000 particles and geometric cooling. For some states, we increase the number of iterations in the first round of MIF to 350. 
 For the first round of MIF we set `cooling.factor = 0.9`.
 For the second round of MIF, which simply continues from where the first round stopped, we set `cooling.factor = 0.7`.
 We then computed the log likelihood of the 32 final MIF parameter sets (i.e., parameter sets collected after 300 MIF iterations) as the log of the mean likelihoods of 10 replicate particle filters with 5,000 particles each.
 At this stage, we assume the parameter set with highest log likelihood is the MLE.
 We use all parameter sets with log likelihoods within 2 of the maximum when forecasting or projecting scenarios.
+
+On subsequent days, we use values perturbed around the maximum likelihood estimates from the previous day's fit to initialize MIF.
 
 ## Model Assessment
 We assess our model in two ways.
@@ -385,19 +417,24 @@ The estimated latent trend in transmission reduction is combined with mobility d
 The estimated values of $\beta$ for each state are informative, but to understand the tranmission rate as implemented in the model we need to look at $\omega(t)$, which is plotted below.
 
 ```{r trends, fig.width = 10}
-pops <- readRDS(here("data/us_popsize.rds")) %>%
-  rename("location" = state_full)
-omega_summaries <- state_summaries %>%
-  filter(variable %in% c("mobility_trend", "latent_trend"),
-         sim_type == "status_quo",
-         date < Sys.Date()) %>%
-  dplyr::select(-period, -sim_type) %>%
-  spread(key = variable, value = mean_value) %>%
-  mutate(omega = beta*latent_trend*mobility_trend) %>%
-  left_join(pops, by = "location") %>%
-  mutate(transmission = omega*total_pop)
+# pops <- readRDS(here("data/us_popsize.rds")) %>%
+#   rename("location" = state_full)
+# omega_summaries <- state_summaries %>%
+#   filter(variable %in% c("mobility_trend", "latent_trend"),
+#          sim_type == "status_quo",
+#          date < Sys.Date()) %>%
+#   dplyr::select(-period, -sim_type) %>%
+#   spread(key = variable, value = mean_value) %>%
+#   mutate(omega = beta*latent_trend*mobility_trend) %>%
+#   left_join(pops, by = "location") %>%
+#   mutate(transmission = omega*total_pop)
 
-ggplot(omega_summaries, aes(date, transmission)) +
+omega_summaries <- state_summaries %>%
+  mutate(location = as.character(location)) %>% 
+  filter(sim_type == "status_quo", date < Sys.Date()) %>% 
+  pivot_wider(names_from = variable, values_from = mean_value)
+  
+omega_summaries %>% ggplot(aes(date, omega)) +
   geom_line(color = "salmon") +
   facet_wrap(~location, ncol = 10) +
   # coord_cartesian(ylim = c(0, 1e-06)) +
@@ -405,24 +442,25 @@ ggplot(omega_summaries, aes(date, transmission)) +
   ylab(bquote(omega%*%N)) +
   theme(axis.text.x = element_text(angle = 45)) +
   ggtitle("Transmission rates over time")
+  
 ```
 
 Here we plot the average $\omega$ over time.
 
 ```{r avgomega}
-omega_summaries %>%
-  group_by(location) %>%
-  summarise(mean_omega = mean(transmission),
-            lower = quantile(transmission, 0.1),
-            upper = quantile(transmission, 0.9)) %>%
+omega_summaries %>% 
+  group_by(location) %>% 
+  summarise(mean_omega = mean(omega),
+            lower = quantile(omega, 0.1),
+            upper = quantile(omega, 0.9)) %>%
   ggplot(aes(y = mean_omega, x = reorder(location, mean_omega))) +
   geom_point() +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.25) +
-  ylab(bquote(omega%*%N)) +
+  ylab(bquote(omega)) +
   xlab("") +
   coord_flip() +
   theme_minimal() +
-  ggtitle("Mean tranmission rates over time", subtitle = "error bars show min and max")
+  ggtitle("Mean transmission (omega) over time", subtitle = "error bars show min and max")
 ```
 
 Across all states, $\omega$ decreased through the month of March, reaching a low point by the beginning of April.
@@ -432,11 +470,11 @@ See plot below that shows $\omega(t)$ for each state (grey lines) and the overal
 ```{r omegatime}
 omega_summaries %>%
   filter(date >= "2020-03-01") %>%
-  ggplot(aes(x = date, y = transmission)) +
+  ggplot(aes(x = date, y = omega)) +
   geom_line(color = "grey", aes(group = location), size = 0.5) +
   geom_smooth(se = FALSE, color = "dodgerblue", size = 1.2) +
   # coord_cartesian(ylim = c(0, 1e-06)) +
-  ylab(bquote(omega%*%N)) +
+  ylab(bquote(omega)) +
   theme_minimal() +
   ggtitle("Transmission rate over time")
 ```
@@ -452,29 +490,35 @@ state_parameters %>%
   gather("latent_state", "MLE", -location) %>%
   mutate(MLE = round(MLE, 0)) -> latents
 
-# omega_summaries %>%
-#   group_by(location) %>%
-#   filter(date == min(date)) %>%
-#   ungroup() %>%
-#   dplyr::select(location, omega) -> omegas
+omega_summaries %>%
+  group_by(location) %>%
+  filter(date == min(date)) %>%
+  ungroup() %>%
+  dplyr::select(location, omega) -> omegas
 
-# latents <- latents %>%
-  # left_join(omegas, by = c("location"))
+latents <- latents %>%
+left_join(omegas, by = c("location"))
 
-# ggplot(latents, aes(y = value, x = reorder(location, L0))) +
-#   geom_col(fill = "dodgerblue") +
-#   coord_flip() +
-#   xlab("") + ylab("Estimated initial size of latent compartment") +
-#   theme_minimal()
+#ggplot(latents, aes(y = value, x = reorder(location, L1_0))) +
+ggplot(latents, aes(y = MLE, x = reorder(location,MLE))) +
+  geom_col(fill = "dodgerblue") +
+  coord_flip() +
+  xlab("") + ylab("Estimated initial size of latent compartment") +
+  theme_minimal()
 
-# ggplot(latents, aes(x = L0, y = omega)) +
+latents <- latents %>%
+  spread(latent_state, MLE) %>%
+  rename("L1_0" = E1_0)
+
+# ggplot(latents, aes(x = L1_0, y = omega)) +
 #   geom_point() +
 #   ylab(expression(omega)) + xlab("L0") +
 #   theme_minimal()
 
 latents %>%
-  spread(latent_state, MLE) %>%
-  rename("L1_0" = E1_0) %>%
+  # spread(latent_state, MLE) %>%
+  # rename("L1_0" = E1_0) %>%
+  dplyr::select(-omega) %>% 
   knitr::kable(formate = "html") %>%
    kableExtra::kable_styling(full_width = F)
 ```
@@ -518,6 +562,7 @@ for(do_state in unique(state_summaries$location)) {
     gather("variable", "value", -date) %>%
     rename("observation" = value)
   
+  # MAEs
   mae_total <- tmp_summary %>%
     filter(sim_type == "status_quo") %>%
     filter(period == "Past") %>%
@@ -532,8 +577,27 @@ for(do_state in unique(state_summaries$location)) {
     summarise(mae = round(mean(abserror), 2)) %>%
     ungroup() %>%
     mutate(location = do_state)
-
+  
   all_maes <- bind_rows(all_maes, mae_total)
+
+  # MASEs
+  # mase_total <- tmp_summary %>%
+  #   filter(sim_type == "status_quo") %>%
+  #   filter(period == "Past") %>%
+  #   filter(variable %in% c("daily_cases", "daily_deaths")) %>%
+  #   mutate(variable = as.character(variable)) %>%
+  #   dplyr::select(date, variable, mean_value) %>%
+  #   rename("value" = mean_value) %>%
+  #   left_join(dat, by = c("date", "variable")) %>%
+  #   drop_na() %>%
+  #   mutate(abserror = abs(value - observation)) %>%
+  #   group_by(variable) %>%
+  #   summarise(mae = round(mean(abserror), 2)) %>%
+  #   ungroup() %>%
+  #   mutate(location = do_state)
+  # 
+  # # STARE HERE
+  # all_mases <- bind_rows(all_mases, mase_total)
   
   # Log likelihoods
   tmp_loglik <- state_logliks %>%
@@ -593,7 +657,7 @@ Here we show the MAEs for each state for daily case reports and daily death repo
 
 ```{r maes}
 ggplot(all_maes %>%
-         left_join(pops, by  = "location") %>%
+         # left_join(pops, by  = "location") %>%
          # mutate(mae = mae/(total_pop/100000)) %>%
          # mutate(mae = ifelse(mae > 350, 350, mae)) %>%
          mutate(variable = ifelse(variable == "daily_cases", 
@@ -608,4 +672,23 @@ ggplot(all_maes %>%
   guides(fill = FALSE) +
   xlab("") +
   ylab("Mean absolute error (MAE)") 
+
+# save MAEs as file
+all_maes %>% saveRDS(paste0(here("output/"),"us_all_maes.rds"))
 ```
+
+<!-- ## Mean absolute scaled errors -->
+
+<!-- Here we calculate the MASEs for each state for daily case reports and daily death reports. -->
+
+<!-- ```{r mases} -->
+
+<!-- # mase(data, truth, estimate, m = 1L, mae_train = NULL, na_rm = TRUE, ...) -->
+
+
+<!-- yardstick::mase() -->
+
+
+<!-- # save MASEs as file -->
+<!-- all_maes %>% saveRDS(paste0(here("output/"),"us_all_mases.rds")) -->
+<!-- ``` -->

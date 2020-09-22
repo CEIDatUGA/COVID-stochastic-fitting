@@ -39,7 +39,7 @@ for(i in 1:length(all_files)) {
   state_metadata <- statedf %>% filter(state_full == sub(".csv", "", do_file))
   state_pop <- state_metadata %>% pull(total_pop)
   state_initR0 <- state_metadata %>% pull(initR0)
-  state_beta_s <- (state_initR0*.1)/state_pop
+  state_beta_s <- (state_initR0*.1)
   
   tmpfile <- here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
@@ -149,6 +149,7 @@ fixed_parameters <- tmpparams %>%
   filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps", "S_0")) %>%
   dplyr::select(Parameter, Description, value) %>%
   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
+
 ```
 
 <!-- ```{r read-data, fig.height = 10, fig.width = 8} -->
@@ -300,19 +301,20 @@ Key features of this model include:
 * Stochastic transmission process with a realistic level of **random variation**.
 * Realistic distributions of **presymptomatic and symptomatic periods**.
 * Different **transmission rates for asymptomatic, presymptomatic, and symptomatic individuals**.[^1]
-* Time varying **rates of case detection, isolation, and case notification**.
+* Time varying **rates of case detection, isolation, and case notification**.  
+* Time varying **mortality**.  
 * Accounting for the effect on transmission of **human mobility** (i.e., **social distancing**), as measured by data.
 * A "latent" process that captures the effect of **environmental factors and other behaviors** that can reduce transmission but are difficult to quantify with data (e.g., hand washing or face masks).
 * Realistic intervention scenarios (e.g. improving case detection, faster testing).
 
-This model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
+The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
-* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $E$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
-* $\boldsymbol{E}$ - Individuals who have been *exposed*, and so are infected, but do not yet show symptoms. Those individuals can be infectious. At the end of the $E$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
-* $\boldsymbol{I_a}$ - Individuals who are infected and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
-* $\boldsymbol{I_{su}}$ - Individuals who are infected and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
-* $\boldsymbol{I_{sd}}$ - Individuals who are infected and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will get diagnosed and move to $C$.
+* $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
+* $\boldsymbol{L}$ - Individuals with *latent* infections who do not yet show symptoms. Those individuals can be infectious. At the end of the $L$ stage, a fraction moves into the $I_a$ stage, another fraction moves into the $I_{su}$ stage, and the remainder into the $I_{sd}$ stage.
+* $\boldsymbol{I_a}$ - Individuals who are *infected* and *asymptomatic*. Those individuals are likely infectious, but the model allows to adjust this.
+* $\boldsymbol{I_{su}}$ - Individuals who are *infected* and *symptomatic*, but are *undetected*. Those individuals are likely infectious. Individuals in this compartment never get diagnosed, and are assumed to recover.
+* $\boldsymbol{I_{sd}}$ - Individuals who are *infected* and *symptomatic*, and are *detected*. Those individuals are likely infectious. Individuals in this compartment will be diagnosed and move to $C$.
 * $\boldsymbol{C}$ - Individuals who have been diagnosed as *cases*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $C$ stage will naturally recover, without the need for hospitalization. The remainder moves into the $H$ stage.
 * $\boldsymbol{H}$ - Individuals who have been *hospitalized*. Those individuals are likely isolated and not infectious, but the model allows to adjust this. A fraction of individuals in the $H$ stage will recover, the remainder will die.
 * $\boldsymbol{R}$ - *Recovered/removed* individuals. Those individuals have recovered and are immune. 
@@ -320,7 +322,7 @@ The following compartments are included:
 
 To allow more realistic distributions of movement through compartments, several of these compartments are internally split into multiple stages using the *linear chain trick*.[^2]
 
-* $\boldsymbol{E}$ - 4 compartments
+* $\boldsymbol{L}$ - 4 compartments
 * $\boldsymbol{I_a}$ - 4 compartments 
 * $\boldsymbol{I_{su}}$ - 4 compartments
 * $\boldsymbol{I_{sd}}$ - 4 compartments
