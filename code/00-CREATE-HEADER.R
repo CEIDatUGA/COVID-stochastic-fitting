@@ -160,7 +160,7 @@ for (i in 1:length(statevec))
     filter(location == dolocation)
   
   # calculate number of knots for location
-  n_knots <- round(nrow(pomp_data) / 10 )
+  n_knots <- round(nrow(pomp_data) / 21 )
   knot_coefs <-  paste0("b", 1:n_knots)
   
   # Get the locations's iniparvals

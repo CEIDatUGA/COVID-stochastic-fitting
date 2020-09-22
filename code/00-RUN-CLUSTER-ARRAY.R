@@ -61,7 +61,7 @@ source("../code/forward-simulations/summarize_simulations.R")
 # Load the pomp information
 pomp_listr <- readRDS("../header/pomp_list.rds")
 this_pomp <- pomp_listr[[myargument]]
-n_knots <- round(nrow(this_pomp$pomp_data) / 10 )
+n_knots <- round(nrow(this_pomp$pomp_data) / 21 )
 
 # --------------------------------------------------
 # Specify if functions that are able to run in parallel will do so
