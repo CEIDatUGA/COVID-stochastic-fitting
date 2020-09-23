@@ -15,7 +15,7 @@ library(tidyverse)
 
 Here we present a model for the transmission of SARS-CoV-2 in all states of the United States of America. The model builds on a previous model developed for the state of Georgia.
 
-Our model takes into account the effect of human mobility on transmission (i.e., social distancing), as well as hard to quantify human behaviors and environemntal factors, and is calibrated to the history of incident case and death reports. 
+Our model takes into account the effect of human mobility on transmission (i.e., social distancing), as well as hard to quantify human behaviors and environmental factors, and is calibrated to the history of incident case and death reports. 
 
 For each state, we use our model to forecast reported cases, deaths, and total number of infections (including unreported infections) six weeks into the future, under three scenarios: 
 
@@ -84,7 +84,7 @@ dailycases <- dailycases %>%
   mutate(median_value_per100k = 100000*median_value/pop)
 
 dailycases.hotzone <- 15 # new cases per day per 100k
-dailycases.threshold <- 25 # new cases per day per 100k
+dailycases.threshold <- 30 # new cases per day per 100k
 dailycases.mae.theshold <- 425 # max MAE to allow
 
 # Cum cases ----

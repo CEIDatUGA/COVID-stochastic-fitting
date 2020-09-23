@@ -246,7 +246,7 @@ dash
 #### Social distancing / mobility data
 
 To date, the primary intervention in all states has been the adoption of social distancing behaviors and improved hygiene.
-We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps, colected by <a href="https://www.unacast.com/covid19/social-distancing-scoreboard" target="_blank">Unacast</a>.
+We measure social distancing using aggregated, anonymized locations recorded by location-based mobile phone apps, collected by <a href="https://www.unacast.com/covid19/social-distancing-scoreboard" target="_blank">Unacast</a>.
 We summarize the effectiveness of social distancing behaviors as the average deviation from baseline, a statistic ranging from 0% (complete cessation of movements) to 100% (no difference from baseline).
 
 The trajectories of human mobility in all 50 states is shown below.
@@ -307,7 +307,7 @@ Key features of this model include:
 * A "latent" process that captures the effect of **environmental factors and other behaviors** that can reduce transmission but are difficult to quantify with data (e.g., hand washing or face masks).
 * Realistic intervention scenarios (e.g. improving case detection, faster testing).
 
-The model comprises susceptible, pre-symptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
+The model comprises susceptible, presymptomatic, asymptomatic, symptomatic, diagnosed, hospitalized, deceased, and recovered persons. 
 The following compartments are included:  
 
 * $\boldsymbol{S}$ - Uninfected and *susceptible* individuals. Susceptible individuals can become infected by individuals in the $L$, $I_a$, $I_{su}$, $I_{sd}$, $C$, and $H$ stages. Rates of transmission from these stages can be adjusted individually.
