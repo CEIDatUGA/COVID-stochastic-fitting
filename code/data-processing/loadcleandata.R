@@ -183,7 +183,7 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
     group_by(location) %>% 
     arrange(location, date) %>%
     group_by(location) %>%
-    mutate(time = 1:n()) %>%
+    mutate(time = 1:n()) %>%  #careful here: 1 must align with first observation for fitting
     ungroup()
   
   # Remove bad WY data point
@@ -191,7 +191,7 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
     mutate(cases = ifelse(location == "Wyoming" & cases > 100 & date < "2020-05-01", NA, cases),
            cases = ifelse(location == "Maryland" & cases > 2500 & date < "2020-04-01", NA, cases),
            deaths = ifelse(location == "New York" & date == "2020-05-07", NA, deaths),
-           deaths = ifelse(location == "New Jerset" & deaths > 1500, NA, deaths))
+           deaths = ifelse(location == "New Jersey" & deaths > 1500, NA, deaths))
   
   # Apply 7-day moving average to the data
   ma <- function(x) {
