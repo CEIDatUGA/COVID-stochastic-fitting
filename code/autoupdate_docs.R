@@ -10,3 +10,4 @@ rmarkdown::render(paste0(path,'overview.Rmd'),output_file=paste0(path,'overview.
 # setwd("docs")
 rmarkdown::render(paste0(path,'model-details.Rmd'),output_file=paste0(path,'model-details.html'))
 rmarkdown::render(paste0(path,'states-model.Rmd'),output_file=paste0(path,'states-model.html'))
+rmarkdown::render(paste0(path,'plots.Rmd'),output_file=paste0(path,'plots.html'))
