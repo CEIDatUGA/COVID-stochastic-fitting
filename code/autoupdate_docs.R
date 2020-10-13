@@ -5,6 +5,8 @@ library(here)
 # pandoc location must be hard coded. Find with Sys.getenv("RSTUDIO_PANDOC")
 Sys.setenv(RSTUDIO_PANDOC="/Applications/RStudio.app/Contents/MacOS/pandoc")
 
+source(here("code/forward-simulations/bind-all-state-output.R"))
+
 path <- paste0(here::here(),"/docs/")
 rmarkdown::render(paste0(path,'overview.Rmd'),output_file=paste0(path,'overview.html'))
 # setwd("docs")
