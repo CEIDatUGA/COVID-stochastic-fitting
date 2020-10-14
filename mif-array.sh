@@ -4,7 +4,7 @@
 #PBS -l nodes=1:ppn=32
 #PBS -l walltime=24:00:00
 #PBS -l pmem=3500mb
-#PBS -M atredennick@west-inc.com
+#PBS -M tierney6@uga.edu
 #PBS -t 1-50
 
 cd $PBS_O_WORKDIR
