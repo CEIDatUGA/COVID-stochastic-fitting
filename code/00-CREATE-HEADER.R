@@ -103,8 +103,9 @@ statedf <- state_pops %>%
   # R0 at beginning of epidemic for each state
   dplyr::mutate(initR0 = dplyr::case_when(
     state_full %in% c("New York") ~ 10,
-state_full %in% c("Illinois") ~ 8,
-state_full %in% c("Indiana", "Maryland") ~ 6, 
+state_full %in% c("Illinois") ~ 9,
+state_full %in% c("Maryland") ~ 8,
+state_full %in% c("Indiana") ~ 6, 
     TRUE ~ 6 # default initial R0
   )) %>% 
   
