@@ -56,17 +56,17 @@ for(i in 1:length(dates)) {
       ylab("daily deaths") +
       geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") -> g_deaths
 
-    figure <- ggarrange(g_cases, g_deaths, labels = paste("Fit date:", date), ncol=2)
+    data %>%
+      dplyr::filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
+      dplyr::filter(sim_type == "status_quo") %>%
+      mutate(date = as.Date(date)) %>%
+      ggplot(aes(x = date, y = mean_value)) +
+      geom_point(aes(color = variable)) +
+      theme(legend.position = "none") -> g_trends
+
+    figure <- ggarrange(g_cases, g_deaths, g_trends, 
+                        labels = paste("Fit date:", date), ncol=2, nrow = 2, align="hv")
     print(figure)
-    
-    # data %>%
-    #   dplyr::filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
-    #   dplyr::filter(sim_type == "status_quo") %>%
-    #   mutate(date = as.Date(date)) %>%
-    #   ggplot(aes(x = date, y = mean_value)) +
-    #   geom_point(aes(color = variable)) +
-    #   ggtitle(date) -> out2
-    # print(out2)
   }
 }
 
