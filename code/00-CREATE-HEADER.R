@@ -96,16 +96,20 @@ statedf <- state_pops %>%
   # warm start spec for each state
   dplyr::mutate(init = dplyr::case_when(
     # state_full %in% c("New York") ~ "fresh", # fit from scratch
-    # state_full == "California" ~ "2020-07-23", # specify date of last good fit for warm start
+    state_full == "Indiana" ~ "2020-09-14", # date of last good fit for warm start
+    state_full == "Maryland" ~ "2020-09-28", # date of last good fit for warm start
+    state_full == "New Jersey" ~ "2020-09-30", # date of last good fit for warm start
+    state_full == "Ohio" ~ "2020-09-11", # date of last good fit for warm start
+    state_full == "Washington" ~ "2020-09-22", # date of last good fit for warm start
     TRUE ~ "last" # default to last fit for warm start
   )) %>% 
   
   # R0 at beginning of epidemic for each state
   dplyr::mutate(initR0 = dplyr::case_when(
-    state_full %in% c("New York") ~ 10,
-state_full %in% c("Illinois") ~ 9,
-state_full %in% c("Maryland") ~ 8,
-state_full %in% c("Indiana") ~ 6, 
+    state_full %in% c("New York") ~ 10, 
+    state_full %in% c("Illinois") ~ 9,
+    state_full %in% c("Maryland") ~ 8,
+    state_full %in% c("Indiana") ~ 6, 
     TRUE ~ 6 # default initial R0
   )) %>% 
   
