@@ -1,0 +1,75 @@
+---
+title: "Plots over time for single states"
+author: "Andrew Tredennick, Eric Marty"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(ggpubr) # for multi plot figures
+
+statename <- "Indiana"
+dates <- seq.Date(as.Date("2020-09-01"),as.Date("2020-10-14"),1)
+```
+
+# `r statename`
+
+```{r plots, echo=FALSE, warning=FALSE, fig.height = 3, out.width = "100%"}
+for(i in 1:length(dates)) {
+  date <- dates[i]
+  p <- paste0(here::here("output/"),date)
+  f <- list.files(p, pattern=paste0(statename,".*",".csv"))
+  if(length(f)>0){
+    fname <- paste0(p,"/",f)
+    data <- read.csv(fname) 
+    
+    dat <- data %>% 
+      dplyr::filter(variable %in% c("actual_daily_cases")) %>%
+      mutate(date = as.Date(date))
+
+    data %>%
+      dplyr::filter(variable %in% c("daily_cases")) %>%
+      dplyr::filter(sim_type == "status_quo") %>%
+      mutate(date = as.Date(date)) %>%
+      dplyr::filter(date <= (Sys.Date() + 7*4)) %>%
+      ggplot(aes(x = date, y = median_value)) +
+      geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
+      geom_line() +
+      geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+      ylab("daily cases") -> g_cases
+
+    dat <- data %>% 
+      dplyr::filter(variable %in% c("actual_daily_deaths")) %>%
+      mutate(date = as.Date(date))
+    data %>%
+      dplyr::filter(variable %in% c("daily_deaths")) %>%
+      dplyr::filter(sim_type == "status_quo") %>%
+      mutate(date = as.Date(date)) %>%
+      dplyr::filter(date <= (Sys.Date() + 7*4)) %>%
+      ggplot(aes(x = date, y = median_value)) +
+      geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
+      geom_line() +
+      ylab("daily deaths") +
+      geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") -> g_deaths
+
+    figure <- ggarrange(g_cases, g_deaths, labels = paste("Fit date:", date), ncol=2)
+    print(figure)
+    
+    # data %>%
+    #   dplyr::filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
+    #   dplyr::filter(sim_type == "status_quo") %>%
+    #   mutate(date = as.Date(date)) %>%
+    #   ggplot(aes(x = date, y = mean_value)) +
+    #   geom_point(aes(color = variable)) +
+    #   ggtitle(date) -> out2
+    # print(out2)
+  }
+}
+
+
+```
+

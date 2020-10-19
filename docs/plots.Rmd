@@ -17,47 +17,47 @@ allfiles <- list.files(path, ".csv")
 
 for(f in allfiles) {
   fname <- paste0(path,f)
-dat <- read.csv(fname) %>%
-  filter(variable %in% c("actual_daily_cases")) %>%
-  mutate(date = as.Date(date))
+  dat <- read.csv(fname) %>%
+    filter(variable %in% c("actual_daily_cases")) %>%
+    mutate(date = as.Date(date))
 
-read.csv(fname) %>%
-  filter(variable %in% c("daily_cases")) %>%
-  filter(sim_type == "status_quo") %>%
-  mutate(date = as.Date(date)) %>%
-  filter(date <= (Sys.Date() + 7*4)) %>%
-  ggplot(aes(x = date, y = median_value)) +
-  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
-  geom_line() +
-  geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
-  ylab("daily cases") +
-  ggtitle(f) -> out
-print(out)
+  read.csv(fname) %>%
+    filter(variable %in% c("daily_cases")) %>%
+    filter(sim_type == "status_quo") %>%
+    mutate(date = as.Date(date)) %>%
+    filter(date <= (Sys.Date() + 7*4)) %>%
+    ggplot(aes(x = date, y = median_value)) +
+    geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
+    geom_line() +
+    geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+    ylab("daily cases") +
+    ggtitle(f) -> out
+  print(out)
 
-dat <- read.csv(fname) %>%
-  filter(variable %in% c("actual_daily_deaths")) %>%
-  mutate(date = as.Date(date))
-read.csv(fname) %>%
-  filter(variable %in% c("daily_deaths")) %>%
-  filter(sim_type == "status_quo") %>%
-  mutate(date = as.Date(date)) %>%
-  filter(date <= (Sys.Date() + 7*4)) %>%
-  ggplot(aes(x = date, y = median_value)) +
-  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
-  geom_line() +
-  ylab("daily deaths") +
-  geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
-  ggtitle(f) -> out3
-print(out3)
-
-read.csv(fname) %>%
-  filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
-  filter(sim_type == "status_quo") %>%
-  mutate(date = as.Date(date)) %>%
-  ggplot(aes(x = date, y = mean_value)) +
-  geom_point(aes(color = variable)) +
-  ggtitle(f) -> out2
-print(out2)
+  dat <- read.csv(fname) %>%
+    filter(variable %in% c("actual_daily_deaths")) %>%
+    mutate(date = as.Date(date))
+  read.csv(fname) %>%
+    filter(variable %in% c("daily_deaths")) %>%
+    filter(sim_type == "status_quo") %>%
+    mutate(date = as.Date(date)) %>%
+    filter(date <= (Sys.Date() + 7*4)) %>%
+    ggplot(aes(x = date, y = median_value)) +
+    geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
+    geom_line() +
+    ylab("daily deaths") +
+    geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+    ggtitle(f) -> out3
+  print(out3)
+  
+  read.csv(fname) %>%
+    filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
+    filter(sim_type == "status_quo") %>%
+    mutate(date = as.Date(date)) %>%
+    ggplot(aes(x = date, y = mean_value)) +
+    geom_point(aes(color = variable)) +
+    ggtitle(f) -> out2
+  print(out2)
 }
 
 
