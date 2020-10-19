@@ -1,8 +1,12 @@
 ---
-title: "Plots over time for single states"
+title: "Plots over time for single state"
 author: "Andrew Tredennick, Eric Marty"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
+params:
+  statename: "enter_state_name"
+  start: "2020-09-01"
+  end: "2020-10-14"
 ---
 
 ```{r setup, include=FALSE}
@@ -12,11 +16,14 @@ library(tidyverse)
 library(here)
 library(ggpubr) # for multi plot figures
 
-statename <- "Indiana"
-dates <- seq.Date(as.Date("2020-09-01"),as.Date("2020-10-14"),1)
+# statename <- "Indiana"
+# dates <- seq.Date(as.Date("2020-09-01"),as.Date("2020-10-14"),1)
+statename <- params$statename
+dates <- seq.Date(as.Date(params$start),as.Date(params$end),1)
 ```
 
 # `r statename`
+From `r range(dates)[1]` to `r range(dates)[2]`
 
 ```{r plots, echo=FALSE, warning=FALSE, fig.height = 3, out.width = "100%"}
 for(i in 1:length(dates)) {
@@ -40,7 +47,7 @@ for(i in 1:length(dates)) {
       geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
       geom_line() +
       geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
-      ylab("daily cases") -> g_cases
+      ylab("daily cases") + xlab("") -> g_cases
 
     dat <- data %>% 
       dplyr::filter(variable %in% c("actual_daily_deaths")) %>%
@@ -53,7 +60,7 @@ for(i in 1:length(dates)) {
       ggplot(aes(x = date, y = median_value)) +
       geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2) +
       geom_line() +
-      ylab("daily deaths") +
+      ylab("daily deaths") + xlab("") +
       geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") -> g_deaths
 
     data %>%
@@ -62,14 +69,30 @@ for(i in 1:length(dates)) {
       mutate(date = as.Date(date)) %>%
       ggplot(aes(x = date, y = mean_value)) +
       geom_point(aes(color = variable)) +
+      xlab("") +
       theme(legend.position = "none") -> g_trends
 
-    figure <- ggarrange(g_cases, g_deaths, g_trends, 
+    figure <- ggarrange(g_cases, g_deaths, g_trends, g_trends, 
                         labels = paste("Fit date:", date), ncol=2, nrow = 2, align="hv")
     print(figure)
+    
+    parsf <- list.files(p, pattern=paste0(statename,".*",".rds"))
+    pars <- readRDS(paste0(p,"/",parsf))
+    # cat(paste(names(pars), pars, sep = ": ", collapse = "\n"))
+    display <- function(pars, parnames) {
+      x <- pars[parnames]
+      cat(paste(names(x), x, sep = ": ", collapse = "\n"))
+    }
+    display(pars, parnames=c('min_frac_dead',
+                             'max_frac_dead',
+                             'log_half_dead',
+                             'log_theta_cases',
+                             'log_theta_deaths',
+                             'log_sigma_dw',
+                             'E1_0','Ia1_0','Isu1_0','Isd1_0'))
+
   }
 }
-
 
 ```
 
