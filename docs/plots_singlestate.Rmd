@@ -90,7 +90,10 @@ for(i in 1:length(dates)) {
                              'log_theta_deaths',
                              'log_sigma_dw',
                              'E1_0','Ia1_0','Isu1_0','Isd1_0'))
-
+    cat("\n")
+    cat(paste("init R0:", statedf %>% filter(state_full == statename) %>% pull(initR0),"\n"))
+    cat(paste("Warm start:", statedf %>% filter(state_full == statename) %>% pull(init),"\n"))
+    cat(paste("MIF runs:", statedf %>% filter(state_full == statename) %>% pull(mifruns),"\n"))
   }
 }
 
