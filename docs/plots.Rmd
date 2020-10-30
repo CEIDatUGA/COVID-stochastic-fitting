@@ -5,22 +5,28 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-```{r setup, include=TRUE}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(here)
+library(ggpubr) # for multi plot figures
 
-path <- "../output/current/"
+path <- here::here("output/current/")
 
 allfiles <- list.files(path, ".csv")
+statedf <- readRDS(paste0(path,"statedf.rds"))
+```
 
-for(f in allfiles) {
+```{r plots, echo=FALSE, warning=FALSE, fig.height = 3, out.width = "100%"}
+for(i in 1:length(allfiles)) {
+  f <- allfiles[i]
+  statename <- gsub("\\.csv","",f) 
   fname <- paste0(path,f)
+  
   dat <- read.csv(fname) %>%
     filter(variable %in% c("actual_daily_cases")) %>%
     mutate(date = as.Date(date))
-
   read.csv(fname) %>%
     filter(variable %in% c("daily_cases")) %>%
     filter(sim_type == "status_quo") %>%
@@ -31,8 +37,7 @@ for(f in allfiles) {
     geom_line() +
     geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
     ylab("daily cases") +
-    ggtitle(f) -> out
-  print(out)
+    ggtitle(statename) -> g_cases
 
   dat <- read.csv(fname) %>%
     filter(variable %in% c("actual_daily_deaths")) %>%
@@ -47,17 +52,41 @@ for(f in allfiles) {
     geom_line() +
     ylab("daily deaths") +
     geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
-    ggtitle(f) -> out3
-  print(out3)
-  
+    ggtitle("") -> g_deaths
+
   read.csv(fname) %>%
     filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
     filter(sim_type == "status_quo") %>%
     mutate(date = as.Date(date)) %>%
     ggplot(aes(x = date, y = mean_value)) +
     geom_point(aes(color = variable)) +
-    ggtitle(f) -> out2
-  print(out2)
+    ggtitle("") +
+    xlab("") +
+    theme(legend.position = "none") -> g_trends
+  
+  figure <- ggarrange(g_cases, g_deaths, g_trends, g_trends, ncol=2, nrow = 2, align="hv")
+  cat(paste("--------------------------\n",statename,"\n"))
+  print(figure)
+  
+  parsf <- list.files(path, pattern=paste0("^",statename,".*","natural.rds"))
+  parsdf <- readRDS(paste0(path,parsf))
+  pars <- parsdf[,"X1"]
+  names(pars) <- row.names(parsdf)
+  display <- function(pars, parnames) {
+    x <- pars[parnames]
+    cat(paste(names(x), x, sep = ": ", collapse = "\n"))
+  }
+  display(pars, parnames=c('min_frac_dead',
+                           'max_frac_dead',
+                           'log_half_dead',
+                           'theta_cases',
+                           'theta_deaths',
+                           'sigma_dw',
+                           'E1_0','Ia1_0','Isu1_0','Isd1_0'))
+  cat("\n")
+  cat(paste("init R0:", statedf %>% filter(state_full == statename) %>% pull(initR0),"\n"))
+  cat(paste("Warm start:", statedf %>% filter(state_full == statename) %>% pull(init),"\n"))
+  cat(paste("MIF runs:", statedf %>% filter(state_full == statename) %>% pull(mifruns),"\n"))
 }
 
 
