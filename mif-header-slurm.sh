@@ -17,4 +17,5 @@ module load R/3.6.2-foss-2018a-X11-20180131-GACRC
 rm -rf header
 mkdir header
 
+R CMD BATCH ./code/00-CREATE-HEADER.R
 

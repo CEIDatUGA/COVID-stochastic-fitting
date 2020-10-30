@@ -1,3 +1,9 @@
+#!/bin/bash
+#SBATCH --job-name=covstates      # Job name
+#SBATCH --partition=covid19_q     # Partition (queue) name
+#SBATCH --ntasks=1                # Run a single task	
+#SBATCH --cpus-per-task=32         # Number of CPU cores per task
+
 
 
 #PBS -S /bin/bash
