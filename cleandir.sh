@@ -5,3 +5,5 @@
 rm covstates*
 rm -r *.sapelo2
 rm *.Rout
+rm *.err
+rm *.out
