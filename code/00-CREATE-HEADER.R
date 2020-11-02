@@ -94,7 +94,6 @@ statevec <- c(statevec[rmids], statevec[-rmids])
 state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
   # warm start spec for each state
-  sdf
   dplyr::mutate(init = dplyr::case_when(
     # state_full %in% c("New York") ~ "fresh", # fit from scratch
     # state_full == "Indiana" ~ "2020-09-14", # date of last good fit for warm start
