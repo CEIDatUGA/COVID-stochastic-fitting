@@ -4,7 +4,7 @@
 #SBATCH --ntasks=1                    # Run on a single CPU
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
-#SBATCH --mem=3500M                  # Job memory request
+#SBATCH --mem-per-CPU=3500M          # Job memory request
 #SBATCH --time=1-12:00:00            # Time limit days-hrs:min:sec
 #SBATCH --array=1-50
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
