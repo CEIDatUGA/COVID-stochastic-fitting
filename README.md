@@ -132,17 +132,24 @@ ls
 
 You should see several multi-digit numbers, and several files `slurm-*_*.out`
 
-Wait at least 24 hours. You may log off. Slumr will email the user specified in the `sub_slurm_2.sh` once the job ends or fails.
+Wait at least 24 hours. You may log off. Slumr will email the user specified in the `sub_slurm_2.sh` once the job ends or fails.  
+**Note: the gacrc email notification system is not working as of Nov 10, 2020.**
 
 ## Log back in and transfer files :
 
-Make sure job is complete:
+Make sure job is complete.  
+
+```
+sacct-gacrc
+```
+...to see a list of completed and running jobs, or
 
 ```
 squeue --me
 ```
+...to see a list of running jobs only.
 
-If nothing appears in the list of current jobs:
+If all jobs have run successfully:
 
 ```
 cd ~/COVID-stochastic-fitting  
