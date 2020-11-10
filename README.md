@@ -156,7 +156,7 @@ cd ~/COVID-stochastic-fitting
 git pull  
 cd ~
 cp -r ~/cov/output/current/ ~/COVID-stochastic-fitting/output/
-cd ~/cov/current
+cd ~/cov/output
 ls
 ```
 
@@ -164,7 +164,7 @@ Note the latest directory name in the format `YYYY-MM-DD`, e.g. `2020-10-14`.
 Copy that directory to the repo:
 
 ```
-cp -r cov/output/2020-10-14/ COVID-stochastic-fitting/output/
+cp -r ~/cov/output/2020-10-14/ ~/COVID-stochastic-fitting/output/
 ```
 
 ## Push updates
