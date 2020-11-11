@@ -4,7 +4,8 @@
 # Enter states and range of dates -------------------------------------------------------------
 
 # states <- c("Indiana", "Maryland", "New Jersey", "Ohio", "Washington")
-states <- c("Indiana", "Massachusetts", "Michigan", "New Jersey", "Ohio", "Washington")
+# states <- c("Indiana", "Massachusetts", "Michigan", "New Jersey", "Ohio", "Washington")
+states <- c("Indiana", "Massachusetts", "New Jersey", "Ohio", "Washington")
 startdate <- "2020-09-01" # Y-m-d
 enddate <- format(Sys.time(), '%Y-%m-%d')
 
