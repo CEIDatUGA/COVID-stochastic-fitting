@@ -114,7 +114,7 @@ and files `00-CREATE-HEADER.Rout`, `covstateshdr.*.out`, `covstateshdr.*.err`.
 
 ```
 cd ~/cov  
-sbatch sub_slurm_1.sh
+sbatch sub_slurm_2.sh
 squeue --me
 ```
 
