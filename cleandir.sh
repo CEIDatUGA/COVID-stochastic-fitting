@@ -7,3 +7,4 @@ rm -r *.sapelo2
 rm *.Rout
 rm *.err
 rm *.out
+rm -r [0-9]*
