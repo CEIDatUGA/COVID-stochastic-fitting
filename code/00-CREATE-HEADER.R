@@ -95,12 +95,12 @@ state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
   # warm start spec for each state
   dplyr::mutate(init = dplyr::case_when(
-    # state_full %in% c("New York") ~ "fresh", # fit from scratch
+    state_full %in% c("New York") ~ "fresh", # fit from scratch
     # state_full == "Indiana" ~ "2020-09-14", # date of last good fit for warm start
     state_full == "Indiana" ~ "fresh", # date of last good fit for warm start
     state_full == "Maryland" ~ "last", # date of last good fit for warm start
     state_full == "Massachusetts" ~ "fresh", # date of last good fit for warm start
-    state_full == "New Jersey" ~ "2020-10-06", # date of last good fit for warm start
+    state_full == "New Jersey" ~ "fresh", # date of last good fit for warm start
     state_full == "Ohio" ~ "fresh", # date of last good fit for warm start
     state_full == "Washington" ~ "fresh", # date of last good fit for warm start
     TRUE ~ "last" # default to last fit for warm start
@@ -110,7 +110,7 @@ statedf <- state_pops %>%
   dplyr::mutate(initR0 = dplyr::case_when(
     state_full %in% c("New York") ~ 10, 
     state_full %in% c("Illinois") ~ 8,
-    state_full %in% c("Indiana") ~ 4, 
+    state_full %in% c("Indiana") ~ 6, 
     state_full %in% c("Maryland") ~ 8,
     state_full %in% c("Massachusetts") ~ 6,
     state_full %in% c("New Jersey") ~ 6,
