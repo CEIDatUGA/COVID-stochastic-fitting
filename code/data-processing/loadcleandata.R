@@ -1,4 +1,4 @@
-loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
+loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim = TRUE)
 {
 
   #  ----------------------------------------------------------
@@ -185,6 +185,24 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE)
     group_by(location) %>%
     mutate(time = 1:n()) %>%  #careful here: 1 must align with first observation for fitting
     ungroup()
+  
+  # Trim leading zeros
+  if(trim) {
+    inf_leading_zeros <- function(x) {
+      x[ 1 : min( which( x != 0 )) -1 ] <- -Inf
+      x
+    }
+    
+    pomp_data <- pomp_data %>%
+      group_by(location) %>%
+      arrange(date) %>%
+      mutate(cases = inf_leading_zeros(cases)) %>% # set leading zeros to -Inf
+      mutate(deaths = inf_leading_zeros(deaths)) %>% # set leading zeros to -Inf
+      ungroup() %>% 
+      dplyr::filter(cases != -Inf | deaths != -Inf) %>% # trim rows to first reported case or death
+      mutate(cases = replace(cases, is.infinite(cases), 0),
+             deaths = replace(deaths, is.infinite(deaths), 0)) # reset -Inf values to 0
+  }
   
   # Remove bad WY data point
   pomp_data <- pomp_data %>%

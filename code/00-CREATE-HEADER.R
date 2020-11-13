@@ -128,7 +128,8 @@ statedf <- state_pops %>%
 all_states_pomp_data <- loadcleandata(datasource = datasource, 
                                       locations = statevec, 
                                       timestamp = timestamp,
-                                      smooth = FALSE)
+                                      smooth = FALSE,
+                                      trim = TRUE)  # trim leading zeros (trim to first reported case or death for each state)
 
 all_states_pomp_covar <- loadcleanucmobility(
   location = statevec, 
