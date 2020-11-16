@@ -26,13 +26,13 @@ For each state, we use our model to forecast reported cases, deaths, and total n
 Changing human mobility (as results from practicing social distancing) has the effect of changing transmission rates. Transmission tends to decrease as mobility decreases. Many other factors (environmental and behavioral) also affect transmission rate, but as it is difficult to collect data on these factors, we do not attempt to model them directly. Instead, we capture the trend in transmission rate with human mobility subtracted (i.e. the "latent trend"), and use the latent trend in combination with mobility-based scenarios to forecast outcomes. We also make assumptions about testing and case reporting improving over time and build those into our model.
 
 ```{r overview_data}
-fig_outpath <- here("output/figures/")
-current_path <- here("output/current/")
+fig_outpath <- here::here("output/figures/")
+current_path <- here::here("output/current/")
 
-simfiles <- list.files(path = here('output/current'), ".csv")
-paramfiles <- list.files(path = here('output/current'), "params-natural.rds")
-paramfiles_transformed <- list.files(path = here('output/current'), "parameter-estimates")
-state_metadata <- readRDS(here('data/us_popsize.rds'))
+simfiles <- list.files(path = here::here('output/current'), ".csv")
+paramfiles <- list.files(path = here::here('output/current'), "params-natural.rds")
+paramfiles_transformed <- list.files(path = here::here('output/current'), "parameter-estimates")
+state_metadata <- readRDS(here::here('data/us_popsize.rds'))
 
 # State metadata, max ll,  and param sets ----------------------------------------------------------------------------
 
@@ -52,7 +52,7 @@ for(i in 2:length(paramfiles)) {
 
 state_metadata <- full_join(state_metadata,out_params) 
 
-all_maes <- readRDS(paste0(here("output/"),"us_all_maes.rds"))
+all_maes <- readRDS(paste0(here::here("output/"),"us_all_maes.rds"))
 cases_maes <- all_maes %>% filter(variable == "daily_cases") %>% 
   rename(mae_cases = mae) %>% select(-variable)
 deaths_maes <- all_maes %>% filter(variable == "daily_deaths") %>% 
@@ -117,9 +117,28 @@ scen_labs <- c("1. Increase social distancing",
 # plotly::plot_ly(type = "bar", x = state_metadata$state_full, y=state_metadata$mae_cases)
 ```
 
-### States with forecasted peak outbreak size > `r dailycases.threshold` cases per 100k per day
+```{r goodfits}
+# states with acceptable fits
+goodfits <- state_metadata[state_metadata$mae_cases < dailycases.mae.theshold 
+                           & !is.na(state_metadata$mae_cases),
+                           ]$state_full
+# goodfits <- goodfits[!goodfits %in% 'Kansas']
+notgoodfits <- state_metadata[!state_metadata$state_full %in% goodfits,]$state_full
+ntopstates <- 9
+```
 
-The plot below shows the median forecast under each of three scenarios for several states. The states shown are all forecasted to exceed `r dailycases.threshold` cases per 100,000 people on a daily basis at some time in the next six weeks under the status quo scenario (i.e. "Maintaining social distancing," green lines). (States with poor model fits to data may be omitted.) In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. The dotted grey line indicates a threshold for designation as a "hot zone" for new cases, defined here as `r dailycases.hotzone` cases per 100,000 people per day. Model updated `r format(Sys.time(), '%B %d, %Y')`.
+<!-- ### States with forecasted peak outbreak size > `r dailycases.threshold` cases per 100k per day -->
+
+<!-- The plot below shows the median forecast under each of three scenarios for several states. The states shown are all forecasted to exceed `r dailycases.threshold` cases per 100,000 people on a daily basis at some time in the next six weeks under the status quo scenario (i.e. "Maintaining social distancing," green lines). (States with poor model fits to data may be omitted.) In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases. The dotted grey line indicates a threshold for designation as a "hot zone" for new cases, defined here as `r dailycases.hotzone` cases per 100,000 people per day. Model updated `r format(Sys.time(), '%B %d, %Y')`. -->
+
+
+### Top states by peak cases per 100k per day 
+
+The plot below shows the median forecasted daily case count per 100,000 people under each of three scenarios for several states. The states shown are those with the highest forecasted peak number of daily cases per 100,000 people under the status quo scenario (i.e. "Maintaining social distancing," green lines). 
+
+States ommited due to poor model fits to data: `r notgoodfits`.
+
+In all cases, a return to normal mobility would worsen the epidemic (red lines), whereas increasing social distancing (blue lines) would reduce the number of cases.The dotted grey line indicates a threshold for designation as a "hot zone" for new cases, defined here as `r dailycases.hotzone` cases per 100,000 people per day. Model updated `r format(Sys.time(), '%B %d, %Y')`.
 
 ```{r plot_overview, height = 7}
 
@@ -147,19 +166,29 @@ The plot below shows the median forecast under each of three scenarios for sever
 
 # pot daily cases, top states, for landing page -----------
 
-# states with acceptable fits
-goodfits <- state_metadata[state_metadata$mae_cases < dailycases.mae.theshold 
-                           & !is.na(state_metadata$mae_cases),
-                           ]$state_full
-goodfits <- goodfits[!goodfits %in% 'Kansas']
 
 # states with max daily cases / 100 k > dailycases.threshold in status quo scenario
+# topstates <- dailycases[dailycases$date > foredate 
+#                         & dailycases$sim_type == 'status_quo'
+#                         & dailycases$location %in% goodfits
+#                         & dailycases$median_value_per100k > dailycases.threshold,] %>% 
+#   aggregate(median_value_per100k ~ location, data = ., max) %>% 
+#   arrange(desc(median_value_per100k)) %>%
+#   pull(location)
+
+# top states (with good fits) by max daily cases / 100 k in status quo scenario
 topstates <- dailycases[dailycases$date > foredate 
                         & dailycases$sim_type == 'status_quo'
-                        & dailycases$location %in% goodfits
-                        & dailycases$median_value_per100k > dailycases.threshold,]$location %>% unique
+                        & dailycases$location %in% goodfits,] %>% 
+  aggregate(median_value_per100k ~ location, data = ., max) %>% 
+  arrange(desc(median_value_per100k)) %>%
+  pull(location)
+topstates <- topstates[1:ntopstates]
+
+# plot
 dailycases_subset <- dailycases %>%
-  filter(location %in% topstates)
+  filter(location %in% topstates) %>% 
+  mutate(location = factor(location, levels = topstates))
 dailycases.maxy <- dailycases_subset %>% 
   pull(median_value_per100k) %>% max() %>% 
   plyr::round_any(accuracy = 10, f = ceiling)
@@ -216,7 +245,7 @@ p_dailycases.topstates
 
 # Landing Page figure
 # select a few states
-selectstates <- c('Georgia', 'North Dakota', 'Wisconsin')
+selectstates <- c('Georgia', topstates[1:2])
 dailycases_subset <- dailycases %>%
   filter(location %in% selectstates)
 dailycases.maxy <- dailycases_subset %>% 
@@ -249,6 +278,6 @@ g_dailycases.landingpage <- dailycases_subset %>%
 p_dailycases.landingpage <- g_dailycases.landingpage %>% 
   plotly::ggplotly(tooltip=c("x", "text"))
 
-fig_outpath <- here("output/figures/")
+fig_outpath <- here::here("output/figures/")
 p_dailycases.landingpage %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "landing_page_fig.html"))
 ```
