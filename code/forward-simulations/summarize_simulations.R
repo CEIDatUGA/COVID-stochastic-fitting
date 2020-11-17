@@ -72,7 +72,7 @@ summarize_simulations <- function(sims_out, pomp_data, pomp_covar, location, mle
   pop_size <- sims %>%
     filter(Date == min(Date)) %>%
     pull(S) %>%
-    unique()
+    max()
   mydiff <- function(x) {
     c(0, diff(x))
   }
