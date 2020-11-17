@@ -22,7 +22,7 @@ To better understand the potential range of epidemic outcomes in the U.S.A, we d
 
 #### Incident Case Data & Death Reports
 
-We fit the model to incident case and death reports for each state in the USA, as collated by <a href="covidtracking.com" target="_blank">The COVID Tracking Project</a>.
+We fit the model to incident case and death reports for each state in the USA, as collated by <a href="https://covidtracking.com" target="_blank">The COVID Tracking Project</a>.
 We show a subset of the state-level data here for Georgia, New York, Washington, and Wyoming.
 We did not smooth the reported data but we did exclude all negative case and death reports.
 
