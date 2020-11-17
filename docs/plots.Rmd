@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 
 library(tidyverse)
 library(here)
@@ -19,7 +19,7 @@ allparfiles <- list.files(path, "params-natural.rds")
 statedf <- readRDS(paste0(path,"statedf.rds"))
 ```
 
-```{r plots, echo=FALSE, warning=FALSE, fig.height = 6, out.width = "100%"}
+```{r plots, echo=FALSE, warning=FALSE, message = FALSE, fig.height = 9, out.width = "100%"}
 for(i in 1:length(allfiles)) {
   f <- allfiles[i]
   parf <- allparfiles[i]
@@ -71,16 +71,28 @@ for(i in 1:length(allfiles)) {
     theme(legend.position = "none") -> g_trends
 
   # death fraction
+  daterange <- read_csv(fname) %>% pull(date) %>% range() %>% as.Date()
+  date <- seq(daterange[1],daterange[2],1)
+  t <- seq_along(date)
   statepars <- readRDS(parfname)
   min_frac_dead <- statepars['min_frac_dead','X1'] # minimum death fraction
   max_frac_dead <- statepars['max_frac_dead','X1'] # maximum death fraction
   log_half_dead <- statepars['log_half_dead','X1'] # time to 1/2 difference between min and max
-  t <- 0:(2*log_half_dead)
-  death_fraction  <- min_frac_dead + (max_frac_dead - min_frac_dead) * (t / (t + log_half_dead))
-      
-  figure <- ggarrange(g_cases, g_deaths, g_trends, g_trends, ncol=2, nrow = 2, align="hv")
+  tibble(date = date, 
+         death_fraction = max_frac_dead - (max_frac_dead - min_frac_dead) * (t / (t + log_half_dead))) %>% 
+    ggplot(aes(x = date, y = death_fraction)) +
+    geom_line() +
+    geom_hline(yintercept=min_frac_dead, linetype="dashed") +
+    geom_hline(yintercept=max_frac_dead, linetype="dashed") +
+    geom_hline(yintercept=(max_frac_dead+min_frac_dead)/2,linetype="dashed") + 
+    geom_vline(xintercept=daterange[1]+log_half_dead, linetype="dashed") +
+    ggtitle("") +
+    xlab("") +
+    ylim(0,1) +
+    theme(legend.position = "none") -> g_deathfrac
+
+  figure <- ggarrange(g_cases, g_deaths, g_trends, g_deathfrac, ncol=1, nrow = 4, align="hv")
   cat(paste("--------------------------\n",statename,"\n"))
-  print(figure)
   
   parsf <- list.files(path, pattern=paste0("^",statename,".*","natural.rds"))
   parsdf <- readRDS(paste0(path,parsf))
@@ -101,6 +113,9 @@ for(i in 1:length(allfiles)) {
   cat(paste("init R0:", statedf %>% filter(state_full == statename) %>% pull(initR0),"\n"))
   cat(paste("Warm start:", statedf %>% filter(state_full == statename) %>% pull(init),"\n"))
   cat(paste("MIF runs:", statedf %>% filter(state_full == statename) %>% pull(mifruns),"\n"))
+  
+  print(figure)
+
 }
 
 
