@@ -18,7 +18,7 @@ allfiles <- list.files(path, ".csv")
 statedf <- readRDS(paste0(path,"statedf.rds"))
 ```
 
-```{r plots, echo=FALSE, warning=FALSE, fig.height = 3, out.width = "100%"}
+```{r plots, echo=FALSE, warning=FALSE, fig.height = 6, out.width = "100%"}
 for(i in 1:length(allfiles)) {
   f <- allfiles[i]
   statename <- gsub("\\.csv","",f) 
