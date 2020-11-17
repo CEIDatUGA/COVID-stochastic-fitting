@@ -89,12 +89,13 @@ makepompmodel <- function(par_var_list, pomp_data, pomp_covar, n_knots)
     // equation for this is 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac  
     detect_frac = 1/(1+exp(max_detect_par)) * pow(t, exp(log_detect_inc_rate))  / ( pow(exp(log_half_detect),exp(log_detect_inc_rate)) + pow(t,exp(log_detect_inc_rate))) + exp(base_detect_frac);
     
-     // Time-dependent fraction of deaths
-     // starts at some max rate, moves to some min rate 
-     // max, min and time at which half-max is reached are fitted. exponent dictating rate of transition is fixed to 1 (could be changed to make it steeper).
-    //fuction is dmin + (dmax-dmin)*(t/(t+halfdead))
-    //dmin and dmax are fractions, thus are transformed accordingly. halfdead is positive, also transformed.
-    frac_dead = 1/(1+exp(min_frac_dead)) + (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (1 - t/(t+exp(log_half_dead)) );
+    // Time-dependent fraction of deaths
+    // starts at some max rate, moves to some min rate 
+    // max, min and time at which half-max is reached are fitted. exponent dictating rate of transition is fixed to 1 (could be changed to make it steeper).
+    // function is dmax - (dmax-dmin)*(t/(t+halfdead))
+    // dmin and dmax are fractions, thus are transformed accordingly. halfdead is positive, also transformed.
+    // frac_dead = 1/(1+exp(min_frac_dead)) + (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (1 - t/(t+exp(log_half_dead)) );
+       frac_dead = 1/(1+exp(max_frac_dead)) - (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (t/(t+exp(log_half_dead)) );
     
     // -----------------------------------
     // Compute the transition rates

@@ -1,6 +1,6 @@
 ---
 title: "Plots"
-author: "Andrew Tredennick"
+author: "Andrew Tredennick, Eric Marty"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
@@ -15,15 +15,19 @@ library(ggpubr) # for multi plot figures
 path <- here::here("output/current/")
 
 allfiles <- list.files(path, ".csv")
+allparfiles <- list.files(path, "params-natural.rds")
 statedf <- readRDS(paste0(path,"statedf.rds"))
 ```
 
 ```{r plots, echo=FALSE, warning=FALSE, fig.height = 6, out.width = "100%"}
 for(i in 1:length(allfiles)) {
   f <- allfiles[i]
-  statename <- gsub("\\.csv","",f) 
+  parf <- allparfiles[i]
   fname <- paste0(path,f)
+  parfname <- paste0(path,parf)
+  statename <- gsub("\\.csv","",f)
   
+  # cases
   dat <- read.csv(fname) %>%
     filter(variable %in% c("actual_daily_cases")) %>%
     mutate(date = as.Date(date))
@@ -39,6 +43,7 @@ for(i in 1:length(allfiles)) {
     ylab("daily cases") +
     ggtitle(statename) -> g_cases
 
+  # deaths
   dat <- read.csv(fname) %>%
     filter(variable %in% c("actual_daily_deaths")) %>%
     mutate(date = as.Date(date))
@@ -54,6 +59,7 @@ for(i in 1:length(allfiles)) {
     geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
     ggtitle("") -> g_deaths
 
+  # relative transmission, mobility, latent trend
   read.csv(fname) %>%
     filter(variable %in% c("combined_trend", "latent_trend", "mobility_trend")) %>%
     filter(sim_type == "status_quo") %>%
@@ -63,7 +69,15 @@ for(i in 1:length(allfiles)) {
     ggtitle("") +
     xlab("") +
     theme(legend.position = "none") -> g_trends
-  
+
+  # death fraction
+  statepars <- readRDS(parfname)
+  min_frac_dead <- statepars['min_frac_dead','X1'] # minimum death fraction
+  max_frac_dead <- statepars['max_frac_dead','X1'] # maximum death fraction
+  log_half_dead <- statepars['log_half_dead','X1'] # time to 1/2 difference between min and max
+  t <- 0:(2*log_half_dead)
+  death_fraction  <- min_frac_dead + (max_frac_dead - min_frac_dead) * (t / (t + log_half_dead))
+      
   figure <- ggarrange(g_cases, g_deaths, g_trends, g_trends, ncol=2, nrow = 2, align="hv")
   cat(paste("--------------------------\n",statename,"\n"))
   print(figure)
