@@ -16,6 +16,10 @@ module load R/3.6.2-foss-2019b
 
 rm -rf header
 mkdir header
+rm -rf output
+mkdir output
+
+cp -r ../COVID-stochastic-fitting/output/current output/
 
 R CMD BATCH ./code/00-CREATE-HEADER.R
 
