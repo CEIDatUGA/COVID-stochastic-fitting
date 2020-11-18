@@ -1,0 +1,149 @@
+---
+title: "Death Fraction"
+author: "Eric Marty"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r echo=TRUE}
+library(tidyverse)
+library(here)
+library(ggpubr) # for multi plot figures
+
+# Apply 7-day moving average to the data
+  ma <- function(x) {
+    window <- 7
+    n <- c(seq.int(window), rep(window, length(x)-window))
+    xm <- ceiling(data.table::frollmean(x, n, adaptive=TRUE, na.rm = T))
+    xm[is.nan(xm)] <- NA
+    return(xm)
+  }
+  
+path <- here::here("output/current/")
+
+allfiles <- list.files(path, ".csv")
+allparfiles <- list.files(path, "params-natural.rds")
+statedf <- readRDS(paste0(path,"statedf.rds"))
+
+#################################
+# pull data from Covidtracking and process
+#################################
+us_popsize <- readRDS(here::here("data","us_popsize.rds")) %>% rename(state_abr = state, state = state_full)
+
+us_ct_data <- read_csv("https://covidtracking.com/api/v1/states/daily.csv")
+us_ct_clean <- us_ct_data %>% dplyr::select(c("date","state","positive","negative","total","hospitalized","death")) %>%
+  mutate(date = as.Date(as.character(date),format="%Y%m%d")) %>% 
+  group_by(state) %>%
+  arrange(state, date) %>%
+  group_by(state) %>%
+  mutate(Daily_Test_Positive = c(0,diff(positive))) %>% 
+  mutate(Daily_Test_Negative = c(0,diff(negative))) %>% 
+  mutate(Daily_Test_All = c(0,diff(total))) %>% 
+  mutate(Daily_Hospitalized = c(0,diff(hospitalized))) %>% 
+  mutate(Daily_Deaths = c(NA,diff(death))) %>% rename(state_abr = state) %>%
+  merge(us_popsize) %>%
+  rename(Date = date, Location = state, Population_Size = total_pop, Total_Deaths = death, 
+         Total_Cases = positive, Total_Hospitalized = hospitalized, 
+         Total_Test_Negative = negative, Total_Test_Positive = positive, Total_Test_All = total) %>%
+  mutate(Daily_Cases = Daily_Test_Positive, Total_Cases = Total_Test_Positive) %>%
+  select(-c(state_abr,Total_Test_Negative,Daily_Test_Negative))
+```
+
+# Estimate Death Fraction
+
+```{r}
+for(i in 1:length(allfiles)) {
+  f <- allfiles[i]
+  parf <- allparfiles[i]
+  fname <- paste0(path,f)
+  parfname <- paste0(path,parf)
+  statename <- gsub("\\.csv","",f)
+  
+  # death fraction
+  daterange <- read_csv(fname) %>% pull(date) %>% range() %>% as.Date()
+  dates <- seq(daterange[1],daterange[2],1)
+  t <- seq_along(dates)
+  statepars <- readRDS(parfname)
+  frac_hosp <- statepars['frac_hosp','X1'] # fraction hospitalized
+  # CFR <- ma(dat.deaths) / ma(dat.cases)
+  # death_fraction <- CFR * frac_hosp
+  min_frac_dead <- statepars['min_frac_dead','X1'] # minimum death fraction
+  max_frac_dead <- statepars['max_frac_dead','X1'] # maximum death fraction
+  log_half_dead <- statepars['log_half_dead','X1'] # time to 1/2 difference between min and max
+  
+  fatality <- read.csv(fname) %>%
+    select(date,variable,mean_value) %>% 
+    mutate(date = as.Date(date)) %>% 
+    filter(variable %in% c("actual_daily_deaths","actual_daily_cases")) %>% 
+    pivot_wider(names_from = variable, values_from = mean_value)
+  fatality <- fatality %>% 
+    add_row(date = dates[!(dates %in% fatality$date)]) %>% 
+    mutate(crudeCFR = actual_daily_deaths/actual_daily_cases,
+           maCFR = ma(actual_daily_deaths)/ma(actual_daily_cases),
+           frac_hosp = frac_hosp,
+           maHFR = maCFR * 1/frac_hosp,
+           estHFR = max_frac_dead - (max_frac_dead - min_frac_dead) * (t / (t + log_half_dead)))
+  
+  fatality %>%  
+    ggplot(aes(x = date, y = maHFR)) +
+    geom_line(color = "blue") +
+    geom_line(aes(x = date, y = maCFR), color = "red") +
+    ylab("Hosp. FR from data (blue), CFR from data (red)") +
+    geom_line(aes(x = date, y = estHFR)) +
+    geom_hline(yintercept=min_frac_dead, linetype="dashed") +
+    geom_hline(yintercept=max_frac_dead, linetype="dashed") +
+    geom_hline(yintercept=(max_frac_dead+min_frac_dead)/2,linetype="dashed") + 
+    geom_vline(xintercept=daterange[1]+log_half_dead, linetype="dashed") +
+    ggtitle(statename) +
+    xlab("") +
+    ylim(0,1) +
+    theme(legend.position = "none") -> g_deathfrac
+  
+  print(g_deathfrac)
+
+}
+```
+
+<!-- # (Deaths / Cases) * hosp fraction -->
+
+<!-- ```{r} -->
+<!-- # Crude CFR : ma(deaths)/ma(cases) -->
+<!-- s <- us_ct_clean$Location %>% unique() -->
+<!-- for(i in 1:length(s)) { -->
+<!--   dat <- us_ct_clean %>% -->
+<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Cases)) %>%  -->
+<!--     filter(Location == s[i]) -->
+<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
+<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Cases)")) -->
+<!-- } -->
+<!-- ``` -->
+
+
+<!-- # Deaths / Cases -->
+
+<!-- ```{r} -->
+<!-- # Crude CFR : ma(deaths)/ma(cases) -->
+<!-- s <- us_ct_clean$Location %>% unique() -->
+<!-- for(i in 1:length(s)) { -->
+<!--   dat <- us_ct_clean %>% -->
+<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Cases)) %>%  -->
+<!--     filter(Location == s[i]) -->
+<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
+<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Cases)")) -->
+<!-- } -->
+<!-- ``` -->
+
+<!-- # Deaths / Hosps -->
+
+<!-- ```{r} -->
+<!-- # Crude CFR : ma(deaths)/ma(cases) -->
+<!-- s <- us_ct_clean$Location %>% unique() -->
+<!-- for(i in 1:length(s)) { -->
+<!--   dat <- us_ct_clean %>% -->
+<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Hospitalized)) %>%  -->
+<!--     filter(Location == s[i]) -->
+<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
+<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Hospitalized)")) -->
+<!-- } -->
+<!-- ``` -->
+
