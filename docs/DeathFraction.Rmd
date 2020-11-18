@@ -5,7 +5,34 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
-```{r echo=TRUE}
+# Summary 
+
+Out model currently models the fraction of hospitalizations that result in death (HFR) as a sigmoid in the form af an inverted Hill function <https://en.wikipedia.org/wiki/Hill_equation_(biochemistry)> with Hill coefficient fixed at 1. HFR is represented by $m(t)$ in our model.
+
+$$
+m(t) = m_\text{max} - \bigg[(m_\text{max}-m_\text{min}) \frac{t^n}{t^n+(t_{\text{half}})^n}\bigg],
+$$
+where $n$ is the Hill Coefficient.
+
+With Hill coefficient $n = 1$, this equation gives a concave function that starts at $m_\text{max}$ and reaches the half-way point to $m_\text{min}$ at time $t_{\text{half}}$.
+
+To understand how well our model's current method of fitting the fraction of hospitalizations that result in death, we plot the sigmoid obtained by fitting the sigmoid parameters $m_\text{max}$, $m_\text{min}$, and $t_{\text{half}}$, against a calculation of HFR obtained from case and death data and another fit parameter, the fraction of cases that are hospitalized $h$ (`frac_hosp` in the code).
+
+$$
+\text{CFR} = \frac{\text{7 day moving average of daily death reports}}{\text{7 day moving average of daily case reports}}
+$$
+$$
+\text{HFR} = \text{CFR} \frac{1}{h}
+$$
+
+In the plots below, CFR is plotted in red, HFR calculated from data and $h$ are plotted in blue, and our estimated sigmoid $m(t)$ is plotted in black.
+
+Dotted lines show the estimated sigmoid parameters $m_\text{max}$, $m_\text{min}$, and $t_\text{half}$.
+
+See the disucssion section after the 50 state plots for a discussion of ways we can modify the sigmoid to obtain better fits. 
+
+# Code and plots for all 50 states
+```{r echo=TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
 library(here)
 library(ggpubr) # for multi plot figures
@@ -49,9 +76,7 @@ us_ct_clean <- us_ct_data %>% dplyr::select(c("date","state","positive","negativ
   select(-c(state_abr,Total_Test_Negative,Daily_Test_Negative))
 ```
 
-# Estimate Death Fraction
-
-```{r}
+```{r echo=TRUE, warning = FALSE, message = FALSE}
 for(i in 1:length(allfiles)) {
   f <- allfiles[i]
   parf <- allparfiles[i]
@@ -59,18 +84,19 @@ for(i in 1:length(allfiles)) {
   parfname <- paste0(path,parf)
   statename <- gsub("\\.csv","",f)
   
-  # death fraction
+  # dates
   daterange <- read_csv(fname) %>% pull(date) %>% range() %>% as.Date()
   dates <- seq(daterange[1],daterange[2],1)
   t <- seq_along(dates)
+  
+  # fit parameters
   statepars <- readRDS(parfname)
   frac_hosp <- statepars['frac_hosp','X1'] # fraction hospitalized
-  # CFR <- ma(dat.deaths) / ma(dat.cases)
-  # death_fraction <- CFR * frac_hosp
   min_frac_dead <- statepars['min_frac_dead','X1'] # minimum death fraction
   max_frac_dead <- statepars['max_frac_dead','X1'] # maximum death fraction
   log_half_dead <- statepars['log_half_dead','X1'] # time to 1/2 difference between min and max
   
+  # Case data, death data, CFF and HFR from data, estimated sigmoid HFR 
   fatality <- read.csv(fname) %>%
     select(date,variable,mean_value) %>% 
     mutate(date = as.Date(date)) %>% 
@@ -84,7 +110,8 @@ for(i in 1:length(allfiles)) {
            maHFR = maCFR * 1/frac_hosp,
            estHFR = max_frac_dead - (max_frac_dead - min_frac_dead) * (t / (t + log_half_dead)))
   
-  fatality %>%  
+  # plot
+  g_deathfrac <- fatality %>%  
     ggplot(aes(x = date, y = maHFR)) +
     geom_line(color = "blue") +
     geom_line(aes(x = date, y = maCFR), color = "red") +
@@ -97,53 +124,58 @@ for(i in 1:length(allfiles)) {
     ggtitle(statename) +
     xlab("") +
     ylim(0,1) +
-    theme(legend.position = "none") -> g_deathfrac
+    theme(legend.position = "none")
   
   print(g_deathfrac)
-
 }
 ```
 
-<!-- # (Deaths / Cases) * hosp fraction -->
+# Discussion
 
-<!-- ```{r} -->
-<!-- # Crude CFR : ma(deaths)/ma(cases) -->
-<!-- s <- us_ct_clean$Location %>% unique() -->
-<!-- for(i in 1:length(s)) { -->
-<!--   dat <- us_ct_clean %>% -->
-<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Cases)) %>%  -->
-<!--     filter(Location == s[i]) -->
-<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
-<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Cases)")) -->
-<!-- } -->
-<!-- ``` -->
+In order to fit the data, our function $m(t)$ with $n=1$ will generally have to start near one. 
+
+This appears inappropriate, as it results in biologically implausible value of $m$ near the beginning.
+
+There are three option for modifying the existing model to estimate a more plausible $m(t)$. 
+
+1. Fix the Hill coefficient to $n \approx 3$, which would give an inversted S function, and continue fitting $m_\text{max}$, $m_\text{min}$ and $t_\text{half}$;
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+n <- 3
+t <- 1:100
+t_half <- 50
+m_max <- .8
+m_min <- .1
+m <- m_max-(m_max-m_min)*(t^n/(t^n + t_half^n))
+plot(m,type='l', ylim=c(0,1))
+abline(h=m_max, lty="dashed")
+abline(h=m_min, lty="dashed")
+abline(h=(m_max+m_min)/2, lty="dashed")
+abline(v=t_half, lty="dashed")
+```
+
+2. Fit the Hill coefficient $n$ and $t_\text{half}$, and fix $m_\text{max}$, $m_\text{min}$ to biologically resonable values, possibly obtained form anaysis of national data or literature review;
+
+```{r echo=FALSE, warning = FALSE, message = FALSE}
+n <- 1:4
+t <- 1:100
+t_half <- 50
+m_max <- .8
+m_min <- .1
+m1 <- m_max-(m_max-m_min)*(t^n[1]/(t^n[1] + t_half^n[1]))
+m2 <- m_max-(m_max-m_min)*(t^n[2]/(t^n[2] + t_half^n[2]))
+m3 <- m_max-(m_max-m_min)*(t^n[3]/(t^n[3] + t_half^n[3]))
+m4 <- m_max-(m_max-m_min)*(t^n[4]/(t^n[4] + t_half^n[4]))
+plot(m1,type='l', ylim=c(0,1),main="n=c(1,2,3,4)")
+lines(m2,type='l',col=2)
+lines(m3,type='l',col=3)
+lines(m4,type='l',col=4)
+abline(h=m_max, lty="dashed")
+abline(h=m_min, lty="dashed")
+abline(h=(m_max+m_min)/2, lty="dashed")
+abline(v=t_half, lty="dashed")
+
+```
 
 
-<!-- # Deaths / Cases -->
-
-<!-- ```{r} -->
-<!-- # Crude CFR : ma(deaths)/ma(cases) -->
-<!-- s <- us_ct_clean$Location %>% unique() -->
-<!-- for(i in 1:length(s)) { -->
-<!--   dat <- us_ct_clean %>% -->
-<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Cases)) %>%  -->
-<!--     filter(Location == s[i]) -->
-<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
-<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Cases)")) -->
-<!-- } -->
-<!-- ``` -->
-
-<!-- # Deaths / Hosps -->
-
-<!-- ```{r} -->
-<!-- # Crude CFR : ma(deaths)/ma(cases) -->
-<!-- s <- us_ct_clean$Location %>% unique() -->
-<!-- for(i in 1:length(s)) { -->
-<!--   dat <- us_ct_clean %>% -->
-<!--     mutate(crudeCFR = ma(Daily_Deaths) / ma(Daily_Hospitalized)) %>%  -->
-<!--     filter(Location == s[i]) -->
-<!--   dat$crudeCFR %>% plot(type="l",ylim=c(0,1), -->
-<!--                         main = paste0(s[i],": ma(Daily_Deaths) / ma(Daily_Hospitalized)")) -->
-<!-- } -->
-<!-- ``` -->
-
+3. Fit all sigmoid parameters $n$, $t_\text{half}$, $m_\text{max}$, and $m_\text{min}$.
