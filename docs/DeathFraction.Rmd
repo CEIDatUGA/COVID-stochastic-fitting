@@ -166,7 +166,7 @@ m1 <- m_max-(m_max-m_min)*(t^n[1]/(t^n[1] + t_half^n[1]))
 m2 <- m_max-(m_max-m_min)*(t^n[2]/(t^n[2] + t_half^n[2]))
 m3 <- m_max-(m_max-m_min)*(t^n[3]/(t^n[3] + t_half^n[3]))
 m4 <- m_max-(m_max-m_min)*(t^n[4]/(t^n[4] + t_half^n[4]))
-plot(m1,type='l', ylim=c(0,1),main="n=c(1,2,3,4)")
+plot(m1,type='l', ylim=c(0,1),main=paste0("n={", paste(n,collapse=","),"}"))
 lines(m2,type='l',col=2)
 lines(m3,type='l',col=3)
 lines(m4,type='l',col=4)
@@ -176,6 +176,5 @@ abline(h=(m_max+m_min)/2, lty="dashed")
 abline(v=t_half, lty="dashed")
 
 ```
-
 
 3. Fit all sigmoid parameters $n$, $t_\text{half}$, $m_\text{max}$, and $m_\text{min}$.
