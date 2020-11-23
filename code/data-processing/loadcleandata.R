@@ -198,10 +198,13 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
       arrange(date) %>%
       mutate(cases = inf_leading_zeros(cases)) %>% # set leading zeros to -Inf
       mutate(deaths = inf_leading_zeros(deaths)) %>% # set leading zeros to -Inf
+      dplyr::filter(cases != -Inf | deaths != -Inf) %>%  # trim rows to first reported case or death
+      mutate(time = 1:n()) %>%  #careful here: 1 must align with first observation for fitting
       ungroup() %>% 
-      dplyr::filter(cases != -Inf | deaths != -Inf) %>% # trim rows to first reported case or death
+      
+      # reset -Inf values to 0
       mutate(cases = replace(cases, is.infinite(cases), 0),
-             deaths = replace(deaths, is.infinite(deaths), 0)) # reset -Inf values to 0
+             deaths = replace(deaths, is.infinite(deaths), 0))
   }
   
   # Remove bad WY data point
