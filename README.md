@@ -175,6 +175,26 @@ git add --all
 git commit -m "Update"
 git push origin master
 ```
+## Transfer full MIF results
+
+The full MIF results are very large and should not be stored in the git repo. 
+Instead, these should be transfered to the shared directory on Sapelo2:
+
+
+```
+cd ~/cov/output
+```
+Note the latest directory name in the format `YYYY-MM-DD`, e.g. `2020-11-23`.  
+Go to the shared directory and make a new folder, then transfer results into it:  
+
+```
+cd /work/covid19lab/full
+mkdir full20201123
+cd ~/cov/output
+cp *.rds /work/covid19lab/full/full20201123/
+```
+
+The rds files in `~/cov/output` will be overwritten the next time the array job runs.
 
 ## Clean up temporary directory
 
