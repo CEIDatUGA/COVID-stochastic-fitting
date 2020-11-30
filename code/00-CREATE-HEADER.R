@@ -93,16 +93,16 @@ statevec <- c(statevec[rmids], statevec[-rmids])
 # --------------------------------------------------
 state_pops <- readRDS(here::here("data/us_popsize.rds"))
 statedf <- state_pops %>% 
-  # warm start spec for each state
+  # warm start spec for each state 
   dplyr::mutate(init = dplyr::case_when(
     # state_full == "Indiana" ~ "2020-09-14", # example: use date of last good fit for warm start
     # state_full == "Indiana" ~ "fresh", # example: fit from scratch
     # state_full == "Indiana" ~ "2020-11-11", # example: use last date for warm start
-    state_full == "New York" ~ "fresh", # fit from scratch
     state_full == "Indiana" ~ "fresh", # date of last good fit for warm start
-    state_full == "Maryland" ~ "2020-11-11", # date of last good fit for warm start
+    state_full == "Maryland" ~ "last", # date of last good fit for warm start
     state_full == "Massachusetts" ~ "fresh", # date of last good fit for warm start
     state_full == "New Jersey" ~ "fresh", # date of last good fit for warm start
+    state_full == "New York" ~ "fresh", # fit from scratch
     state_full == "Ohio" ~ "fresh", # date of last good fit for warm start
     state_full == "Washington" ~ "fresh", # date of last good fit for warm start
     TRUE ~ "2020-11-11" # default to last fit for warm start
@@ -110,19 +110,25 @@ statedf <- state_pops %>%
   
   # R0 at beginning of epidemic for each state
   dplyr::mutate(initR0 = dplyr::case_when(
-    state_full %in% c("New York") ~ 10, 
     state_full %in% c("Illinois") ~ 8,
-    state_full %in% c("Indiana") ~ 6, 
+    state_full %in% c("Indiana") ~ 8, 
     state_full %in% c("Maryland") ~ 8,
-    state_full %in% c("Massachusetts") ~ 6,
-    state_full %in% c("New Jersey") ~ 6,
-    state_full %in% c("Ohio") ~ 6,
+    state_full %in% c("Massachusetts") ~ 8,
+    state_full %in% c("New Jersey") ~ 8,
+    state_full %in% c("New York") ~ 10, 
+    state_full %in% c("Ohio") ~ 8,
+    state_full %in% c("Washington") ~ 8,
     TRUE ~ 6 # default initial R0
   )) %>% 
   
   # Mif runs for each state
   dplyr::mutate(mifruns = dplyr::case_when(
-   #  state_full %in% c("Washington", "New York", "New Jersey") ~ list(c(350,150)),
+    state_full %in% c("Indiana") ~ list(c(350,150)), 
+    state_full %in% c("Massachusetts") ~ list(c(350,150)),
+    state_full %in% c("New Jersey") ~ list(c(350,150)),
+    state_full %in% c("New York") ~ list(c(350,150)), 
+    state_full %in% c("Ohio") ~ list(c(350,150)),
+    state_full %in% c("Washington") ~ list(c(350,150)),
     TRUE ~ list(c(150,150)) # default mif runs vector
   ))
 
