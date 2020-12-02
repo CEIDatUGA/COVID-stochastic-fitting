@@ -103,7 +103,7 @@ statedf <- state_pops %>%
     state_full == "Massachusetts" ~ "fresh", # date of last good fit for warm start
     state_full == "New Jersey" ~ "fresh", # date of last good fit for warm start
     state_full == "New York" ~ "fresh", # fit from scratch
-    state_full == "Ohio" ~ "fresh", # date of last good fit for warm start
+    state_full == "Ohio" ~ "last", # date of last good fit for warm start
     state_full == "Washington" ~ "fresh", # date of last good fit for warm start
     TRUE ~ "2020-11-11" # default to last fit for warm start
   )) %>% 
