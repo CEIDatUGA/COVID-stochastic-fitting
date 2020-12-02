@@ -81,7 +81,7 @@ nano ~/cov/sub_slurm_1.sh
 
 To modify job time allocated, edit the following line in `sub_slurm_2.sh` :
 
-`line `#SBATCH --time=1-12:00:00  # Time limit days-hrs:min:sec`
+`#SBATCH --time=1-12:00:00  # Time limit days-hrs:min:sec`
 
 <!--From your home directory on Sapelo2, execute the following commands to make sure the bash files can be run on the Linux machines
    - `dos2unix mif-header.sh`
