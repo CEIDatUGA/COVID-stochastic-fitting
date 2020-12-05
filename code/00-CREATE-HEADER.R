@@ -98,13 +98,13 @@ statedf <- state_pops %>%
     # state_full == "Indiana" ~ "2020-09-14", # example: use date of last good fit for warm start
     # state_full == "Indiana" ~ "fresh", # example: fit from scratch
     # state_full == "Indiana" ~ "last", # example: use last date for warm start
-    state_full == "Indiana" ~ "fresh", 
+    state_full == "Indiana" ~ "last", 
     state_full == "Maryland" ~ "last", 
     state_full == "Massachusetts" ~ "fresh",
-    state_full == "New Jersey" ~ "fresh", 
-    state_full == "New York" ~ "fresh", 
+    state_full == "New Jersey" ~ "last", 
+    state_full == "New York" ~ "last", 
     state_full == "Ohio" ~ "last", 
-    state_full == "Washington" ~ "fresh",  
+    state_full == "Washington" ~ "last",  
     TRUE ~ "last" # default warm start 
   )) %>% 
   
@@ -113,7 +113,7 @@ statedf <- state_pops %>%
     state_full %in% c("Illinois") ~ 8,
     state_full %in% c("Indiana") ~ 8, 
     state_full %in% c("Maryland") ~ 8,
-    state_full %in% c("Massachusetts") ~ 8,
+    state_full %in% c("Massachusetts") ~ 10,
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
     state_full %in% c("Ohio") ~ 8,
@@ -124,7 +124,7 @@ statedf <- state_pops %>%
   # Mif runs for each state
   dplyr::mutate(mifruns = dplyr::case_when(
     state_full %in% c("Indiana") ~ list(c(350,150)), 
-    state_full %in% c("Massachusetts") ~ list(c(350,150)),
+    state_full %in% c("Massachusetts") ~ list(c(500,150)),
     state_full %in% c("New Jersey") ~ list(c(350,150)),
     state_full %in% c("New York") ~ list(c(350,150)), 
     state_full %in% c("Ohio") ~ list(c(350,150)),
