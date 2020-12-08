@@ -162,7 +162,8 @@ state_re <- stateresults %>%
   
 
 Re <- getReff(dates = stateresults_median_statusquo$date, 
-              stateresults_median_statusquo$S, 
+              S = stateresults_median_statusquo$S, 
+              N = statepop,
               omega = stateresults_median_statusquo$combined_trend, 
               params = statepars_allmle)
 
