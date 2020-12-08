@@ -9,7 +9,7 @@ header-includes: \usepackage{amsmath}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(here)
 library(tidyverse)
-source(here("code/plotting/plotoverview.R"))
+source(here::here("code/plotting/plotoverview.R"))
 ```
 
 ## Model of COVID&#8209;19 transmission in the U.S.A. by state
@@ -27,12 +27,12 @@ We show a subset of the state-level data here for Georgia, New York, Washington,
 We did not smooth the reported data but we did exclude all negative case and death reports.
 
 ```{r collate-data}
-all_files <- list.files(path = here("output/current/"), pattern = ".csv")
-param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
+all_files <- list.files(path = here::here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here::here("output/current/"), pattern = "params-natural.rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
-statedf <-readRDS(here("output/current", "statedf.rds"))
+statedf <-readRDS(here::here("output/current", "statedf.rds"))
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   location <- sub(".csv", "", do_file)
@@ -41,7 +41,7 @@ for(i in 1:length(all_files)) {
   state_initR0 <- state_metadata %>% pull(initR0)
   state_beta_s <- (state_initR0*.1)
   
-  tmpfile <- here("output/current", do_file)
+  tmpfile <- here::here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths",
@@ -59,7 +59,7 @@ for(i in 1:length(all_files)) {
 
   state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
 
-  tmpparamfile <- here("output/current", param_files[i])
+  tmpparamfile <- here::here("output/current", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
@@ -332,7 +332,7 @@ To allow more realistic distributions of movement through compartments, several 
 The flow diagram for this model shown below.
 
 ```{r pomp-model}
-knitr::include_graphics(here("docs",'pomp-model.png'))
+knitr::include_graphics(here::here("docs",'pomp-model.png'))
 ```
 
 #### Interventions
