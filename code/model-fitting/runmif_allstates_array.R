@@ -16,8 +16,8 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   if (parallel_run == TRUE) {
     # Set up parallel structure 
     n_cores <- parallel_info$num_cores
-    cl <- makeCluster(n_cores)
-    registerDoParallel(cl)
+    # cl <- makeCluster(n_cores)
+    registerDoParallel(n_cores)
     
   } else { #if not run in parallel, set this to 1
     n_cores <- 1
@@ -186,7 +186,7 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
                               verbose = FALSE
                               )
                     } #end double loop over states and starting values
-    stopCluster(cl)
+    # stopCluster(cl)
   } # end code section that does mif followed by pfilter for parallel setup
   
   # tend=Sys.time(); #capture current time
