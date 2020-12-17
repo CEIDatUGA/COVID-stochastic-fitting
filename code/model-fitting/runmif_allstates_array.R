@@ -16,8 +16,8 @@ runmif_allstates <- function(parallel_info, mif_settings, pomp_list, par_var_lis
   if (parallel_run == TRUE) {
     # Set up parallel structure 
     n_cores <- parallel_info$num_cores
-    # cl <- makeCluster(n_cores)
-    registerDoParallel(n_cores)
+    cl <- makeCluster(n_cores)
+    registerDoParallel(cl)
     
   } else { #if not run in parallel, set this to 1
     n_cores <- 1
