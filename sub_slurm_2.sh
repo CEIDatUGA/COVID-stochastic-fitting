@@ -5,7 +5,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=32
 #SBATCH --mem-per-cpu=3500M          # Job memory request
-#SBATCH --time=1-12:00:00            # Time limit days-hrs:min:sec
+#SBATCH --time=2-12:00:00            # Time limit days-hrs:min:sec
 #SBATCH --array=1-50
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-user=emarty@uga.edu    # Where to send mail
