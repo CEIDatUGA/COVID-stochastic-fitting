@@ -15,7 +15,7 @@ No longer unique model structure.
 ## Top pannel
 
 R(t) - actual R(t)
-
+**
 R_x(t) - excluding susceptible depletion
 
 $$
