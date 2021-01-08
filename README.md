@@ -149,7 +149,49 @@ squeue --me
 ```
 ...to see a list of running jobs only.
 
-If all jobs have run successfully:
+## Transfer files, push, and cleanup :
+
+### Using shell script
+
+If all jobs have run successfully, run the bash script `saveoutput.sh`.  
+It's ok to run this script from any directory.
+
+```
+bash saveoutput.sh
+```
+
+This script transfers the latest outputs to the github repo, and flatest full results to the working group directory on sapelo2 /work/covid19lab/. You may be asked for your github credentials.  
+
+Contents of `saveoutput.sh`:
+
+```
+#!/bin/bash
+# Run this script from the command line after the array job has ended on sapelo2
+# >bash saveoutput.sh
+cd ~/COVID-stochastic-fitting  
+git pull  
+cp -r ~/cov/output/current/ ~/COVID-stochastic-fitting/output/
+cd ~/cov/output
+LATESTDIR=$(ls -td 202* | head -1)
+LATESTDIRFULL="full$(echo $LATESTDIR | sed -e 's/-//g')"
+LATESTDIRFULLPATH="/work/covid19lab/full/$LATESTDIRFULL"
+cp -r $LATESTDIR ~/COVID-stochastic-fitting/output/
+cd /work/covid19lab/full
+mkdir $LATESTDIRFULL
+cp ~/cov/output/*.rds $LATESTDIRFULLPATH
+cd ~/COVID-stochastic-fitting
+git add --all
+git commit -m "Update"
+git push origin master
+cd ~/cov
+rm *.Rout
+rm *.err
+rm *.out
+rm -r [0-9]*
+```
+### ...or manually :
+
+If you prefer not to use the shell script `saveoutput.sh`, use the following manual workflow: 
 
 ```
 cd ~/COVID-stochastic-fitting  
@@ -167,25 +209,10 @@ Copy that directory to the repo:
 cp -r ~/cov/output/2020-10-14/ ~/COVID-stochastic-fitting/output/
 ```
 
-## Push updates
-
-```
-cd ~/COVID-stochastic-fitting
-git add --all
-git commit -m "Update"
-git push origin master
-```
-## Transfer full MIF results
-
 The full MIF results are very large and should not be stored in the git repo. 
 Instead, these should be transfered to the shared directory on Sapelo2:
 
-
-```
-cd ~/cov/output
-```
-Note the latest directory name in the format `YYYY-MM-DD`, e.g. `2020-11-23`.  
-Go to the shared directory and make a new folder, then transfer results into it:  
+Go to the shared directory and make a new dated folder, then transfer results into it:  
 
 ```
 cd /work/covid19lab/full
@@ -194,9 +221,16 @@ cd ~/cov/output
 cp *.rds /work/covid19lab/full/full20201123/
 ```
 
-The rds files in `~/cov/output` will be overwritten the next time the array job runs.
+Push new results to github:
 
-## Clean up temporary directory
+```
+cd ~/COVID-stochastic-fitting
+git add --all
+git commit -m "Update"
+git push origin master
+```
+
+Clean up temporary directory:
 
 The file `cleandir.sh` can be used to clean up temporary files. 
 The script may need to be copied over to the ~/cov from the repo.  
@@ -207,15 +241,13 @@ cd ~/cov
 bash cleandir.sh
 ```
 
-This is equivalent to 
+This cleanup script is equivalent to 
 
 ```
-cd ~/cov
-cd rm covstates*
-rm -r *.sapelo2
 rm *.Rout
 rm *.err
 rm *.out
+rm -r [0-9]*
 ```
 
 ## Generate reports
