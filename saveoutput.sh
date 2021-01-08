@@ -13,3 +13,13 @@ cp -r $LATESTDIR ~/COVID-stochastic-fitting/output/
 cd /work/covid19lab/full
 mkdir $LATESTDIRFULL
 cp ~/cov/output/*.rds $LATESTDIRFULLPATH
+cd ~/COVID-stochastic-fitting
+git add --all
+git commit -m "Update"
+git push origin master
+cd ~/cov
+rm *.Rout
+rm *.err
+rm *.out
+rm -r [0-9]*
+
