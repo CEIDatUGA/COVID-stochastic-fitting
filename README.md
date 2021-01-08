@@ -70,6 +70,12 @@ cp -r COVID-stochastic-fitting/data/ cov/
 cp -r COVID-stochastic-fitting/code/ cov/
 ```
 
+If you made changes to any shell scripts in the repo, you may want to copy those over as well:
+
+```
+cp -r ~/COVID-stochastic-fitting/*.sh ~/cov/
+```
+
 ### Submit via slurm:
 
 1. To modify the email address for notification, edit the line `#SBATCH --mail-user=myid@uga.edu`
@@ -95,7 +101,7 @@ cd ~/cov
 sbatch sub_slurm_1.sh
 ```
 
-This script takes ~7 seconds to run. To check that it is running: 
+This script takes ~15 seconds to run. To check that it is running: 
 
 ```
 squeue --me
@@ -132,8 +138,8 @@ ls
 
 You should see several multi-digit numbers, and several files `slurm-*_*.out`
 
-Wait at least 24 hours. You may log off. Slumr will email the user specified in the `sub_slurm_2.sh` once the job ends or fails.  
-**Note: the gacrc email notification system is not working as of Nov 10, 2020.**
+Wait at least 24 hours. You may log off. Slurm will email the user specified in the `sub_slurm_2.sh` once the job ends or fails.  
+**Note: the gacrc email notification system may not always work. Log in and check on jobs manually if you don't receive expected emails.**
 
 ## Log back in and transfer files :
 
@@ -160,7 +166,7 @@ It's ok to run this script from any directory.
 bash saveoutput.sh
 ```
 
-This script transfers the latest outputs to the github repo, and flatest full results to the working group directory on sapelo2 /work/covid19lab/. You may be asked for your github credentials.  
+This script transfers the latest outputs to the github repo, and flatest full results to the working group directory on sapelo2 /work/covid19lab/. You may be asked for your github credentials. NOTE: The script does not push any code changes you may have made. If you edited any code in the `~/cov/` directory, you will need to copy it over manually to ~/COVID-stochastic-fitting if you wish to push it to the repo.
 
 Contents of `saveoutput.sh`:
 
@@ -241,7 +247,7 @@ cd ~/cov
 bash cleandir.sh
 ```
 
-This cleanup script is equivalent to 
+This cleanup script is equivalent to : 
 
 ```
 rm *.Rout
