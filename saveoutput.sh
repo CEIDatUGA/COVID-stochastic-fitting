@@ -1,6 +1,5 @@
 #!/bin/bash
-# Run this script from the command line after the mif-array.sh has run on sapelo2
-# first cd to top level project directory, then:
+# Run this script from the command line after the array job has ended on sapelo2
 # >bash saveoutput.sh
 cd ~/COVID-stochastic-fitting  
 git pull  
