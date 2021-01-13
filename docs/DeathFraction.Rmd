@@ -166,6 +166,7 @@ m1 <- m_max-(m_max-m_min)*(t^n[1]/(t^n[1] + t_half^n[1]))
 m2 <- m_max-(m_max-m_min)*(t^n[2]/(t^n[2] + t_half^n[2]))
 m3 <- m_max-(m_max-m_min)*(t^n[3]/(t^n[3] + t_half^n[3]))
 m4 <- m_max-(m_max-m_min)*(t^n[4]/(t^n[4] + t_half^n[4]))
+
 plot(m1,type='l', ylim=c(0,1),main=paste0("n={", paste(n,collapse=","),"}"))
 lines(m2,type='l',col=2)
 lines(m3,type='l',col=3)
@@ -178,3 +179,41 @@ abline(v=t_half, lty="dashed")
 ```
 
 3. Fit all sigmoid parameters $n$, $t_\text{half}$, $m_\text{max}$, and $m_\text{min}$.
+
+### pomp implementation
+
+```{r}
+# m1 <- m_max-(m_max-m_min)*(t^n[1]/(t^n[1] + t_half^n[1]))
+
+"
+// Time-dependent fraction of deaths
+    // starts at some max rate, moves to some min rate 
+    // max, min and time at which half-max is reached are fitted. exponent dictating rate of transition is fixed to 1 (could be changed to make it steeper).
+    // function is dmax - (dmax-dmin)*(t/(t+halfdead))
+    // dmin and dmax are fractions, thus are transformed accordingly. halfdead is positive, also transformed.
+    // frac_dead = 1/(1+exp(min_frac_dead)) + (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (1 - t/(t+exp(log_half_dead)) );
+       frac_dead = 1/(1+exp(max_frac_dead)) - (1/(1+exp(max_frac_dead)) - 1/(1+exp(min_frac_dead)) ) * (t/(t+exp(log_half_dead)) );
+       
+       frac_dead = 
+       
+"
+
+# compare
+n <- 1:4
+t <- 1:100
+t_half <- log_half_dead <- 50
+m_max <- max_frac_dead <- .8
+m_min <- min_frac_dead <- .1
+
+# dmax - (dmax-dmin)*(t/(t+halfdead))
+m_exting <- max_frac_dead - (max_frac_dead - min_frac_dead) * (t/(t+log_half_dead))
+m_new <- m_max-(m_max-m_min)*(t^n[1]/(t^n[1] + t_half^n[1]))
+
+
+
+
+
+plot(m_exting)
+plot(m_new)
+```
+
