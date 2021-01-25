@@ -1,0 +1,240 @@
+---
+title: "Figures"
+output: html_notebook
+author: Eric Marty
+---
+
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
+library(here)
+library(tidyverse)
+library(cowplot)
+library(yardstick)
+```
+
+```{r data}
+all_files <- list.files(path = here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
+state_summaries <- tibble()
+state_parameters <- tibble()
+state_logliks <- tibble()
+statedf <-readRDS(here("output/current", "statedf.rds"))
+for(i in 1:length(all_files)) {
+  do_file <- all_files[i]
+  location <- sub(".csv", "", do_file)
+  state_metadata <- statedf %>% filter(state_full == sub(".csv", "", do_file))
+  state_pop <- state_metadata %>% pull(total_pop)
+  state_initR0 <- state_metadata %>% pull(initR0)
+  state_beta_s <- (state_initR0*.1)
+  
+  tmpfile <- here("output/current", do_file)
+  tmp <- read.csv(tmpfile) %>%
+    filter(sim_type == "status_quo" | is.na(sim_type),
+           variable %in% c("daily_cases", "daily_deaths",
+                           "actual_daily_cases", "actual_daily_deaths",
+                           "mobility_trend", "latent_trend",
+                           "cumulative_all_infections", "daily_all_infections")) %>%
+    mutate(date = as.Date(date)) %>%
+    dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
+    pivot_wider(names_from = variable, values_from = mean_value) %>%
+    mutate(beta_s = state_beta_s) %>% 
+    mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
+    pivot_longer(cols = !c(location, sim_type, period, date), 
+                 names_to = "variable", 
+                 values_to = "mean_value",
+                 values_drop_na = TRUE)
+
+  state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
+
+  tmpparamfile <- here("output/current", param_files[i])
+  tmpparams <- readRDS(tmpparamfile)
+  tmp_loglik <- data.frame(location = unique(tmp$location),
+                        log_lik = tmpparams["LogLik", 2])
+  rnms <- row.names(tmpparams)
+  tmpparams <- tmpparams %>%
+    mutate(parameter = rnms) %>%
+    filter(is_fitted == "yes") %>%
+    dplyr::select(-is_fitted) %>%
+    gather("key", "value", -parameter) %>%
+    filter(key == "X1") %>%
+    dplyr::select(-key) %>%
+    mutate(location = unique(tmp$location)) %>%
+    dplyr::select(location, value, parameter)
+  
+  state_parameters <- bind_rows(state_parameters, tmpparams)
+  state_logliks <- bind_rows(state_logliks, tmp_loglik)
+}
+
+# Fixed parameters table
+betas_names <- rnms[grep("b[0-9]+", rnms)] # find parameters starting with b followed by any number
+spline_coefficients <- paste("Spline coefficient", gsub("b","", betas_names))
+names(spline_coefficients) <- betas_names
+
+params_vec <- c(MIF_ID = "MIF id", 
+                LogLik = "Log Likelihood", 
+                LogLik_SE = "SE of Log Likelihood", 
+                beta_s = "Transmission rate",
+                # Relative Transmissibility
+                frac_trans_e = "Relative transmissibility of latent infections",
+                frac_trans_a = "Relative transmissibility of asymptomatic individuals",
+                frac_trans_c = "Relative transmissibility of detected symptomatic individuals post-reporting",
+                frac_trans_h = "Relative transmissibility of hospitalized individuals",
+                # Time in compartments
+                time_e = "Time spent in latent compartments (days)",
+                time_a = "Time spent in asymptomatic compartments (days)",
+                time_su = "Time spent in symptomatic, undetected compartments (days)",
+                time_sd = "Time spent in symptomatic, detected compartments (days)",
+                time_c = "Time spent in diagnosed cases compartments (days)",
+                time_h = "Time spent in hospitalized compartments (days)",
+                # Detection time
+                max_diag_factor = "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
+                diag_rampup = "Rate at which faster diagnosis ramps up to max",
+                t_half_diag = "Time at which diagnosis is at 50% of max (in days since t = 1)",
+                # Detection fraction
+                max_detect_frac = "Maximum fraction of cases that are detected",
+                detect_rampup = "Speed at which fraction detected ramps up",
+                t_half_detect = "Time at which infection detection fraction is at 50% of max (in days since t = 1)",
+                base_detect_frac = "Minimum fraction detected at t = 1",
+                # Fraction asymptomatic
+                frac_asym = "Fraction of latent infections that move to asymptomatic",
+                # Fraction hosptilized
+                frac_hosp = "Fraction of detected cases that are hospitalized",
+                # Fraction of hospitalizations that result in death
+                min_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                max_frac_dead = "Maximum fraction of hospitalizations that result in death",
+                log_half_dead = "Time at which death fraction is at 50% of max (in days since t = 1)",
+                # Dispersion parameters
+                theta_cases = "Dispersion parameter for case reporting observation process",
+                theta_hosps = "Dispersion parameter for hospitalization reporting observation process",
+                theta_deaths = "Dispersion parameter for death reporting obsercation process",
+                sigma_dw = "Variance of the stochastics process noise",
+                # Spline coefficients
+                spline_coefficients,
+                # Initial conditions
+                S_0 = "Initial number of susceptible individuals on t = 1",
+                E1_0 = "Initial number of latent infectious individuals on t = 1",
+                Ia1_0 = "Initial number of asymptomatic individuals on t = 1",
+                Isu1_0 = "Initial number of symptomatic, undetected individuals on t = 1",
+                Isd1_0 = "Initial number of symptomatic, detected individuals on t = 1",
+                C1_0 = "Initial number of diagnosed cases on t = 1",
+                H1_0 = "Initial number of hospitalized cases on t = 1",
+                R_0 = "Initial number of recovered individuals on t = 1",
+                D_0 = "Initial number of deaths after hospitalization on t = 1",
+                trend_start = "Trend")
+
+tmpparams <- readRDS(tmpparamfile)
+rnms <- row.names(tmpparams)
+params_map <- tibble(Parameter = names(params_vec),
+                     Description = params_vec)
+fixed_parameters <- tmpparams %>%
+  mutate(Parameter = rnms) %>%
+  filter(is_fitted == "no") %>%
+  dplyr::select(-is_fitted) %>%
+  gather("key", "value", -Parameter) %>%
+  filter(key == "X1") %>%
+  left_join(params_map, by = "Parameter") %>%
+  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps", "S_0")) %>%
+  dplyr::select(Parameter, Description, value) %>%
+  mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
+
+```
+
+# Correlation between Latent Trend and Transmission
+
+a) mobility trend for all states (spaghetti with mean).  
+
+Covariate that describes human mobility. These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>. We smooth the raw data from Unacast using a spline fit, resulting in the trajectories of human movement shown below. This covariate is used to reduce baseline transmission.
+Here we show the mobility trends from all 50 states.
+
+```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
+all_phi <- state_summaries %>%
+  filter(variable == "mobility_trend") %>%
+  dplyr::select(location, date, mean_value) %>%
+  filter(date <= Sys.Date())
+
+mean_phi <- all_phi %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+
+g_phi <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
+  geom_line(size = 0.5) +
+  # ylab("Human movement\n(% of normal)") +
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  geom_line(data = mean_phi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  theme_minimal() +
+  guides(color = FALSE)
+
+p_phi <- g_phi %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "Human movement (phi)\n(% of normal)\n&nbsp;")
+                 )
+p_phi
+```
+
+b) latent trend for all states (spaghetti with mean).  
+
+```{r}
+all_psi <- state_summaries %>%
+  filter(variable == "latent_trend") %>%
+  dplyr::select(location, date, mean_value) %>%
+  filter(date <= Sys.Date())
+
+mean_psi <- all_psi %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+
+g_psi <- ggplot(all_psi, aes(x = date, y = mean_value, color = location)) +
+  geom_line(size = 0.5) +
+  # ylab("Latent trend\n(% of normal)") +
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  geom_line(data = mean_psi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  theme_minimal() +
+  guides(color = FALSE)
+
+p_psi <- g_psi %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "Latent trend (psi)\n(% of normal)\n&nbsp;")
+                 )
+p_psi
+```
+
+c) omega for all states (spaghetti with mean). 
+
+```{r}
+all_omega <- state_summaries %>%
+  filter(variable == "omega") %>%
+  dplyr::select(location, date, mean_value) %>%
+  filter(date <= Sys.Date())
+
+mean_omega <- all_omega %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+
+g_omega <- ggplot(all_omega, aes(x = date, y = mean_value, color = location)) +
+  geom_line(size = 0.5) +
+  # ylab("Latent trend\n(% of normal)") +
+  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  theme_minimal() +
+  guides(color = FALSE)
+
+p_omega <- g_omega %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "Relative transmission (omega)\n(% of normal)\n&nbsp;")
+                 )
+p_omega
+```
+
+d) correlation: predictor = AUC of omega; response = prevalence, or final per capita prevalence. 
+
+```{r}
+
+```
+
+e) map of same (correlation, by state)
+
+
