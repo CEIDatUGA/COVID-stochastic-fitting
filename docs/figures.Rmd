@@ -158,11 +158,12 @@ Here we show the mobility trends from all 50 states.
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
   dplyr::select(location, date, mean_value) %>%
+  rename(phi = mean_value) %>% 
   filter(date <= Sys.Date())
 
-mean_phi <- all_phi %>% group_by(date) %>% summarise(phi = mean(mean_value))
+mean_phi <- all_phi %>% group_by(date) %>% summarise(phi = mean(phi))
 
-g_phi <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
+g_phi <- ggplot(all_phi, aes(x = date, y = phi, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
@@ -190,11 +191,12 @@ b) latent trend for all states (spaghetti with mean).
 all_psi <- state_summaries %>%
   filter(variable == "latent_trend") %>%
   dplyr::select(location, date, mean_value) %>%
+  rename(psi = mean_value) %>% 
   filter(date <= Sys.Date())
 
-mean_psi <- all_psi %>% group_by(date) %>% summarise(psi = mean(mean_value))
+mean_psi <- all_psi %>% group_by(date) %>% summarise(psi = mean(psi))
 
-g_psi <- ggplot(all_psi, aes(x = date, y = mean_value, color = location)) +
+g_psi <- ggplot(all_psi, aes(x = date, y = psi, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Latent trend\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
@@ -221,11 +223,12 @@ c) omega for all states (spaghetti with mean).
 all_omega <- state_summaries %>%
   filter(variable == "omega") %>%
   dplyr::select(location, date, mean_value) %>%
+  rename(omega = mean_value) %>% 
   filter(date <= Sys.Date())
 
-mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = mean(mean_value))
+mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = mean(omega))
 
-g_omega <- ggplot(all_omega, aes(x = date, y = mean_value, color = location)) +
+g_omega <- ggplot(all_omega, aes(x = date, y = omega, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Latent trend\n(% of normal)") +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
@@ -396,21 +399,11 @@ CA %>%
                 text = ~paste('</br> Mobility: ', mobility_trend, '</br> omega: ', omega, '</br> Date: ', date)) %>% 
   plotly::layout(title = "California",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
 
-CA %>% filter(date < future[1]) %>% 
+CA %>% ungroup() %>% filter(date < future[1]) %>% 
   filter(date > burnin[2]) %>%
-  ggscatterhist(x = "mobility_trend", y = "omega", 
-          color = "black", fill = NA, shape = 19, size = 3, # points
-          add = "reg.line", 
-          add.params = list(color = "blue", fill = "lightgray"),
-          conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "spearman",
-          xlab = "mobility trend", ylab = "omega",
-          margin.plot = "density",
-          margin.ggtheme = theme_void(),
-          margin.space = FALSE,
-          main.plot.size = 2,
-          margin.plot.size = 1
-          )
+  select(date,mobility_trend,omega) %>% 
+  ggstatsplot::ggscatterstats(x = "mobility_trend", y = "omega", type = "spearman", title = "California")
+
 
 state_summaries_wide %>% 
   plotly::plot_ly(type = 'scatter', mode = 'markers',
@@ -431,20 +424,26 @@ means %>%
 ```
 
 ```{r}
+# means %>% filter(date < future[1]) %>% 
+#   filter(date > burnin[2]) %>%
+#   ggscatterhist(x = "phi", y = "omega", 
+#           color = "black", fill = NA, shape = 19, size = 3, # points
+#           add = "reg.line", 
+#           add.params = list(color = "blue", fill = "lightgray"),
+#           conf.int = TRUE, 
+#           cor.coef = TRUE, cor.method = "spearman",
+#           xlab = "mobility trend", ylab = "omega",
+#           margin.plot = "density",
+#           margin.ggtheme = theme_void(),
+#           margin.space = FALSE,
+#           main.plot.size = 2,
+#           margin.plot.size = 1
+#           )
+
 means %>% filter(date < future[1]) %>% 
   filter(date > burnin[2]) %>%
-  ggscatterhist(x = "phi", y = "omega", 
-          color = "black", fill = NA, shape = 19, size = 3, # points
-          add = "reg.line", 
-          add.params = list(color = "blue", fill = "lightgray"),
-          conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "spearman",
-          xlab = "mobility trend", ylab = "omega",
-          margin.plot = "density",
-          margin.ggtheme = theme_void(),
-          margin.space = FALSE,
-          main.plot.size = 2,
-          margin.plot.size = 1
-          )
+  ggstatsplot::ggscatterstats(x = "phi", y = "omega", type = "spearman", title = "Mean phi, Mean omega over all states")
+
+
 ```
 
