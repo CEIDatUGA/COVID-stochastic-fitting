@@ -11,6 +11,7 @@ library(here)
 library(tidyverse)
 library(cowplot)
 library(yardstick)
+library(ggpubr)
 ```
 
 ```{r data}
@@ -141,6 +142,8 @@ fixed_parameters <- tmpparams %>%
   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
 
 future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
+burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-02-25"))
+
 
 ```
 
@@ -393,6 +396,22 @@ CA %>%
                 text = ~paste('</br> Mobility: ', mobility_trend, '</br> omega: ', omega, '</br> Date: ', date)) %>% 
   plotly::layout(title = "California",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
 
+CA %>% filter(date < future[1]) %>% 
+  filter(date > burnin[2]) %>%
+  ggscatterhist(x = "mobility_trend", y = "omega", 
+          color = "black", fill = NA, shape = 19, size = 3, # points
+          add = "reg.line", 
+          add.params = list(color = "blue", fill = "lightgray"),
+          conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "mobility trend", ylab = "omega",
+          margin.plot = "density",
+          margin.ggtheme = theme_void(),
+          margin.space = FALSE,
+          main.plot.size = 2,
+          margin.plot.size = 1
+          )
+
 state_summaries_wide %>% 
   plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~mobility_trend, y = ~omega, color = ~location,
@@ -400,11 +419,32 @@ state_summaries_wide %>%
                 text = ~paste('</br> Mobility: ', mobility_trend, '</br> omega: ', omega, '</br> Date: ', date, '</br> State: ', location )) %>%
     plotly::layout(title = "All states", xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
 
-means %>% filter(date < future[1]) %>% 
+means %>% 
+  filter(date < future[1]) %>% 
+  filter(date > as.Date("2020-02-25")) %>% # Feb 26 is the first day with any mobility < 1
   plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~phi, y = ~omega,                
                 hoverinfo = 'text', 
                 text = ~paste('</br> Mobility: ', phi, '</br> omega: ', omega, '</br> Date: ', date)) %>% 
-  plotly::layout(title = "Mean mobility, mean phi (across states)",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
+  plotly::layout(title = "Mean mobility, mean omega (across states)",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
+
+```
+
+```{r}
+means %>% filter(date < future[1]) %>% 
+  filter(date > burnin[2]) %>%
+  ggscatterhist(x = "phi", y = "omega", 
+          color = "black", fill = NA, shape = 19, size = 3, # points
+          add = "reg.line", 
+          add.params = list(color = "blue", fill = "lightgray"),
+          conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "spearman",
+          xlab = "mobility trend", ylab = "omega",
+          margin.plot = "density",
+          margin.ggtheme = theme_void(),
+          margin.space = FALSE,
+          main.plot.size = 2,
+          margin.plot.size = 1
+          )
 ```
 
