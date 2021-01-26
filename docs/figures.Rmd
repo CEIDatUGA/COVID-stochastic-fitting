@@ -6,7 +6,7 @@ author: Eric Marty
 
 
 ```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
-knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE)
+knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE, out.width = "100%")
 library(here)
 library(tidyverse)
 library(cowplot)
@@ -140,9 +140,11 @@ fixed_parameters <- tmpparams %>%
   dplyr::select(Parameter, Description, value) %>%
   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
 
+future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
+
 ```
 
-# Correlation between Latent Trend and Transmission
+# Mobility, Latent Trend and Omega for all states
 
 a) mobility trend for all states (spaghetti with mean).  
 
@@ -164,6 +166,8 @@ g_phi <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
   geom_line(data = mean_phi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
 
@@ -174,6 +178,8 @@ p_phi <- g_phi %>% plotly::ggplotly() %>%
                  )
 p_phi
 ```
+
+---
 
 b) latent trend for all states (spaghetti with mean).  
 
@@ -192,6 +198,7 @@ g_psi <- ggplot(all_psi, aes(x = date, y = mean_value, color = location)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
   geom_line(data = mean_psi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
 
@@ -202,6 +209,8 @@ p_psi <- g_psi %>% plotly::ggplotly() %>%
                  )
 p_psi
 ```
+
+---
 
 c) omega for all states (spaghetti with mean). 
 
@@ -220,6 +229,7 @@ g_omega <- ggplot(all_omega, aes(x = date, y = mean_value, color = location)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
   geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
 
@@ -231,53 +241,151 @@ p_omega <- g_omega %>% plotly::ggplotly() %>%
 p_omega
 ```
 
-d) correlation: predictor = AUC of omega; response = prevalence, or final per capita prevalence. 
+# Correlation between Omega and Prevalence
 
-first plot: x = omega; y = daily prevalence (all infections / pop size)
+a) predictor = omega(t); response = daily prevalence(t)
+
 ```{r}
 
 all_prevalence <- state_summaries %>%
+  filter(period == "Past") %>%
   filter(variable == "prevalence") %>%
   dplyr::select(location, date, mean_value) %>%
   rename(prevalence = mean_value) %>% 
   filter(date <= Sys.Date())
 
 mean_all_prevalence <- all_prevalence %>% group_by(date) %>% summarise(prevalence = mean(prevalence))
-plot(x = mean_omega$mean_value, y = mean_all_prevalence$prevalence)
-
+# plot(x = mean_omega$mean_value, y = mean_all_prevalence$prevalence)
 
 state_summaries_wide <- state_summaries %>%
+  filter(period == "Past") %>%
   filter(sim_type == 'status_quo') %>% 
-  pivot_wider(names_from = variable, values_from = mean_value)
-
-state_summaries_wide %>% 
-  filter(location == "California") %>% 
-  ggplot(aes(x = omega, y = prevalence)) +
-  geom_line(size = 0.5) +
-  # ylab("Latent trend\n(% of normal)") +
-  # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
-  # theme_dark(base_line_size = 0.5) +
-  # geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
-  theme_minimal() +
-  guides(color = FALSE)
+  pivot_wider(names_from = variable, values_from = mean_value) %>% 
+  group_by(location) %>% 
+  mutate(AU_omega = cumsum(omega))
 
 CA <- state_summaries_wide %>% filter(location == "California")
 
-plot(x = lag(CA$omega,0), y = CA$prevalence)
-plot(x = lag(CA$omega,7), y = CA$prevalence)
-plot(x = lag(CA$omega,14), y = CA$prevalence)
+# state_summaries_wide %>% 
+#   filter(location == "California") %>% 
+#   ggplot(aes(x = omega, y = prevalence)) +
+#   geom_line(size = 0.5) +
+#   # ylab("Latent trend\n(% of normal)") +
+#   # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+#   scale_y_continuous(labels = scales::percent) +
+#   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+#   # theme_dark(base_line_size = 0.5) +
+#   # geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+#   theme_minimal() +
+#   guides(color = FALSE)
+
+lagfill <- function(x, lag,fill=1) {
+  replace_na(lag(x,lag),fill)
+}
 
 plotly::plot_ly(data = CA, type = 'scatter', mode = 'markers',
-                x = lag(~omega,0), y = ~prevalence, 
+                x = ~lagfill(omega,0), y = ~prevalence, 
                 hoverinfo = 'text', 
-                text = ~paste('</br> Omega: ', omega,
-                      '</br> prevalence: ', prevalence,
-                      '</br> Date: ', date))
+                text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date)) %>% 
+  plotly::layout(title = "California",xaxis=list(title="omega"),yaxis=list(title="prevalence"))
+
+plotly::plot_ly(data = state_summaries_wide, type = 'scatter', mode = 'markers',
+                x = ~lagfill(omega,0), y = ~prevalence, color = ~location,
+                hoverinfo = 'text', 
+                text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date, '</br> State: ', location )) %>% 
+    plotly::layout(title = "All states", xaxis=list(title="omega"),yaxis=list(title="prevalence"))
+
+means <- mean_omega %>% rename(omega = mean_value) %>% 
+  full_join(mean_all_prevalence)
+
+means %>% filter(date < future[1]) %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~omega, y = ~prevalence,                
+                hoverinfo = 'text', 
+                text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date )) %>% 
+  plotly::layout(title = "Mean omega, mean prevalence (across states)",xaxis=list(title="omega"),yaxis=list(title="prevalence"))
+
+```
+
+---
+
+California, and mean across states, at varying lags
+
+```{r}
+CA %>% filter(period == 'Past') %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~lagfill(omega,0), y = ~prevalence, name = "lag 0",
+                hoverinfo = 'text', text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date)) %>% 
+  plotly::add_trace(x = ~lagfill(omega,7), y = ~prevalence, name = "lag 7") %>% 
+  plotly::add_trace(x = ~lagfill(omega,14), y = ~prevalence, name = "lag 14") %>% 
+  plotly::add_trace(x = ~lagfill(omega,21), y = ~prevalence, name = "lag 21") %>% 
+  plotly::add_trace(x = ~lagfill(omega,28), y = ~prevalence, name = "lag 28") %>% 
+  plotly::layout(title = "California, omega at varying lags", xaxis = list(title = "omega"))
+
+means %>% filter(date < future[1]) %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~lagfill(omega,0), y = ~prevalence, name = "lag 0",
+                hoverinfo = 'text', text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date)) %>% 
+  plotly::add_trace(x = ~lagfill(omega,7), y = ~prevalence, name = "lag 7") %>% 
+  plotly::add_trace(x = ~lagfill(omega,14), y = ~prevalence, name = "lag 14") %>% 
+  plotly::add_trace(x = ~lagfill(omega,21), y = ~prevalence, name = "lag 21") %>% 
+  plotly::add_trace(x = ~lagfill(omega,28), y = ~prevalence, name = "lag 28") %>% 
+  plotly::layout(title = "Mean omega, mean prevalence (across states)\nomega at varying lags", xaxis = list(title = "omega"))
+
+```
+
+---
+
+b) predictor = AUC of omega over time; response = cumulative all infections over time
+
+```{r}
+
+CA %>% filter(period == 'Past') %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~lagfill(AU_omega,0), y = ~cumulative_all_infections, name = 'lag 0', 
+                hoverinfo = 'text', 
+                text = ~paste('</br> Area under Omega: ', AU_omega, 
+                              '</br> Cumulative infections: ', cumulative_all_infections, 
+                              '</br> Date: ', date)) %>% 
+  plotly::add_trace(x = ~lagfill(AU_omega,7), y = ~cumulative_all_infections, name = "lag 7") %>% 
+  plotly::add_trace(x = ~lagfill(AU_omega,14), y = ~cumulative_all_infections, name = "lag 14") %>% 
+  plotly::add_trace(x = ~lagfill(AU_omega,21), y = ~cumulative_all_infections, name = "lag 21") %>% 
+  plotly::add_trace(x = ~lagfill(AU_omega,28), y = ~cumulative_all_infections, name = "lag 28") %>% 
+  plotly::add_trace(x = ~lagfill(AU_omega,56), y = ~cumulative_all_infections, name = "lag 56") %>% 
+  plotly::layout(title = "California, area under omega at varying lags",xaxis=list(title="Area under omega"),yaxis=list(title="Cumulative infections"))
+
+state_summaries_wide %>% filter(period == 'Past') %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~lagfill(AU_omega,0), y = ~cumulative_all_infections, color = ~location,
+                hoverinfo = 'text', 
+                text = ~paste('</br> Area under Omega: ', AU_omega, 
+                              '</br> Cumulative infections: ', cumulative_all_infections, 
+                              '</br> Date: ', date,
+                              '</br> State: ', location)) %>% 
+    plotly::layout(title = "All states", xaxis=list(title="Area under omega (lag 0)"), yaxis=list(title="Cumulative infections"))
 
 
 ```
+
+---
+
+c) predictor = AUC of omega; response = cumulative all infections
+
+```{r}
+state_summaries_wide %>% 
+  filter(period == 'Past') %>% 
+  group_by(location) %>% 
+  summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~AU_omega, y = ~cumulative_all_infections,
+                hoverinfo = 'text', 
+                text = ~paste('</br> Area under Omega: ', AU_omega, 
+                              '</br> Cumulative infections: ', cumulative_all_infections, 
+                              '</br> State: ', location)) %>% 
+    plotly::layout(title = "Correlation of cumulative infection with Area under omega", xaxis=list(title="Area under omega"), yaxis=list(title="Cumulative infections"))
+```
+
+---
 
 e) map of same (correlation, by state)
 
