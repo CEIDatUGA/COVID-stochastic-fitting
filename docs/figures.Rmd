@@ -28,6 +28,7 @@ for(i in 1:length(all_files)) {
   state_initR0 <- state_metadata %>% pull(initR0)
   state_beta_s <- (state_initR0*.1)
   
+  
   tmpfile <- here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
@@ -39,6 +40,7 @@ for(i in 1:length(all_files)) {
     dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
     pivot_wider(names_from = variable, values_from = mean_value) %>%
     mutate(beta_s = state_beta_s) %>% 
+    mutate(prevalence = daily_all_infections / state_pop) %>% 
     mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
     pivot_longer(cols = !c(location, sim_type, period, date), 
                  names_to = "variable", 
@@ -231,7 +233,49 @@ p_omega
 
 d) correlation: predictor = AUC of omega; response = prevalence, or final per capita prevalence. 
 
+first plot: x = omega; y = daily prevalence (all infections / pop size)
 ```{r}
+
+all_prevalence <- state_summaries %>%
+  filter(variable == "prevalence") %>%
+  dplyr::select(location, date, mean_value) %>%
+  rename(prevalence = mean_value) %>% 
+  filter(date <= Sys.Date())
+
+mean_all_prevalence <- all_prevalence %>% group_by(date) %>% summarise(prevalence = mean(prevalence))
+plot(x = mean_omega$mean_value, y = mean_all_prevalence$prevalence)
+
+
+state_summaries_wide <- state_summaries %>%
+  filter(sim_type == 'status_quo') %>% 
+  pivot_wider(names_from = variable, values_from = mean_value)
+
+state_summaries_wide %>% 
+  filter(location == "California") %>% 
+  ggplot(aes(x = omega, y = prevalence)) +
+  geom_line(size = 0.5) +
+  # ylab("Latent trend\n(% of normal)") +
+  # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  # geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  theme_minimal() +
+  guides(color = FALSE)
+
+CA <- state_summaries_wide %>% filter(location == "California")
+
+plot(x = lag(CA$omega,0), y = CA$prevalence)
+plot(x = lag(CA$omega,7), y = CA$prevalence)
+plot(x = lag(CA$omega,14), y = CA$prevalence)
+
+plotly::plot_ly(data = CA, type = 'scatter', mode = 'markers',
+                x = lag(~omega,0), y = ~prevalence, 
+                hoverinfo = 'text', 
+                text = ~paste('</br> Omega: ', omega,
+                      '</br> prevalence: ', prevalence,
+                      '</br> Date: ', date))
+
 
 ```
 
