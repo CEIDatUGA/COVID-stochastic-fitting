@@ -157,7 +157,7 @@ all_phi <- state_summaries %>%
   dplyr::select(location, date, mean_value) %>%
   filter(date <= Sys.Date())
 
-mean_phi <- all_phi %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+mean_phi <- all_phi %>% group_by(date) %>% summarise(phi = mean(mean_value))
 
 g_phi <- ggplot(all_phi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
@@ -189,7 +189,7 @@ all_psi <- state_summaries %>%
   dplyr::select(location, date, mean_value) %>%
   filter(date <= Sys.Date())
 
-mean_psi <- all_psi %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+mean_psi <- all_psi %>% group_by(date) %>% summarise(psi = mean(mean_value))
 
 g_psi <- ggplot(all_psi, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
@@ -220,7 +220,7 @@ all_omega <- state_summaries %>%
   dplyr::select(location, date, mean_value) %>%
   filter(date <= Sys.Date())
 
-mean_omega <- all_omega %>% group_by(date) %>% summarise(mean_value = mean(mean_value))
+mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = mean(mean_value))
 
 g_omega <- ggplot(all_omega, aes(x = date, y = mean_value, color = location)) +
   geom_line(size = 0.5) +
@@ -257,6 +257,11 @@ all_prevalence <- state_summaries %>%
 mean_all_prevalence <- all_prevalence %>% group_by(date) %>% summarise(prevalence = mean(prevalence))
 # plot(x = mean_omega$mean_value, y = mean_all_prevalence$prevalence)
 
+means <- mean_phi %>% 
+  full_join(mean_psi) %>% 
+  full_join(mean_omega) %>% 
+  full_join(mean_all_prevalence)
+
 state_summaries_wide <- state_summaries %>%
   filter(period == "Past") %>%
   filter(sim_type == 'status_quo') %>% 
@@ -266,37 +271,23 @@ state_summaries_wide <- state_summaries %>%
 
 CA <- state_summaries_wide %>% filter(location == "California")
 
-# state_summaries_wide %>% 
-#   filter(location == "California") %>% 
-#   ggplot(aes(x = omega, y = prevalence)) +
-#   geom_line(size = 0.5) +
-#   # ylab("Latent trend\n(% of normal)") +
-#   # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
-#   scale_y_continuous(labels = scales::percent) +
-#   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
-#   # theme_dark(base_line_size = 0.5) +
-#   # geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
-#   theme_minimal() +
-#   guides(color = FALSE)
-
 lagfill <- function(x, lag,fill=1) {
   replace_na(lag(x,lag),fill)
 }
 
-plotly::plot_ly(data = CA, type = 'scatter', mode = 'markers',
+CA %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~lagfill(omega,0), y = ~prevalence, 
                 hoverinfo = 'text', 
                 text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date)) %>% 
   plotly::layout(title = "California",xaxis=list(title="omega"),yaxis=list(title="prevalence"))
 
-plotly::plot_ly(data = state_summaries_wide, type = 'scatter', mode = 'markers',
+state_summaries_wide %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~lagfill(omega,0), y = ~prevalence, color = ~location,
                 hoverinfo = 'text', 
                 text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date, '</br> State: ', location )) %>% 
     plotly::layout(title = "All states", xaxis=list(title="omega"),yaxis=list(title="prevalence"))
-
-means <- mean_omega %>% rename(omega = mean_value) %>% 
-  full_join(mean_all_prevalence)
 
 means %>% filter(date < future[1]) %>% 
   plotly::plot_ly(type = 'scatter', mode = 'markers',
@@ -389,4 +380,31 @@ state_summaries_wide %>%
 
 e) map of same (correlation, by state)
 
+To be made
+
+# Correlation between Mobility and Omega
+
+```{r}
+
+CA %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~mobility_trend, y = ~omega, 
+                hoverinfo = 'text', 
+                text = ~paste('</br> Mobility: ', mobility_trend, '</br> omega: ', omega, '</br> Date: ', date)) %>% 
+  plotly::layout(title = "California",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
+
+state_summaries_wide %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~mobility_trend, y = ~omega, color = ~location,
+                hoverinfo = 'text', 
+                text = ~paste('</br> Mobility: ', mobility_trend, '</br> omega: ', omega, '</br> Date: ', date, '</br> State: ', location )) %>%
+    plotly::layout(title = "All states", xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
+
+means %>% filter(date < future[1]) %>% 
+  plotly::plot_ly(type = 'scatter', mode = 'markers',
+                x = ~phi, y = ~omega,                
+                hoverinfo = 'text', 
+                text = ~paste('</br> Mobility: ', phi, '</br> omega: ', omega, '</br> Date: ', date)) %>% 
+  plotly::layout(title = "Mean mobility, mean phi (across states)",xaxis=list(title="mobility trend"),yaxis=list(title="omega"))
+```
 
