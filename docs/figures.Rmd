@@ -11,7 +11,8 @@ library(here)
 library(tidyverse)
 library(cowplot)
 library(yardstick)
-library(ggpubr)
+# library(ggpubr)
+library(ggstatsplot)
 ```
 
 ```{r data}
