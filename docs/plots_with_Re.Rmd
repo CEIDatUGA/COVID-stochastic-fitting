@@ -17,6 +17,81 @@ path <- here::here("output/current/")
 allfiles <- list.files(path, ".csv")
 allparfiles <- list.files(path, "params-natural.rds")
 statedf <- readRDS(paste0(path,"statedf.rds"))
+
+getReff <- function(dates, S, N, omega, params) {
+  
+  # variables
+  dates <- seq(min(dates),max(dates),1)
+  t <- seq_along(dates)
+  N <- N # state population
+  S <- S/N # susceptible fraction
+  omega <- omega # transmission rate
+  
+  # detection probability # check against pomp code
+  q_min <- params$base_detect_frac
+  q_max <- params$max_detect_frac
+  q_n <- params$detect_rampup # Hill coefficient
+  q_th <- params$t_half_detect 
+  # as defined in states-model.rmd:
+  q <- scales::rescale(
+    t^q_n / (q_th^q_n + t^q_n), 
+    from = c(0,1), 
+    to = c(q_min, q_max)
+    )
+  
+  # as defined in makepompmodel:
+  # 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac
+  # q <- 1/(1 + q_max) * q_n ^ t / (q_n ^ q_th + q_n ^ t) + q_min # does not jive with q caluclation above
+
+  # diagnosis rate 
+  # s_min <- params$base_detect_frac
+  s_max <- params$max_diag_factor
+  s_n <- params$diag_rampup # Hill coefficient
+  s_th <- params$t_half_diag 
+  # s <- scales::rescale(
+  #   t^s_n / (s_th^s_n + t^s_n),
+  #   from = c(0,1),
+  #   to = c(s_min, s_max)
+  #   )
+
+  # as defined in makepompmodel:
+  # 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
+  s <- 1 + s_max * s_n^t / ( s_n ^ s_th + s_n ^ t )
+    
+  # constants
+  a <- params$frac_asym
+  h <- params$frac_hosp
+  
+  # relative transmissibility
+  b_L <- params$frac_trans_e
+  b_I_a <- params$frac_trans_a
+  b_I_su <- 1
+  b_I_sd <- 1
+  b_C <- params$frac_trans_c
+  b_H <- params$frac_trans_h
+  
+  # rates of movement between compartments
+  gamma_L <- 1/params$time_e
+  gamma_I_a <- 1/params$time_e
+  gamma_I_su <- 1/params$time_su
+  gamma_I_sd <- 1/params$time_sd
+  gamma_C <- 1/params$time_c
+  gamma_H <- 1/params$time_h
+
+  R_e <- S * omega * 4 * (
+    b_L / gamma_L +  (1 - a) * (
+      q * ( 
+        b_I_sd / (s * gamma_I_sd) 
+        + b_C * s / gamma_C 
+        + h * b_H / gamma_H 
+      )
+      + (1 - q) * b_I_su / gamma_I_su
+    ) 
+    + a * b_I_a / gamma_I_a 
+  )
+  
+  return(R_e)
+}
 ```
 
 ```{r plots, echo=FALSE, warning=FALSE, message = FALSE, fig.height = 9, out.width = "100%"}
@@ -67,105 +142,28 @@ for(i in 1:length(allfiles)) {
     bind_rows(stateresults)
   
   # calculate R_e
-  
-getReff <- function(dates, S, N, omega, params) {
-  
-  # variables
-  t <- seq_along(seq(min(stateresults$date),max(stateresults$date),1))
-  N <- N # state population
-  S <- S/N # susceptible fraction
-  omega <- omega # transmission rate
-  
-  # detection probability # check against pomp code
-  q_min <- params$base_detect_frac
-  q_max <- params$max_detect_frac
-  q_n <- params$detect_rampup # Hill coefficient
-  q_th <- params$t_half_detect 
-  # as defined in states-model.rmd:
-  q <- scales::rescale(
-    t^q_n / (q_th^q_n + t^q_n), 
-    from = c(0,1), 
-    to = c(q_min, q_max)
-    )
-  
-  # as defined in makepompmodel:
-  # 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac
-  q <- 1/(1 + q_max) * q_n ^ t / (q_n ^ q_th + q_n ^ t) + q_min # does not jive with q caluclation above
-
-  # diagnosis rate 
-  # s_min <- params$base_detect_frac
-  s_max <- params$max_diag_factor
-  s_n <- params$diag_rampup # Hill coefficient
-  s_th <- params$t_half_diag 
-  # s <- scales::rescale(
-  #   t^s_n / (s_th^s_n + t^s_n), 
-  #   from = c(0,1), 
-  #   to = c(s_min, s_max)
-  #   )
-
-  # as defined in makepompmodel:
-  # 1 + exp(log_max_diag) * exp(log_diag_inc_rate)^t /  ( exp(log_diag_inc_rate)^exp(log_half_diag) +   exp(log_diag_inc_rate)^t    )
-  s <- 1 + s_max * s_n^t / ( s_n ^ s_th + s_n ^ t )
-    
-  # constants
-  a <- params$frac_asym
-  h <- params$frac_hosp
-  
-  # relative transmissibility
-  b_L <- params$frac_trans_e
-  b_I_a <- params$frac_trans_a
-  b_I_su <- 1
-  b_I_sd <- 1
-  b_C <- params$frac_trans_c
-  b_H <- params$frac_trans_h
-  
-  # rates of movement between compartments
-  gamma_L <- 1/params$time_e
-  gamma_I_a <- 1/params$time_e
-  gamma_I_su <- 1/params$time_su
-  gamma_I_sd <- 1/params$time_sd
-  gamma_C <- 1/params$time_c
-  gamma_H <- 1/params$time_h
-
-  R_e <- S * omega * 4 * (
-    b_L / gamma_L +  (1 - a) * (
-      q * ( 
-        b_I_sd / (s * gamma_I_sd) 
-        + b_C * s / gamma_C 
-        + h * b_H / gamma_H 
-      )
-      + (1 - q) * b_I_su / gamma_I_su
-    ) 
-    + a * b_I_a / gamma_I_a 
-  )
-  
-  return(R_e)
-}
-  
-
-state_re <- stateresults %>% 
-  dplyr::filter(sim_type == "status_quo" 
+  state_re <- stateresults %>% 
+    dplyr::filter(sim_type == "status_quo" 
                 & variable == "S") %>% 
-  pivot_wider(names_from = variable, values_from = median_value) %>% 
-  select(date,S) %>% 
-  full_join(.,
+    pivot_wider(names_from = variable, values_from = median_value) %>% 
+    select(date,S) %>% 
+    full_join(.,
             stateresults %>% 
               dplyr::filter(sim_type == "status_quo" & variable == "combined_trend") %>% 
               pivot_wider(names_from = variable, values_from = mean_value) %>% 
               select(date,combined_trend),) %>% 
-  rename(omega = combined_trend) %>% 
-  mutate(R_e = getReff(dates=date,
+    rename(omega = combined_trend) %>% 
+    mutate(R_e = getReff(dates=date,
                        N=statepop,
                        S=S,
                        omega=omega,
                        params = statepars_allmle))
-  
 
-Re <- getReff(dates = stateresults_median_statusquo$date, 
-              S = stateresults_median_statusquo$S, 
-              N = statepop,
-              omega = stateresults_median_statusquo$combined_trend, 
-              params = statepars_allmle)
+# Re <- getReff(dates = stateresults_median_statusquo$date, 
+#               S = stateresults_median_statusquo$S, 
+#               N = statepop,
+#               omega = stateresults_median_statusquo$combined_trend, 
+#               params = statepars_allmle)
 
   # cases
   dat <- stateresults %>%
@@ -206,7 +204,13 @@ Re <- getReff(dates = stateresults_median_statusquo$date,
     theme(legend.position = "none") -> g_trends
   
   # Reproduction number
-
+  state_re %>%
+    ggplot(aes(x = date, y = R_e)) +
+    geom_line() +
+    # geom_point(aes(color = variable)) +
+    ggtitle("") +
+    xlab("") +
+    theme(legend.position = "none") -> g_re
 
   # death fraction
   daterange <- read_csv(fname) %>% pull(date) %>% range() %>% as.Date()
@@ -228,7 +232,7 @@ Re <- getReff(dates = stateresults_median_statusquo$date,
     ylim(0,1) +
     theme(legend.position = "none") -> g_deathfrac
 
-  figure <- ggarrange(g_cases, g_deaths, g_trends, g_deathfrac, ncol=1, nrow = 4, align="hv")
+  figure <- ggarrange(g_cases, g_deaths, g_trends, g_re, g_deathfrac, ncol=1, nrow = 5, align="hv")
   cat(paste("--------------------------\n",statename,"\n"))
   
   parsf <- list.files(path, pattern=paste0("^",statename,".*","natural.rds"))

@@ -150,10 +150,7 @@ burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-02-25"))
 
 # Mobility, Latent Trend and Omega for all states
 
-a) mobility trend for all states (spaghetti with mean).  
-
-Covariate that describes human mobility. These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>. We smooth the raw data from Unacast using a spline fit, resulting in the trajectories of human movement shown below. This covariate is used to reduce baseline transmission.
-Here we show the mobility trends from all 50 states.
+a) Mobility trend for all states ($\phi$). Covariate that describes human mobility. These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>. We smooth the raw data from Unacast using a spline fit, resulting in the trajectories of human movement shown below. This covariate is used to reduce baseline transmission. Here we show the mobility trends from all 50 states. b) latent trend for all states ($\psi$). c) Relativie transmissibility ($\omega$) for all states. In each subplot, the read line is a non-weighted mean of all states.
 
 ```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
 all_phi <- state_summaries %>%
@@ -179,14 +176,11 @@ g_phi <- ggplot(all_phi, aes(x = date, y = phi, color = location)) +
 p_phi <- g_phi %>% plotly::ggplotly() %>% 
   plotly::layout(showlegend = FALSE,
                  # margin = list(l = 150),
-                 yaxis = list(title = "Human movement (phi)\n(% of normal)\n&nbsp;")
+                 yaxis = list(title = "Phi")
                  )
-p_phi
+# p_phi
 ```
 
----
-
-b) latent trend for all states (spaghetti with mean).  
 
 ```{r}
 all_psi <- state_summaries %>%
@@ -211,14 +205,11 @@ g_psi <- ggplot(all_psi, aes(x = date, y = psi, color = location)) +
 p_psi <- g_psi %>% plotly::ggplotly() %>% 
   plotly::layout(showlegend = FALSE,
                  # margin = list(l = 150),
-                 yaxis = list(title = "Latent trend (psi)\n(% of normal)\n&nbsp;")
+                 yaxis = list(title = "Psi")
                  )
-p_psi
+# p_psi
 ```
 
----
-
-c) omega for all states (spaghetti with mean). 
 
 ```{r}
 all_omega <- state_summaries %>%
@@ -243,9 +234,13 @@ g_omega <- ggplot(all_omega, aes(x = date, y = omega, color = location)) +
 p_omega <- g_omega %>% plotly::ggplotly() %>% 
   plotly::layout(showlegend = FALSE,
                  # margin = list(l = 150),
-                 yaxis = list(title = "Relative transmission (omega)\n(% of normal)\n&nbsp;")
+                 yaxis = list(title = "Omega")
                  )
-p_omega
+# p_omega
+```
+
+```{r}
+plotly::subplot(p_phi, p_psi, p_omega, nrows = 3, shareX = TRUE, titleY = TRUE)
 ```
 
 # Correlation between Omega and Prevalence
@@ -370,17 +365,27 @@ state_summaries_wide %>% filter(period == 'Past') %>%
 c) predictor = AUC of omega; response = cumulative all infections
 
 ```{r}
+# state_summaries_wide %>% 
+#   filter(period == 'Past') %>%
+#   filter(date > burnin[2]) %>%
+#   group_by(location) %>% 
+#   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
+#   plotly::plot_ly(type = 'scatter', mode = 'markers',
+#                 x = ~AU_omega, y = ~cumulative_all_infections,
+#                 hoverinfo = 'text', 
+#                 text = ~paste('</br> Area under Omega: ', AU_omega, 
+#                               '</br> Cumulative infections: ', cumulative_all_infections, 
+#                               '</br> State: ', location)) %>% 
+#     plotly::layout(title = "Correlation of cumulative infection with Area under omega", xaxis=list(title="Area under omega"), yaxis=list(title="Cumulative infections"))
+
 state_summaries_wide %>% 
-  filter(period == 'Past') %>% 
+  filter(period == 'Past') %>%
+  filter(date > burnin[2]) %>%
   group_by(location) %>% 
   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
-  plotly::plot_ly(type = 'scatter', mode = 'markers',
-                x = ~AU_omega, y = ~cumulative_all_infections,
-                hoverinfo = 'text', 
-                text = ~paste('</br> Area under Omega: ', AU_omega, 
-                              '</br> Cumulative infections: ', cumulative_all_infections, 
-                              '</br> State: ', location)) %>% 
-    plotly::layout(title = "Correlation of cumulative infection with Area under omega", xaxis=list(title="Area under omega"), yaxis=list(title="Cumulative infections"))
+  ggstatsplot::ggscatterstats(x = "AU_omega", y = "cumulative_all_infections", type = "spearman", 
+                              title = "Correlation of cumulative infections with Area under omega")
+
 ```
 
 ---
