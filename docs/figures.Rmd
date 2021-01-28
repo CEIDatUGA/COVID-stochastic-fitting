@@ -348,6 +348,7 @@ CA %>% filter(period == 'Past') %>%
   plotly::layout(title = "California, area under omega at varying lags",xaxis=list(title="Area under omega"),yaxis=list(title="Cumulative infections"))
 
 state_summaries_wide %>% filter(period == 'Past') %>% 
+  filter(date > burnin[2]) %>%
   plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~lagfill(AU_omega,0), y = ~cumulative_all_infections, color = ~location,
                 hoverinfo = 'text', 
