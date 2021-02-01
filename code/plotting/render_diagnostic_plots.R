@@ -6,8 +6,8 @@
 # states <- c("Indiana", "Maryland", "New Jersey", "Ohio", "Washington")
 # states <- c("Indiana", "Massachusetts", "Michigan", "New Jersey", "Ohio", "Washington")
 # states <- c("Indiana", "Massachusetts", "New Jersey", "New York", "Ohio", "Washington")
-states <- c("Washington")
-startdate <- "2020-11-01" # Y-m-d
+states <- c("Maryland")
+startdate <- "2021-01-01" # Y-m-d
 enddate <- format(Sys.time(), '%Y-%m-%d')
 
 # Don't alter the code below ------------------------------------------------------------------
