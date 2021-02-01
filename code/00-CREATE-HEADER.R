@@ -101,6 +101,7 @@ statedf <- state_pops %>%
     # state_full == "Massachusetts" ~ "fresh",
     # state_full == "Georgia" ~ "fresh",
     # state_full == "Washington" ~ "2020-12-17",
+    state_full == "Maryland" ~ "2021-01-19",
     TRUE ~ "last" # default warm start 
   )) %>% 
   
