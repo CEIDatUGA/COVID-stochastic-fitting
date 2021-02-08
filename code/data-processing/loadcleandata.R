@@ -76,7 +76,8 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   # pull data from USAFacts and process
   #################################
   usafct_case_data <- readr::read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv")
-  state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
+  # state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
+  state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
   usafct_case_clean <- usafct_case_data %>% 
     dplyr::group_by(stateFIPS) %>% 
     summarize_if(is.numeric, sum, na.rm=TRUE) %>%
