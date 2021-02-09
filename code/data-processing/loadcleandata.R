@@ -77,7 +77,7 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   #################################
   usafct_case_data <- readr::read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv")
   # state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
-  state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
+  state_df = usafct_case_data %>% distinct(StateFIPS, .keep_all = TRUE) %>% select(State, StateFIPS)
   usafct_case_clean <- usafct_case_data %>% 
     dplyr::select(-countyFIPS) %>% 
     dplyr::group_by(stateFIPS) %>% 
@@ -95,7 +95,7 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   
   usafct_death_data <- readr::read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv")
   # state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
-  state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
+  # state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
   usafct_death_clean <- usafct_death_data %>% 
     dplyr::select(-countyFIPS) %>%
     rename(stateFIPS = StateFIPS) %>% 
