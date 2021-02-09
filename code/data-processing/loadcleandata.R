@@ -79,12 +79,13 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   # state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
   state_df = usafct_case_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
   usafct_case_clean <- usafct_case_data %>% 
+    dplyr::select(-countyFIPS) %>% 
     dplyr::group_by(stateFIPS) %>% 
     summarize_if(is.numeric, sum, na.rm=TRUE) %>%
-    dplyr::select(-countyFIPS) %>% 
-    left_join(state_df) %>%    
-    tidyr::pivot_longer(-State, names_to = "Date", values_to = "Total_Cases") %>%
-    mutate(Date = as.Date(Date,format="%m/%d/%y")) %>% 
+    left_join(state_df) %>% 
+    dplyr::select(-stateFIPS) %>% 
+    tidyr::pivot_longer(-State,names_to = "Date", values_to = "Total_Cases") %>%
+    mutate(Date = as.Date(Date)) %>% 
     group_by(State) %>% arrange(Date) %>%
     mutate(Daily_Cases = c(0,diff(Total_Cases))) %>% 
     rename(state_abr = State) %>%
@@ -93,14 +94,18 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
     select(-c(state_abr))
   
   usafct_death_data <- readr::read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv")
-  state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
+  # state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(3:4)
+  state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
   usafct_death_clean <- usafct_death_data %>% 
+    dplyr::select(-countyFIPS) %>%
+    rename(stateFIPS = StateFIPS) %>% 
+    mutate(stateFIPS = as.numeric(stateFIPS)) %>% 
     dplyr::group_by(stateFIPS) %>% 
     summarize_if(is.numeric, sum, na.rm=TRUE) %>%
-    dplyr::select(-countyFIPS) %>% 
     left_join(state_df) %>%    
+    dplyr::select(-stateFIPS) %>% 
     tidyr::pivot_longer(-State, names_to = "Date", values_to = "Total_Deaths") %>%
-    mutate(Date = as.Date(Date,format="%m/%d/%y")) %>% 
+    mutate(Date = as.Date(Date)) %>% 
     group_by(State) %>% arrange(Date) %>%
     mutate(Daily_Deaths = c(0,diff(Total_Deaths))) %>% 
     rename(state_abr = State) %>%
