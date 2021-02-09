@@ -80,10 +80,11 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   state_df = usafct_case_data %>% distinct(StateFIPS, .keep_all = TRUE) %>% select(State, StateFIPS)
   usafct_case_clean <- usafct_case_data %>% 
     dplyr::select(-countyFIPS) %>% 
-    dplyr::group_by(stateFIPS) %>% 
+    # mutate(StateFIPS = as.numeric(StateFIPS)) %>% 
+    dplyr::group_by(StateFIPS) %>% 
     summarize_if(is.numeric, sum, na.rm=TRUE) %>%
     left_join(state_df) %>% 
-    dplyr::select(-stateFIPS) %>% 
+    dplyr::select(-StateFIPS) %>% 
     tidyr::pivot_longer(-State,names_to = "Date", values_to = "Total_Cases") %>%
     mutate(Date = as.Date(Date)) %>% 
     group_by(State) %>% arrange(Date) %>%
@@ -98,12 +99,11 @@ loadcleandata <- function(datasource, locations, timestamp, smooth = FALSE, trim
   # state_df = usafct_death_data %>% distinct(stateFIPS, .keep_all = TRUE) %>% select(State, stateFIPS)
   usafct_death_clean <- usafct_death_data %>% 
     dplyr::select(-countyFIPS) %>%
-    rename(stateFIPS = StateFIPS) %>% 
-    mutate(stateFIPS = as.numeric(stateFIPS)) %>% 
-    dplyr::group_by(stateFIPS) %>% 
+    # mutate(StateFIPS = as.numeric(StateFIPS)) %>% 
+    dplyr::group_by(StateFIPS) %>% 
     summarize_if(is.numeric, sum, na.rm=TRUE) %>%
     left_join(state_df) %>%    
-    dplyr::select(-stateFIPS) %>% 
+    dplyr::select(-StateFIPS) %>% 
     tidyr::pivot_longer(-State, names_to = "Date", values_to = "Total_Deaths") %>%
     mutate(Date = as.Date(Date)) %>% 
     group_by(State) %>% arrange(Date) %>%
