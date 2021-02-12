@@ -1,19 +1,19 @@
 library(tidyverse)
 library(here)
 
-fig_outpath <- here("output/figures/")
+fig_outpath <- here::here("output/figures/")
 
-simfiles <- list.files(path = here('output/current'), ".csv")
-covarfiles <- list.files(path = here('output/current'), "params-natural.rds")
-# miffile <- here("output/current", filename_mif)
+simfiles <- list.files(path = here::here('output/current'), ".csv")
+covarfiles <- list.files(path = here::here('output/current'), "params-natural.rds")
+# miffile <- here::here("output/current", filename_mif)
 
 
 ## simulations
-simfile <- paste0(here('output/current/'),simfiles[1])
+simfile <- paste0(here::here('output/current/'),simfiles[1])
 out_sims <- read_csv(simfile)
 
 for(i in 2:length(simfiles)) {
-  simfile <- paste0(here('output/current/'),simfiles[i])
+  simfile <- paste0(here::here('output/current/'),simfiles[i])
   o <- read_csv(simfile)
   out_sims <- bind_rows(out_sims, o)
 }
@@ -75,7 +75,7 @@ cumcases.lp <- cumcases %>%
 
 dailycases <- out_sims %>% filter(variable == 'daily_cases')
 
-up_popsize <- readRDS(here('data/us_popsize.rds'))
+up_popsize <- readRDS(here::here('data/us_popsize.rds'))
 idx <- match(x = dailycases$location, table = up_popsize$state_full)
 dailycases$pop <- up_popsize$total_pop[idx]
 
@@ -128,7 +128,7 @@ dailycases.lp <- dailycases %>%
 p_dailycases.lp <- dailycases.lp %>% 
   plotly::ggplotly()
 
-fig_outpath <- here("output/figures/")
+fig_outpath <- here::here("output/figures/")
 p_dailycases.lp %>% htmlwidgets::saveWidget(file = paste0(fig_outpath, "topstates.html"))
 
 # plot transmission rates over time -----------------------------------------------------------------------------------

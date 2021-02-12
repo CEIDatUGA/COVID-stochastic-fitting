@@ -63,12 +63,12 @@ We show a subset of the state-level data here for Georgia, New York, Washington,
 We did not smooth the reported data but we did exclude all negative case and death reports.
 
 ```{r collate-data}
-all_files <- list.files(path = here("output/current/"), pattern = ".csv")
-param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
+all_files <- list.files(path = here::here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here::here("output/current/"), pattern = "params-natural.rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
-statedf <-readRDS(here("output/current", "statedf.rds"))
+statedf <-readRDS(here::here("output/current", "statedf.rds"))
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   location <- sub(".csv", "", do_file)
@@ -77,7 +77,7 @@ for(i in 1:length(all_files)) {
   state_initR0 <- state_metadata %>% pull(initR0)
   state_beta_s <- (state_initR0*.1)
   
-  tmpfile <- here("output/current", do_file)
+  tmpfile <- here::here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths",
@@ -95,7 +95,7 @@ for(i in 1:length(all_files)) {
 
   state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
 
-  tmpparamfile <- here("output/current", param_files[i])
+  tmpparamfile <- here::here("output/current", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
@@ -266,7 +266,7 @@ To allow more realistic distributions of movement through compartments, several 
 The flow diagram for this model shown below.
 
 ```{r pomp-model}
-knitr::include_graphics(here("docs",'pomp-model.png'))
+knitr::include_graphics(here::here("docs",'pomp-model.png'))
 ```
 
 We implemented the above model using the R package **pomp** version 2.7.1.0^[King et al. 2016 (https://www.jstatsoft.org/article/view/v069i12) and King et al. 2020 (https://kingaa.github.io/pomp/)].
@@ -417,7 +417,7 @@ The estimated latent trend in transmission reduction is combined with mobility d
 The estimated values of $\beta$ for each state are informative, but to understand the tranmission rate as implemented in the model we need to look at $\omega(t)$, which is plotted below.
 
 ```{r trends, fig.width = 10}
-# pops <- readRDS(here("data/us_popsize.rds")) %>%
+# pops <- readRDS(here::here("data/us_popsize.rds")) %>%
 #   rename("location" = state_full)
 # omega_summaries <- state_summaries %>%
 #   filter(variable %in% c("mobility_trend", "latent_trend"),
@@ -674,7 +674,7 @@ ggplot(all_maes %>%
   ylab("Mean absolute error (MAE)") 
 
 # save MAEs as file
-all_maes %>% saveRDS(paste0(here("output/"),"us_all_maes.rds"))
+all_maes %>% saveRDS(paste0(here::here("output/"),"us_all_maes.rds"))
 ```
 
 <!-- ## Mean absolute scaled errors -->
@@ -690,5 +690,5 @@ all_maes %>% saveRDS(paste0(here("output/"),"us_all_maes.rds"))
 
 
 <!-- # save MASEs as file -->
-<!-- all_maes %>% saveRDS(paste0(here("output/"),"us_all_mases.rds")) -->
+<!-- all_maes %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds")) -->
 <!-- ``` -->
