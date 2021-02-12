@@ -109,7 +109,7 @@ statedf <- state_pops %>%
   dplyr::mutate(initR0 = dplyr::case_when(
     state_full %in% c("Illinois") ~ 8,
     state_full %in% c("Indiana") ~ 8, 
-    state_full %in% c("Maryland") ~ 8,
+    state_full %in% c("Maryland") ~ 10,
     state_full %in% c("Massachusetts") ~ 10,
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
@@ -127,6 +127,7 @@ statedf <- state_pops %>%
     state_full %in% c("Illinois") ~ list(c(350,150)), 
     state_full %in% c("Indiana") ~ list(c(350,150)), 
     state_full %in% c("Iowa") ~ list(c(350,150)), 
+    state_full %in% c("Maryland") ~ list(c(350,150)),
     state_full %in% c("Massachusetts") ~ list(c(500,150)),
     state_full %in% c("Michigan") ~ list(c(350,150)),
     state_full %in% c("New Jersey") ~ list(c(350,150)),
