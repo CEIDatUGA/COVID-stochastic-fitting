@@ -98,10 +98,10 @@ statedf <- state_pops %>%
     # state_full == "Indiana" ~ "2020-09-14", # example: use date of last good fit for warm start
     # state_full == "Indiana" ~ "fresh", # example: fit from scratch
     # state_full == "Indiana" ~ "last", # example: use last date for warm start
-    state_full == "Maryland" ~ "2021-02-01",
+    state_full == "Maryland" ~ "fresh",
     # state_full == "Massachusetts" ~ "fresh",
     # state_full == "Georgia" ~ "fresh",
-    state_full == "Washington" ~ "2021-01-23",
+    # state_full == "Washington" ~ "2021-01-23",
     TRUE ~ "last" # default warm start 
   )) %>% 
   
@@ -109,7 +109,7 @@ statedf <- state_pops %>%
   dplyr::mutate(initR0 = dplyr::case_when(
     state_full %in% c("Illinois") ~ 8,
     state_full %in% c("Indiana") ~ 8, 
-    state_full %in% c("Maryland") ~ 10,
+    state_full %in% c("Maryland") ~ 8,
     state_full %in% c("Massachusetts") ~ 10,
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
