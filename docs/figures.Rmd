@@ -143,7 +143,8 @@ fixed_parameters <- tmpparams %>%
   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
 
 future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
-burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-02-25"))
+burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-03-01"))
+sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
 
 
 ```
