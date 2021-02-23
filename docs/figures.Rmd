@@ -16,12 +16,12 @@ library(ggstatsplot)
 ```
 
 ```{r data}
-all_files <- list.files(path = here("output/current/"), pattern = ".csv")
-param_files <- list.files(path = here("output/current/"), pattern = "params-natural.rds")
+all_files <- list.files(path = here::here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here::here("output/current/"), pattern = "params-natural.rds")
 state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
-statedf <-readRDS(here("output/current", "statedf.rds"))
+statedf <-readRDS(here::here("output/current", "statedf.rds"))
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   location <- sub(".csv", "", do_file)
@@ -31,7 +31,7 @@ for(i in 1:length(all_files)) {
   state_beta_s <- (state_initR0*.1)
   
   
-  tmpfile <- here("output/current", do_file)
+  tmpfile <- here::here("output/current", do_file)
   tmp <- read.csv(tmpfile) %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths",
@@ -51,7 +51,7 @@ for(i in 1:length(all_files)) {
 
   state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
 
-  tmpparamfile <- here("output/current", param_files[i])
+  tmpparamfile <- here::here("output/current", param_files[i])
   tmpparams <- readRDS(tmpparamfile)
   tmp_loglik <- data.frame(location = unique(tmp$location),
                         log_lik = tmpparams["LogLik", 2])
@@ -246,12 +246,15 @@ plotly::subplot(p_phi, p_psi, p_omega, nrows = 3, shareX = TRUE, titleY = TRUE)
 
 # Correlation between Omega and Prevalence
 
+Sample period = March 1, 2020 through December 31, 2021
+
 a) predictor = omega(t); response = daily prevalence(t)
 
 ```{r}
 
 all_prevalence <- state_summaries %>%
   filter(period == "Past") %>%
+  filter(between(date, sample_period[1], sample_period[2])) %>% 
   filter(variable == "prevalence") %>%
   dplyr::select(location, date, mean_value) %>%
   rename(prevalence = mean_value) %>% 
@@ -267,6 +270,7 @@ means <- mean_phi %>%
 
 state_summaries_wide <- state_summaries %>%
   filter(period == "Past") %>%
+  filter(between(date, sample_period[1], sample_period[2])) %>% 
   filter(sim_type == 'status_quo') %>% 
   pivot_wider(names_from = variable, values_from = mean_value) %>% 
   group_by(location) %>% 
@@ -307,6 +311,7 @@ California, and mean across states, at varying lags
 
 ```{r}
 CA %>% filter(period == 'Past') %>% 
+  filter(between(date, sample_period[1], sample_period[2])) %>% 
   plotly::plot_ly(type = 'scatter', mode = 'markers',
                 x = ~lagfill(omega,0), y = ~prevalence, name = "lag 0",
                 hoverinfo = 'text', text = ~paste('</br> Omega: ', omega, '</br> prevalence: ', prevalence, '</br> Date: ', date)) %>% 
@@ -382,7 +387,8 @@ c) predictor = AUC of omega; response = cumulative all infections
 
 state_summaries_wide %>% 
   filter(period == 'Past') %>%
-  filter(date > burnin[2]) %>%
+#  filter(date > burnin[2]) %>%
+  filter(date >= sample_period[1] & data <= sample_period[2]) %>% 
   group_by(location) %>% 
   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
   ggstatsplot::ggscatterstats(x = "AU_omega", y = "cumulative_all_infections", type = "spearman", 
