@@ -101,7 +101,7 @@ statedf <- state_pops %>%
     # state_full == "Maryland" ~ "fresh",
     # state_full == "Massachusetts" ~ "fresh",
     # state_full == "Georgia" ~ "fresh",
-    # state_full == "Washington" ~ "2021-01-23",
+    state_full == "Washington" ~ "2021-02-24",
     TRUE ~ "last" # default warm start 
   )) %>% 
   
@@ -114,7 +114,7 @@ statedf <- state_pops %>%
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
     state_full %in% c("Ohio") ~ 8,
-    state_full %in% c("Washington") ~ 6,
+    state_full %in% c("Washington") ~ 5,
     TRUE ~ 6 # default initial R0
   )) %>% 
   
@@ -133,7 +133,7 @@ statedf <- state_pops %>%
     state_full %in% c("New Jersey") ~ list(c(350,150)),
     state_full %in% c("New York") ~ list(c(500,150)), 
     state_full %in% c("Ohio") ~ list(c(350,150)),
-    state_full %in% c("Washington") ~ list(c(700,150)),
+    state_full %in% c("Washington") ~ list(c(1000,150)),
     TRUE ~ list(c(150,150)) # default mif runs vector
   ))
 
