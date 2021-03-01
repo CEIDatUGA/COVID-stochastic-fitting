@@ -6,3 +6,4 @@ cd ~/COVID-stochastic-fitting
 git pull
 cp -r ~/COVID-stochastic-fitting/data/ ~/cov/
 cp -r ~/COVID-stochastic-fitting/code/ ~/cov/
+cp ~/COVID-stochastic-fitting/sub_slurm_* ~/cov/
