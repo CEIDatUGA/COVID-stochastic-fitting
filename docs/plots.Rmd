@@ -168,7 +168,7 @@ for(i in 1:length(allfiles)) {
 
   # ******************* FIGURE ******************* 
 
-  figure <- ggarrange(g_cases, g_deaths, g_trends, g_Re, g_deathfrac,
+  figure <- ggarrange(g_cases, g_deaths, g_trends, g_re, g_deathfrac,
                       ncol=1, nrow = 5, align="hv")
   cat(paste("--------------------------\n",statename,"\n"))
   
