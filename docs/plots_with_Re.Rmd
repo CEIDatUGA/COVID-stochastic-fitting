@@ -71,14 +71,19 @@ getReff <- function(dates, S, N, omega, params) {
   b_H <- params$frac_trans_h
   
   # rates of movement between compartments
+  # rates are per class, not per sub-compartment
   gamma_L <- 1/params$time_e
-  gamma_I_a <- 1/params$time_e
+  gamma_I_a <- 1/params$time_a
   gamma_I_su <- 1/params$time_su
   gamma_I_sd <- 1/params$time_sd
   gamma_C <- 1/params$time_c
   gamma_H <- 1/params$time_h
-
-  R_e <- S * omega * 4 * (
+  
+  # number of compartments. 
+  # Set to 1 if gammas refer to the class, set to 4 if gammas refer to subcompartments
+  subcompartments <- 1 
+  
+  R_e <- S * omega * subcompartments * (
     b_L / gamma_L +  (1 - a) * (
       q * ( 
         b_I_sd / (s * gamma_I_sd) 
@@ -94,7 +99,9 @@ getReff <- function(dates, S, N, omega, params) {
 }
 ```
 
+
 ```{r plots, echo=FALSE, warning=FALSE, message = FALSE, fig.height = 9, out.width = "100%"}
+
 for(i in 1:length(allfiles)) {
   f <- allfiles[i]
   parf <- allparfiles[i]
@@ -159,12 +166,18 @@ for(i in 1:length(allfiles)) {
                        omega=omega,
                        params = statepars_allmle))
 
-# Re <- getReff(dates = stateresults_median_statusquo$date, 
-#               S = stateresults_median_statusquo$S, 
-#               N = statepop,
-#               omega = stateresults_median_statusquo$combined_trend, 
-#               params = statepars_allmle)
-
+  # S/N
+  stateresults %>%
+    filter(variable %in% c("S")) %>%
+    filter(sim_type == "status_quo") %>%
+    filter(date <= (Sys.Date() + 7*4)) %>%
+    ggplot(aes(x = date, y = median_value/statepop)) +
+    geom_ribbon(aes(ymin = lower_80/statepop, ymax = upper_80/statepop), alpha = 0.2) +
+    geom_line() +
+    # geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+    ylab("S/N") +
+    ggtitle(statename) -> g_S
+  
   # cases
   dat <- stateresults %>%
     filter(variable %in% c("actual_daily_cases"))

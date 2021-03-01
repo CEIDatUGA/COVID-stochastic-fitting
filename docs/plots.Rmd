@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(here)
 library(ggpubr) # for multi plot figures
+source(here::here("code/result-exploration/getReff.R"))
 
 path <- here::here("output/current/")
 
@@ -66,7 +67,37 @@ for(i in 1:length(allfiles)) {
     mutate(variable = as.factor("S")) %>% 
     bind_rows(stateresults)
 
-
+  # calculate R_e
+  state_re <- stateresults %>% 
+    dplyr::filter(sim_type == "status_quo" 
+                & variable == "S") %>% 
+    pivot_wider(names_from = variable, values_from = median_value) %>% 
+    select(date,S) %>% 
+    full_join(.,
+            stateresults %>% 
+              dplyr::filter(sim_type == "status_quo" & variable == "combined_trend") %>% 
+              pivot_wider(names_from = variable, values_from = mean_value) %>% 
+              select(date,combined_trend),) %>% 
+    rename(omega = combined_trend) %>% 
+    mutate(R_e = getReff(dates=date,
+                       N=statepop,
+                       S=S,
+                       omega=omega,
+                       params = statepars_allmle))
+  
+  # ******************* SUBPLOTS ******************* 
+  # S/N
+  stateresults %>%
+    filter(variable %in% c("S")) %>%
+    filter(sim_type == "status_quo") %>%
+    filter(date <= (Sys.Date() + 7*4)) %>%
+    ggplot(aes(x = date, y = median_value/statepop)) +
+    geom_ribbon(aes(ymin = lower_80/statepop, ymax = upper_80/statepop), alpha = 0.2) +
+    geom_line() +
+    # geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+    ylab("S/N") +
+    ggtitle(statename) -> g_S
+  
   # cases
   dat <- stateresults %>%
     filter(variable %in% c("actual_daily_cases"))
@@ -104,6 +135,15 @@ for(i in 1:length(allfiles)) {
     ggtitle("") +
     xlab("") +
     theme(legend.position = "none") -> g_trends
+
+  # Reproduction number
+  state_re %>%
+    ggplot(aes(x = date, y = R_e)) +
+    geom_line() +
+    # geom_point(aes(color = variable)) +
+    ggtitle("") +
+    xlab("") +
+    theme(legend.position = "none") -> g_re
   
 
   # death fraction
@@ -126,7 +166,10 @@ for(i in 1:length(allfiles)) {
     ylim(0,1) +
     theme(legend.position = "none") -> g_deathfrac
 
-  figure <- ggarrange(g_cases, g_deaths, g_trends, g_deathfrac, ncol=1, nrow = 4, align="hv")
+  # ******************* FIGURE ******************* 
+
+  figure <- ggarrange(g_cases, g_deaths, g_trends, g_Re, g_deathfrac,
+                      ncol=1, nrow = 5, align="hv")
   cat(paste("--------------------------\n",statename,"\n"))
   
   parsf <- list.files(path, pattern=paste0("^",statename,".*","natural.rds"))
