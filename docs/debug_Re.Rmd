@@ -13,7 +13,6 @@ library(tidyverse)
 ```{r functions}
 # This fuction takes the dates and the dataframe of parameters in natural units, 
 # and returns a vector for detection probability (q).
-
 # dates <- seq(min(dates),max(dates),1)
 # t <- seq_along(dates)
 
@@ -124,8 +123,8 @@ for(i in 1:length(all_files)) {
   location <- sub(".csv", "", do_file)
   state_metadata <- statedf %>% filter(state_full == sub(".csv", "", do_file))
   state_pop <- state_metadata %>% pull(total_pop)
-  state_initR0 <- state_metadata %>% pull(initR0)
-  state_beta_s <- (state_initR0*.1)
+  # state_initR0 <- state_metadata %>% pull(initR0)
+  # state_beta_s <- (state_initR0*.1)
   
   # tmp state params
 
@@ -173,15 +172,15 @@ for(i in 1:length(all_files)) {
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths", "daily_all_infections", 
                            "actual_daily_cases", "actual_daily_deaths",
-                           "mobility_trend", "latent_trend",
+                           "mobility_trend", "latent_trend", "combined_trend",
                            "cumulative_all_infections", "cumulative_deaths")) %>%
     dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
     pivot_wider(names_from = variable, values_from = mean_value) %>%
-    mutate(beta_s = state_beta_s) %>% 
+    # mutate(beta_s = state_beta_s) %>% 
     # calculate prevalence
     mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
     # calculate omega
-    mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
+    rename(omega = combined_trend) %>% 
     # calculate mean S
     mutate(susceptible_fraction = (state_pop - cumulative_all_infections) / (state_pop - cumulative_deaths)) %>% 
     # calculate q
@@ -230,7 +229,7 @@ g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
   scale_y_continuous(limits = c(0,5)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_re, alpha = .6, size = 2, color = 'red') +
+  geom_line(data = weighted_mean_re, alpha = .6, size = 2, color = 'red') +
   # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 5, alpha = .2) +
   geom_hline(yintercept = 1) +
