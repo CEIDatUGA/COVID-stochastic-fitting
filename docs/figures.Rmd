@@ -13,6 +13,8 @@ library(cowplot)
 library(yardstick)
 # library(ggpubr)
 library(ggstatsplot)
+source(here::here("code/result-exploration/getReff.R"))
+
 ```
 
 ```{r data}
@@ -22,6 +24,9 @@ state_summaries <- tibble()
 state_parameters <- tibble()
 state_logliks <- tibble()
 statedf <-readRDS(here::here("output/current", "statedf.rds"))
+statevec <- gsub(".csv","",all_files)
+allstates_pop <- statedf %>% filter(state_full %in% statevec) %>% pull(total_pop) %>% sum()
+
 for(i in 1:length(all_files)) {
   do_file <- all_files[i]
   location <- sub(".csv", "", do_file)
@@ -30,20 +35,72 @@ for(i in 1:length(all_files)) {
   state_initR0 <- state_metadata %>% pull(initR0)
   state_beta_s <- (state_initR0*.1)
   
+  tmpparamfile <- here::here("output/current", param_files[i])
+  # tmpparams <- readRDS(tmpparamfile)
+  # tmp_loglik <- data.frame(location = unique(tmp$location),
+  #                       log_lik = tmpparams["LogLik", 2])
+  # rnms <- row.names(tmpparams)
+  # tmpparams <- tmpparams %>%
+  #   mutate(parameter = rnms) %>%
+  #   filter(is_fitted == "yes") %>%
+  #   dplyr::select(-is_fitted) %>%
+  #   gather("key", "value", -parameter) %>%
+  #   filter(key == "X1") %>%
+  #   dplyr::select(-key) %>%
+  #   mutate(location = unique(tmp$location)) %>%
+  #   dplyr::select(location, value, parameter)
+  # 
+  # state_parameters <- bind_rows(state_parameters, tmpparams)
+  # state_logliks <- bind_rows(state_logliks, tmp_loglik)
   
+  # tmp state params
+  statepars <- readRDS(tmpparamfile) 
+
+  statepars_fixed <- statepars %>% 
+    rownames_to_column(var = "param") %>% 
+    dplyr::filter(is_fitted == "no") %>% 
+    select(param,X1) %>% 
+    pivot_wider(values_from = X1, names_from = param) %>% 
+    select(-c(MIF_ID, LogLik, LogLik_SE))
+
+  statepars_fitted <- statepars %>% 
+    rownames_to_column(var = "param") %>% 
+    dplyr::filter(is_fitted == "yes") %>% 
+    select(param,X1) %>% 
+    pivot_wider(values_from = X1, names_from = param)
+  
+  statepars_allmle <- bind_cols(statepars_fixed,statepars_fitted)
+  
+  # results
+
   tmpfile <- here::here("output/current", do_file)
-  tmp <- read.csv(tmpfile) %>%
+  tmp <- read.csv(tmpfile) %>% mutate(date = as.Date(date))
+  firstcasedate <- tmp$date %>% min()
+  tmp <- tmp %>%
     filter(sim_type == "status_quo" | is.na(sim_type),
-           variable %in% c("daily_cases", "daily_deaths",
+           variable %in% c("daily_cases", "daily_deaths", "daily_all_infections", 
                            "actual_daily_cases", "actual_daily_deaths",
                            "mobility_trend", "latent_trend",
-                           "cumulative_all_infections", "daily_all_infections")) %>%
-    mutate(date = as.Date(date)) %>%
+                           "cumulative_all_infections", "cumulative_deaths")) %>%
     dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
     pivot_wider(names_from = variable, values_from = mean_value) %>%
     mutate(beta_s = state_beta_s) %>% 
-    mutate(prevalence = daily_all_infections / state_pop) %>% 
+    # calculate prevalence
+    mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
+    # calculate omega
     mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
+    # calculate mean S
+    mutate(susceptible_fraction = (state_pop - cumulative_all_infections) / (state_pop - cumulative_deaths)) %>% 
+    # calculate q
+    mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate s
+    mutate(s = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate mean R_e
+    mutate(R_e = getReff(S = susceptible_fraction, N = 1, # whole population
+                         omega = omega,
+                         q = q,
+                         s = s,
+                         params = statepars_allmle)) %>%
     pivot_longer(cols = !c(location, sim_type, period, date), 
                  names_to = "variable", 
                  values_to = "mean_value",
@@ -51,23 +108,7 @@ for(i in 1:length(all_files)) {
 
   state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
 
-  tmpparamfile <- here::here("output/current", param_files[i])
-  tmpparams <- readRDS(tmpparamfile)
-  tmp_loglik <- data.frame(location = unique(tmp$location),
-                        log_lik = tmpparams["LogLik", 2])
-  rnms <- row.names(tmpparams)
-  tmpparams <- tmpparams %>%
-    mutate(parameter = rnms) %>%
-    filter(is_fitted == "yes") %>%
-    dplyr::select(-is_fitted) %>%
-    gather("key", "value", -parameter) %>%
-    filter(key == "X1") %>%
-    dplyr::select(-key) %>%
-    mutate(location = unique(tmp$location)) %>%
-    dplyr::select(location, value, parameter)
   
-  state_parameters <- bind_rows(state_parameters, tmpparams)
-  state_logliks <- bind_rows(state_logliks, tmp_loglik)
 }
 
 # Fixed parameters table
@@ -168,7 +209,7 @@ g_phi <- ggplot(all_phi, aes(x = date, y = phi, color = location)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_phi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  geom_line(data = mean_phi, alpha = .6, size = 2, color = 'red') +
   # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
@@ -179,6 +220,9 @@ p_phi <- g_phi %>% plotly::ggplotly() %>%
                  # margin = list(l = 150),
                  yaxis = list(title = "Phi")
                  )
+
+p_phi$x$data[[51]]$text <- gsub('red','Mean of all states', p_phi$x$data[[51]]$text)
+
 # p_phi
 ```
 
@@ -198,7 +242,7 @@ g_psi <- ggplot(all_psi, aes(x = date, y = psi, color = location)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_psi, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  geom_line(data = mean_psi, alpha = .6, size = 2, color = 'red') +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
@@ -208,6 +252,9 @@ p_psi <- g_psi %>% plotly::ggplotly() %>%
                  # margin = list(l = 150),
                  yaxis = list(title = "Psi")
                  )
+
+p_psi$x$data[[51]]$text <- gsub('red','Mean of all states', p_psi$x$data[[51]]$text)
+
 # p_psi
 ```
 
@@ -227,7 +274,7 @@ g_omega <- ggplot(all_omega, aes(x = date, y = omega, color = location)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red', name="Mean of all states") +
+  geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red') +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
@@ -237,6 +284,9 @@ p_omega <- g_omega %>% plotly::ggplotly() %>%
                  # margin = list(l = 150),
                  yaxis = list(title = "Omega")
                  )
+
+p_omega$x$data[[51]]$text <- gsub('red','Mean of all states', p_omega$x$data[[51]]$text)
+
 # p_omega
 ```
 
@@ -457,6 +507,58 @@ means %>%
 means %>% filter(date < future[1]) %>% 
   filter(date > burnin[2]) %>%
   ggstatsplot::ggscatterstats(x = "phi", y = "omega", type = "spearman", title = "Mean phi, Mean omega over all states")
+
+
+```
+
+# R effective for all states
+
+```{r R_effective, fig.height=3, fig.width=7, eval = TRUE}
+all_re <- state_summaries %>%
+  filter(variable == "R_e") %>%
+  dplyr::select(location, date, mean_value) %>%
+  rename(R_e = mean_value) %>% 
+  filter(date <= Sys.Date()) %>% 
+  left_join(statedf, by=c("location" = "state_full")) %>% 
+  mutate(relative_pop = total_pop / allstates_pop)
+
+mean_re <- all_re %>% group_by(date) %>% summarise(R_e = mean(R_e))
+
+weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relative_pop))
+
+plot(mean_re$R_e - weighted_mean_re$R_e)
+lines(weighted_mean_re)
+
+g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
+  geom_line(size = 0.5) +
+  # ylab("Human movement\n(% of normal)") +
+  scale_y_continuous(limits = c(0,5)) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  geom_line(data = mean_re, alpha = .6, size = 2, color = 'red') +
+  # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 5, alpha = .2) +
+  geom_hline(yintercept = 1) +
+  theme_minimal() +
+  guides(color = FALSE)
+
+p_re <- g_re %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = FALSE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "R_e")
+                 )
+
+p_re$x$data[[51]]$text <- gsub('red','Mean of all states', p_re$x$data[[51]]$text)
+
+p_re
+```
+
+
+# Cross Correlation among times series of R Effective
+
+```{r}
+AL <- all_re %>% dplyr::filter(location == state.name[1]) %>% select(date,R_e)
+AK <- all_re %>% dplyr::filter(location == state.name[2]) %>% select(date,R_e)
 
 
 ```
