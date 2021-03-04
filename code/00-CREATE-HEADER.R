@@ -133,7 +133,7 @@ statedf <- state_pops %>%
     state_full %in% c("New Jersey") ~ list(c(350,150)),
     state_full %in% c("New York") ~ list(c(500,150)), 
     state_full %in% c("Ohio") ~ list(c(350,150)),
-    state_full %in% c("Washington") ~ list(c(1000,150)),
+    state_full %in% c("Washington") ~ list(c(700,350)),
     TRUE ~ list(c(150,150)) # default mif runs vector
   ))
 
