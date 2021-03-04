@@ -526,16 +526,13 @@ mean_re <- all_re %>% group_by(date) %>% summarise(R_e = mean(R_e))
 
 weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relative_pop))
 
-plot(mean_re$R_e - weighted_mean_re$R_e)
-lines(weighted_mean_re)
-
 g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,5)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_re, alpha = .6, size = 2, color = 'red') +
+  geom_line(data = weighted_mean_re, alpha = .6, size = 2, color = 'red') +
   # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 5, alpha = .2) +
   geom_hline(yintercept = 1) +
@@ -548,7 +545,7 @@ p_re <- g_re %>% plotly::ggplotly() %>%
                  yaxis = list(title = "R_e")
                  )
 
-p_re$x$data[[51]]$text <- gsub('red','Mean of all states', p_re$x$data[[51]]$text)
+p_re$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_re$x$data[[51]]$text)
 
 p_re
 ```
@@ -557,8 +554,40 @@ p_re
 # Cross Correlation among times series of R Effective
 
 ```{r}
-AL <- all_re %>% dplyr::filter(location == state.name[1]) %>% select(date,R_e)
-AK <- all_re %>% dplyr::filter(location == state.name[2]) %>% select(date,R_e)
+all_re_wide <- all_re %>% 
+  select(date, location, R_e) %>% 
+  pivot_wider(names_from = location, values_from = R_e) %>% 
+  select(-date)
+
+
+
+ccfmatrix <- function(x){
+  # init matrix of acf objects and matrix of ggplots
+  mlist <- glist <- matrix(list(), ncol = ncol(x), nrow = ncol(x))
+  
+  # fill matrix with pairwise cross correlation functions
+  for(i in 1:ncol(x)){
+    for(j in 1:ncol(x)){
+      ccf <- ccf(x = x[,i], y= x[,j], na.action = na.pass, ylab = "CCF", plot = FALSE)
+      g <- ggplot2::autoplot(ccf)+ylim(-1,1)+labs(title=paste0(i," ", j), x = "", y="")
+      mlist[i,j] <- list(ccf)
+      glist[j,i] <- list(g)
+    }
+  }
+  return(list(data=mlist,plots=glist))
+}
+
+# calculate cross correlation functions for each state pair
+re_ccf_matrix <- ccfmatrix(all_re_wide)
+  
+# plot CCF for a pair of states
+# g1 <- re_ccf_matrix[1,2][[1]] %>% ggplot2::autoplot()+labs(title="", x = "", y="")
+
+grobs <- list(g1,g1,g1,g1)
+
+grobs <- re_ccf_matrix$plots[1:4]
+gridExtra::grid.arrange(grobs=grobs, ncol=2, nrow = 2)
+
 
 
 ```
