@@ -50,53 +50,83 @@ for(i in 1:length(allfiles)) {
   # state results
   stateresults <- read.csv(fname) %>% 
     mutate(date = as.Date(date)) 
-  
-  # calculate S
-  stateresults <- stateresults %>% 
-    filter(variable == "cumulative_all_infections") %>% 
-    mutate(
-      lower_80 = statepop - lower_80,
-      lower_90 = statepop - lower_90,
-      lower_95 = statepop - lower_95,
-      mean_value = statepop - mean_value,
-      median_value = statepop - median_value,
-      upper_80 = statepop - upper_80,
-      upper_90 = statepop - upper_90,
-      upper_95 = statepop - upper_95
-    ) %>% 
-    mutate(variable = as.factor("S")) %>% 
-    bind_rows(stateresults)
+  firstcasedate <- stateresults$date %>% min()
+
+  # # calculate S
+  # stateresults <- stateresults %>% 
+  #   filter(variable == "cumulative_all_infections") %>% 
+  #   mutate(
+  #     lower_80 = statepop - lower_80,
+  #     lower_90 = statepop - lower_90,
+  #     lower_95 = statepop - lower_95,
+  #     mean_value = statepop - mean_value,
+  #     median_value = statepop - median_value,
+  #     upper_80 = statepop - upper_80,
+  #     upper_90 = statepop - upper_90,
+  #     upper_95 = statepop - upper_95
+  #   ) %>% 
+  #   mutate(variable = as.factor("S")) %>% 
+  #   bind_rows(stateresults)
 
   # calculate R_e
-  state_re <- stateresults %>% 
-    dplyr::filter(sim_type == "status_quo" 
-                & variable == "S") %>% 
-    pivot_wider(names_from = variable, values_from = median_value) %>% 
-    select(date,S) %>% 
-    full_join(.,
-            stateresults %>% 
-              dplyr::filter(sim_type == "status_quo" & variable == "combined_trend") %>% 
-              pivot_wider(names_from = variable, values_from = mean_value) %>% 
-              select(date,combined_trend),) %>% 
+  # state_re <- stateresults %>% 
+  #   dplyr::filter(sim_type == "status_quo" 
+  #               & variable == "S") %>% 
+  #   pivot_wider(names_from = variable, values_from = median_value) %>% 
+  #   select(date,S) %>% 
+  #   full_join(.,
+  #           stateresults %>% 
+  #             dplyr::filter(sim_type == "status_quo" & variable == "combined_trend") %>% 
+  #             pivot_wider(names_from = variable, values_from = mean_value) %>% 
+  #             select(date,combined_trend),) %>% 
+  #   rename(omega = combined_trend) %>% 
+  #   mutate(R_e = getReff(dates=date,
+  #                      N=statepop,
+  #                      S=S,
+  #                      omega=omega,
+  #                      params = statepars_allmle))
+  
+  state_extended_results <- stateresults %>%
+    filter(sim_type == "status_quo" | is.na(sim_type),
+           variable %in% c("daily_cases", "daily_deaths", "daily_all_infections", 
+                           "actual_daily_cases", "actual_daily_deaths",
+                           "mobility_trend", "latent_trend", "combined_trend",
+                           "cumulative_all_infections", "cumulative_deaths")) %>%
+    dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
+    pivot_wider(names_from = variable, values_from = mean_value) %>%
+    # calculate prevalence
+    mutate(prevalence = daily_all_infections / (statepop-cumulative_deaths)) %>% 
+    # calculate omega
     rename(omega = combined_trend) %>% 
-    mutate(R_e = getReff(dates=date,
-                       N=statepop,
-                       S=S,
-                       omega=omega,
-                       params = statepars_allmle))
+    # calculate mean S
+    mutate(S = (statepop - cumulative_all_infections) / (statepop - cumulative_deaths)) %>% 
+    # calculate q
+    mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate s
+    mutate(s = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate mean R_e
+    mutate(R_e = getReff(S = S, N = 1, # whole population
+                         omega = omega,
+                         q = q,
+                         s = s,
+                         params = statepars_allmle)) %>%
+    pivot_longer(cols = !c(location, sim_type, period, date), 
+                 names_to = "variable", 
+                 values_to = "mean_value",
+                 values_drop_na = TRUE)
   
   # ******************* SUBPLOTS ******************* 
   # S/N
-  stateresults %>%
-    filter(variable %in% c("S")) %>%
-    filter(sim_type == "status_quo") %>%
-    filter(date <= (Sys.Date() + 7*4)) %>%
-    ggplot(aes(x = date, y = median_value/statepop)) +
-    geom_ribbon(aes(ymin = lower_80/statepop, ymax = upper_80/statepop), alpha = 0.2) +
-    geom_line() +
-    # geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
-    ylab("S/N") +
-    ggtitle(statename) -> g_S
+  # stateresults %>%
+  #   filter(variable %in% c("S")) %>%
+  #   filter(sim_type == "status_quo") %>%
+  #   filter(date <= (Sys.Date() + 7*4)) %>%
+  #   ggplot(aes(x = date, y = median_value/statepop)) +
+  #   geom_ribbon(aes(ymin = lower_80/statepop, ymax = upper_80/statepop), alpha = 0.2) +
+  #   geom_line() +
+  #   # geom_line(data = dat, aes(x = date, y = mean_value), color = "blue") +
+  #   ylab("S/N") +
+  #   ggtitle(statename) -> g_S
   
   # cases
   dat <- stateresults %>%
@@ -133,16 +163,18 @@ for(i in 1:length(allfiles)) {
     ggplot(aes(x = date, y = mean_value)) +
     geom_point(aes(color = variable)) +
     ggtitle("") +
-    xlab("") +
+    xlab("") + ylab("trends") +
     theme(legend.position = "none") -> g_trends
 
   # Reproduction number
-  state_re %>%
-    ggplot(aes(x = date, y = R_e)) +
+  state_extended_results %>%
+    filter(variable %in% c("R_e")) %>%
+    filter(sim_type == "status_quo") %>%
+    ggplot(aes(x = date, y = mean_value)) +
     geom_line() +
     # geom_point(aes(color = variable)) +
     ggtitle("") +
-    xlab("") +
+    xlab("") + ylab("R_e") +
     theme(legend.position = "none") -> g_re
   
 
