@@ -568,8 +568,10 @@ ccfmatrix <- function(x){
   # fill matrix with pairwise cross correlation functions
   for(i in 1:ncol(x)){
     for(j in 1:ncol(x)){
-      ccf <- ccf(x = x[,i], y= x[,j], na.action = na.pass, ylab = "CCF", plot = FALSE)
-      g <- ggplot2::autoplot(ccf)+ylim(-1,1)+labs(title=paste0(i," ", j), x = "", y="")
+      ccf <- ccf(x = x[,i], y= x[,j], na.action = na.pass, plot = FALSE)
+      g <- ggplot2::autoplot(ccf) + theme_minimal() +
+        ylim(-1,1) + 
+        labs(title=paste0(names(all_re_wide)[i]," ", names(all_re_wide)[j]), x = "", y="")
       mlist[i,j] <- list(ccf)
       glist[j,i] <- list(g)
     }
@@ -578,15 +580,15 @@ ccfmatrix <- function(x){
 }
 
 # calculate cross correlation functions for each state pair
-re_ccf_matrix <- ccfmatrix(all_re_wide)
+re_ccf_matrix <- ccfmatrix(all_re_wide[,1:4])
   
 # plot CCF for a pair of states
 # g1 <- re_ccf_matrix[1,2][[1]] %>% ggplot2::autoplot()+labs(title="", x = "", y="")
 
-grobs <- list(g1,g1,g1,g1)
+# grobs <- list(g1,g1,g1,g1)
 
-grobs <- re_ccf_matrix$plots[1:4]
-gridExtra::grid.arrange(grobs=grobs, ncol=2, nrow = 2)
+grobs <- re_ccf_matrix$plots
+gridExtra::grid.arrange(grobs=grobs, ncol=4, nrow = 4)
 
 
 
