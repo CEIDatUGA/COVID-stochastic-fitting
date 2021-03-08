@@ -95,16 +95,17 @@ for(i in 1:length(allfiles)) {
     dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
     pivot_wider(names_from = variable, values_from = mean_value) %>%
     # calculate prevalence
-    mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
+    mutate(prevalence = daily_all_infections / (statepop-cumulative_deaths)) %>% 
     # calculate omega
     mutate(omega = combined_trend * statepars_allmle$beta_s) %>% 
     # calculate mean S
-    mutate(S = state_pop - cumulative_all_infections) %>% 
-    mutate(susceptible_fraction = S / (state_pop - cumulative_deaths)) %>% 
+    mutate(S = statepop - cumulative_all_infections) %>% 
+    mutate(susceptible_fraction = S / (statepop - cumulative_deaths)) %>% 
     # calculate q
     mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
     # calculate s
-    mutate(s = get_s(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%    # calculate mean R_e
+    mutate(s = get_s(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%    
+    # calculate mean R_e
     mutate(R_e = getReff(S = S,
                          omega = omega,
                          q = q,
