@@ -541,6 +541,8 @@ all_re_wide <- all_re %>%
   pivot_wider(names_from = location, values_from = R_e) %>% 
   select(-date)
 
+westernstates <- all_re_wide %>% select(c("Washington","Oregon","California"))
+westernstates <- all_re_wide %>% select(c("Washington","Oregon","California"))
 
 
 ccfmatrix <- function(x){
@@ -553,7 +555,7 @@ ccfmatrix <- function(x){
       ccf <- ccf(x = x[,i], y= x[,j], na.action = na.pass, plot = FALSE)
       g <- ggplot2::autoplot(ccf) + theme_minimal() +
         ylim(-1,1) + 
-        labs(title=paste0(names(all_re_wide)[i]," ", names(all_re_wide)[j]), x = "", y="")
+        labs(title=paste0(names(x)[i]," ", names(x)[j]), x = "", y="")
       mlist[i,j] <- list(ccf)
       glist[j,i] <- list(g)
     }
@@ -562,7 +564,7 @@ ccfmatrix <- function(x){
 }
 
 # calculate cross correlation functions for each state pair
-n <- 2
+n <- 4
 re_ccf_matrix <- ccfmatrix(all_re_wide[,1:n])
   
 # plot CCF for a pair of states
@@ -573,7 +575,53 @@ re_ccf_matrix <- ccfmatrix(all_re_wide[,1:n])
 grobs <- re_ccf_matrix$plots
 gridExtra::grid.arrange(grobs=grobs, ncol=n, nrow = n)
 
-
+gridExtra::grid.arrange(
+  grobs=ccfmatrix(westernstates)$plots,
+  nrow=ncol(westernstates),
+  ncol(ncol=ncol(westernstates))
+  )
 
 ```
 
+# Correlation among times series of R Effective
+
+```{r}
+all_re_wide <- all_re %>% 
+  select(date, location, R_e) %>% 
+  pivot_wider(names_from = location, values_from = R_e) %>% 
+  select(-date)
+
+corrmatrix <- cor(all_re_wide, use = "complete.obs")
+
+heatmap(corrmatrix, scale = "none")
+
+# Reorder the correlation matrix
+cormat <- reorder_cormat(cormat)
+
+
+# reorder_cormat <- function(cormat){
+# # Use correlation between variables as distance
+# dd <- as.dist((1-cormat)/2)
+# hc <- hclust(dd)
+# cormat <-cormat[hc$order, hc$order]
+# }
+# 
+# upper_tri <- get_upper_tri(cormat)
+# # Melt the correlation matrix
+# melted_cormat <- melt(upper_tri, na.rm = TRUE)
+# # Create a ggheatmap
+# ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
+#  geom_tile(color = "white")+
+#  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+#    midpoint = 0, limit = c(-1,1), space = "Lab", 
+#     name="Pearson\nCorrelation") +
+#   theme_minimal()+ # minimal theme
+#  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+#     size = 12, hjust = 1))+
+#  coord_fixed()
+# # Print the heatmap
+# print(ggheatmap)
+
+```
+
+# Are pairwise state R_e correlation coefficients correlated with the distances between state centroids?
