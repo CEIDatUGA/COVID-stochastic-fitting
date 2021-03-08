@@ -33,6 +33,11 @@ get_q <- function(t, params) {
   # 1/(1+exp(max_detect_par)) * exp(log_detect_inc_rate)^t / (exp(log_detect_inc_rate)^exp(log_half_detect) + exp(log_detect_inc_rate)^t) + base_detect_frac
   # q <- 1/(1 + q_max) * q_n ^ t / (q_n ^ q_th + q_n ^ t) + q_min # does not jive with q caluclation above
   
+  
+  # Eamon
+  # 1/(1+exp(max_detect_par)) * (t ^ exp(log_detect_inc_rate))  / ( (exp(log_half_detect) ^ exp(log_detect_inc_rate)) + (t ^ exp(log_detect_inc_rate))) + exp(base_detect_frac)
+  
+  
   return(q)
 }
 
@@ -62,15 +67,17 @@ get_s <- function(t, params) {
 # and the dataframe of parameters in natural units, and returns a vector for R effective.
 # Transition times between classes are expected to be per class, and not per sub-compartment.
 
-getReff <- function(S, N=1, omega, q, s, params) {
+#getReff <- function(S, N=1, omega, q, s, params) {
+getReff <- function(S, omega, q, s, params) {
   
   # variables
-  S <- S/N # susceptible fraction
-
+  # S <- S/N # susceptible fraction
+  S <- S
+  
   # constants
   a <- params$frac_asym
   h <- params$frac_hosp
-  
+
   # relative transmissibility
   b_L <- params$frac_trans_e
   b_I_a <- params$frac_trans_a
@@ -78,7 +85,7 @@ getReff <- function(S, N=1, omega, q, s, params) {
   b_I_sd <- 1
   b_C <- params$frac_trans_c
   b_H <- params$frac_trans_h
-  
+
   # rates of movement between compartments
   # rates are per class, not per sub-compartment
   gamma_L <- 1/params$time_e
@@ -87,12 +94,8 @@ getReff <- function(S, N=1, omega, q, s, params) {
   gamma_I_sd <- 1/params$time_sd
   gamma_C <- 1/params$time_c
   gamma_H <- 1/params$time_h
-  
-  # number of compartments. 
-  # Set to 1 if gammas refer to the class, set to 4 if gammas refer to subcompartments
-  subcompartments <- 1 
-  
-  R_e <- S * omega * subcompartments * (
+
+  R_e <- S * omega * (
     b_L / gamma_L +  (1 - a) * (
       q * ( 
         b_I_sd / (s * gamma_I_sd) 
@@ -180,15 +183,16 @@ for(i in 1:length(all_files)) {
     # calculate prevalence
     mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
     # calculate omega
-    rename(omega = combined_trend) %>% 
+    mutate(omega = combined_trend * statepars_allmle$beta_s) %>% 
     # calculate mean S
-    mutate(susceptible_fraction = (state_pop - cumulative_all_infections) / (state_pop - cumulative_deaths)) %>% 
+    mutate(S = state_pop - cumulative_all_infections) %>% 
+    mutate(susceptible_fraction = S / (state_pop - cumulative_deaths)) %>% 
     # calculate q
     mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
     # calculate s
-    mutate(s = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    mutate(s = get_s(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
     # calculate mean R_e
-    mutate(R_e = getReff(S = susceptible_fraction, N = 1, # whole population
+    mutate(R_e = getReff(S = S, 
                          omega = omega,
                          q = q,
                          s = s,
@@ -225,7 +229,6 @@ weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relati
 
 g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
   geom_line(size = 0.5) +
-  # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,5)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +

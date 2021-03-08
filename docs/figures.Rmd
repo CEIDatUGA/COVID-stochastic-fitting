@@ -36,23 +36,6 @@ for(i in 1:length(all_files)) {
   state_beta_s <- (state_initR0*.1)
   
   tmpparamfile <- here::here("output/current", param_files[i])
-  # tmpparams <- readRDS(tmpparamfile)
-  # tmp_loglik <- data.frame(location = unique(tmp$location),
-  #                       log_lik = tmpparams["LogLik", 2])
-  # rnms <- row.names(tmpparams)
-  # tmpparams <- tmpparams %>%
-  #   mutate(parameter = rnms) %>%
-  #   filter(is_fitted == "yes") %>%
-  #   dplyr::select(-is_fitted) %>%
-  #   gather("key", "value", -parameter) %>%
-  #   filter(key == "X1") %>%
-  #   dplyr::select(-key) %>%
-  #   mutate(location = unique(tmp$location)) %>%
-  #   dplyr::select(location, value, parameter)
-  # 
-  # state_parameters <- bind_rows(state_parameters, tmpparams)
-  # state_logliks <- bind_rows(state_logliks, tmp_loglik)
-  
   # tmp state params
   statepars <- readRDS(tmpparamfile) 
 
@@ -80,23 +63,23 @@ for(i in 1:length(all_files)) {
     filter(sim_type == "status_quo" | is.na(sim_type),
            variable %in% c("daily_cases", "daily_deaths", "daily_all_infections", 
                            "actual_daily_cases", "actual_daily_deaths",
-                           "mobility_trend", "latent_trend",
+                           "mobility_trend", "latent_trend", "combined_trend",
                            "cumulative_all_infections", "cumulative_deaths")) %>%
     dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
     pivot_wider(names_from = variable, values_from = mean_value) %>%
-    mutate(beta_s = state_beta_s) %>% 
     # calculate prevalence
     mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
     # calculate omega
-    mutate(omega = mobility_trend * latent_trend * beta_s) %>% 
+    mutate(omega = combined_trend * statepars_allmle$beta_s) %>% 
     # calculate mean S
-    mutate(susceptible_fraction = (state_pop - cumulative_all_infections) / (state_pop - cumulative_deaths)) %>% 
+    mutate(S = state_pop - cumulative_all_infections) %>% 
+    mutate(susceptible_fraction = S / (state_pop - cumulative_deaths)) %>% 
     # calculate q
     mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
     # calculate s
-    mutate(s = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    mutate(s = get_s(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
     # calculate mean R_e
-    mutate(R_e = getReff(S = susceptible_fraction, N = 1, # whole population
+    mutate(R_e = getReff(S = S, 
                          omega = omega,
                          q = q,
                          s = s,
@@ -106,87 +89,85 @@ for(i in 1:length(all_files)) {
                  values_to = "mean_value",
                  values_drop_na = TRUE)
 
-  state_summaries <- bind_rows(state_summaries, tmp) # ? was this missing?
-
-  
+  state_summaries <- bind_rows(state_summaries, tmp)
 }
 
-# Fixed parameters table
-betas_names <- rnms[grep("b[0-9]+", rnms)] # find parameters starting with b followed by any number
-spline_coefficients <- paste("Spline coefficient", gsub("b","", betas_names))
-names(spline_coefficients) <- betas_names
+# # Fixed parameters table
+# betas_names <- rnms[grep("b[0-9]+", rnms)] # find parameters starting with b followed by any number
+# spline_coefficients <- paste("Spline coefficient", gsub("b","", betas_names))
+# names(spline_coefficients) <- betas_names
+# 
+# params_vec <- c(MIF_ID = "MIF id", 
+#                 LogLik = "Log Likelihood", 
+#                 LogLik_SE = "SE of Log Likelihood", 
+#                 beta_s = "Transmission rate",
+#                 # Relative Transmissibility
+#                 frac_trans_e = "Relative transmissibility of latent infections",
+#                 frac_trans_a = "Relative transmissibility of asymptomatic individuals",
+#                 frac_trans_c = "Relative transmissibility of detected symptomatic individuals post-reporting",
+#                 frac_trans_h = "Relative transmissibility of hospitalized individuals",
+#                 # Time in compartments
+#                 time_e = "Time spent in latent compartments (days)",
+#                 time_a = "Time spent in asymptomatic compartments (days)",
+#                 time_su = "Time spent in symptomatic, undetected compartments (days)",
+#                 time_sd = "Time spent in symptomatic, detected compartments (days)",
+#                 time_c = "Time spent in diagnosed cases compartments (days)",
+#                 time_h = "Time spent in hospitalized compartments (days)",
+#                 # Detection time
+#                 max_diag_factor = "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
+#                 diag_rampup = "Rate at which faster diagnosis ramps up to max",
+#                 t_half_diag = "Time at which diagnosis is at 50% of max (in days since t = 1)",
+#                 # Detection fraction
+#                 max_detect_frac = "Maximum fraction of cases that are detected",
+#                 detect_rampup = "Speed at which fraction detected ramps up",
+#                 t_half_detect = "Time at which infection detection fraction is at 50% of max (in days since t = 1)",
+#                 base_detect_frac = "Minimum fraction detected at t = 1",
+#                 # Fraction asymptomatic
+#                 frac_asym = "Fraction of latent infections that move to asymptomatic",
+#                 # Fraction hosptilized
+#                 frac_hosp = "Fraction of detected cases that are hospitalized",
+#                 # Fraction of hospitalizations that result in death
+#                 min_frac_dead = "Maximum fraction of hospitalizations that result in death",
+#                 max_frac_dead = "Maximum fraction of hospitalizations that result in death",
+#                 log_half_dead = "Time at which death fraction is at 50% of max (in days since t = 1)",
+#                 # Dispersion parameters
+#                 theta_cases = "Dispersion parameter for case reporting observation process",
+#                 theta_hosps = "Dispersion parameter for hospitalization reporting observation process",
+#                 theta_deaths = "Dispersion parameter for death reporting obsercation process",
+#                 sigma_dw = "Variance of the stochastics process noise",
+#                 # Spline coefficients
+#                 spline_coefficients,
+#                 # Initial conditions
+#                 S_0 = "Initial number of susceptible individuals on t = 1",
+#                 E1_0 = "Initial number of latent infectious individuals on t = 1",
+#                 Ia1_0 = "Initial number of asymptomatic individuals on t = 1",
+#                 Isu1_0 = "Initial number of symptomatic, undetected individuals on t = 1",
+#                 Isd1_0 = "Initial number of symptomatic, detected individuals on t = 1",
+#                 C1_0 = "Initial number of diagnosed cases on t = 1",
+#                 H1_0 = "Initial number of hospitalized cases on t = 1",
+#                 R_0 = "Initial number of recovered individuals on t = 1",
+#                 D_0 = "Initial number of deaths after hospitalization on t = 1",
+#                 trend_start = "Trend")
+# 
+# tmpparams <- readRDS(tmpparamfile)
+# rnms <- row.names(tmpparams)
+# params_map <- tibble(Parameter = names(params_vec),
+#                      Description = params_vec)
+# fixed_parameters <- tmpparams %>%
+#   mutate(Parameter = rnms) %>%
+#   filter(is_fitted == "no") %>%
+#   dplyr::select(-is_fitted) %>%
+#   gather("key", "value", -Parameter) %>%
+#   filter(key == "X1") %>%
+#   left_join(params_map, by = "Parameter") %>%
+#   filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps", "S_0")) %>%
+#   dplyr::select(Parameter, Description, value) %>%
+#   mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
 
-params_vec <- c(MIF_ID = "MIF id", 
-                LogLik = "Log Likelihood", 
-                LogLik_SE = "SE of Log Likelihood", 
-                beta_s = "Transmission rate",
-                # Relative Transmissibility
-                frac_trans_e = "Relative transmissibility of latent infections",
-                frac_trans_a = "Relative transmissibility of asymptomatic individuals",
-                frac_trans_c = "Relative transmissibility of detected symptomatic individuals post-reporting",
-                frac_trans_h = "Relative transmissibility of hospitalized individuals",
-                # Time in compartments
-                time_e = "Time spent in latent compartments (days)",
-                time_a = "Time spent in asymptomatic compartments (days)",
-                time_su = "Time spent in symptomatic, undetected compartments (days)",
-                time_sd = "Time spent in symptomatic, detected compartments (days)",
-                time_c = "Time spent in diagnosed cases compartments (days)",
-                time_h = "Time spent in hospitalized compartments (days)",
-                # Detection time
-                max_diag_factor = "Maximum for factor by which movement through Isd happens faster (quicker diagnosis)",
-                diag_rampup = "Rate at which faster diagnosis ramps up to max",
-                t_half_diag = "Time at which diagnosis is at 50% of max (in days since t = 1)",
-                # Detection fraction
-                max_detect_frac = "Maximum fraction of cases that are detected",
-                detect_rampup = "Speed at which fraction detected ramps up",
-                t_half_detect = "Time at which infection detection fraction is at 50% of max (in days since t = 1)",
-                base_detect_frac = "Minimum fraction detected at t = 1",
-                # Fraction asymptomatic
-                frac_asym = "Fraction of latent infections that move to asymptomatic",
-                # Fraction hosptilized
-                frac_hosp = "Fraction of detected cases that are hospitalized",
-                # Fraction of hospitalizations that result in death
-                min_frac_dead = "Maximum fraction of hospitalizations that result in death",
-                max_frac_dead = "Maximum fraction of hospitalizations that result in death",
-                log_half_dead = "Time at which death fraction is at 50% of max (in days since t = 1)",
-                # Dispersion parameters
-                theta_cases = "Dispersion parameter for case reporting observation process",
-                theta_hosps = "Dispersion parameter for hospitalization reporting observation process",
-                theta_deaths = "Dispersion parameter for death reporting obsercation process",
-                sigma_dw = "Variance of the stochastics process noise",
-                # Spline coefficients
-                spline_coefficients,
-                # Initial conditions
-                S_0 = "Initial number of susceptible individuals on t = 1",
-                E1_0 = "Initial number of latent infectious individuals on t = 1",
-                Ia1_0 = "Initial number of asymptomatic individuals on t = 1",
-                Isu1_0 = "Initial number of symptomatic, undetected individuals on t = 1",
-                Isd1_0 = "Initial number of symptomatic, detected individuals on t = 1",
-                C1_0 = "Initial number of diagnosed cases on t = 1",
-                H1_0 = "Initial number of hospitalized cases on t = 1",
-                R_0 = "Initial number of recovered individuals on t = 1",
-                D_0 = "Initial number of deaths after hospitalization on t = 1",
-                trend_start = "Trend")
-
-tmpparams <- readRDS(tmpparamfile)
-rnms <- row.names(tmpparams)
-params_map <- tibble(Parameter = names(params_vec),
-                     Description = params_vec)
-fixed_parameters <- tmpparams %>%
-  mutate(Parameter = rnms) %>%
-  filter(is_fitted == "no") %>%
-  dplyr::select(-is_fitted) %>%
-  gather("key", "value", -Parameter) %>%
-  filter(key == "X1") %>%
-  left_join(params_map, by = "Parameter") %>%
-  filter(!Parameter %in% c("MIF_ID", "LogLik", "LogLik_SE", "trend_start", "theta_hosps", "S_0")) %>%
-  dplyr::select(Parameter, Description, value) %>%
-  mutate(Parameter = ifelse(Parameter == "E1_0", "L1_0", Parameter))
-
+# Key Dates
 future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
 burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-03-01"))
 sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
-
 
 ```
 
@@ -268,14 +249,16 @@ all_omega <- state_summaries %>%
 
 mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = mean(omega))
 
+max_omega <- max(all_omega$omega)
+
 g_omega <- ggplot(all_omega, aes(x = date, y = omega, color = location)) +
   geom_line(size = 0.5) +
   # ylab("Latent trend\n(% of normal)") +
-  scale_y_continuous(limits = c(0,1), labels = scales::percent) +
+  # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
   geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red') +
-  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = all_omega$omega, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
 
@@ -438,7 +421,7 @@ c) predictor = AUC of omega; response = cumulative all infections
 state_summaries_wide %>% 
   filter(period == 'Past') %>%
 #  filter(date > burnin[2]) %>%
-  filter(date >= sample_period[1] & data <= sample_period[2]) %>% 
+  filter(date >= sample_period[1] & date <= sample_period[2]) %>% 
   group_by(location) %>% 
   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
   ggstatsplot::ggscatterstats(x = "AU_omega", y = "cumulative_all_infections", type = "spearman", 
@@ -528,7 +511,6 @@ weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relati
 
 g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
   geom_line(size = 0.5) +
-  # ylab("Human movement\n(% of normal)") +
   scale_y_continuous(limits = c(0,5)) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
@@ -540,7 +522,7 @@ g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
   guides(color = FALSE)
 
 p_re <- g_re %>% plotly::ggplotly() %>% 
-  plotly::layout(showlegend = FALSE,
+  plotly::layout(showlegend = TRUE,
                  # margin = list(l = 150),
                  yaxis = list(title = "R_e")
                  )
@@ -580,7 +562,8 @@ ccfmatrix <- function(x){
 }
 
 # calculate cross correlation functions for each state pair
-re_ccf_matrix <- ccfmatrix(all_re_wide[,1:4])
+n <- 2
+re_ccf_matrix <- ccfmatrix(all_re_wide[,1:n])
   
 # plot CCF for a pair of states
 # g1 <- re_ccf_matrix[1,2][[1]] %>% ggplot2::autoplot()+labs(title="", x = "", y="")
@@ -588,7 +571,7 @@ re_ccf_matrix <- ccfmatrix(all_re_wide[,1:4])
 # grobs <- list(g1,g1,g1,g1)
 
 grobs <- re_ccf_matrix$plots
-gridExtra::grid.arrange(grobs=grobs, ncol=4, nrow = 4)
+gridExtra::grid.arrange(grobs=grobs, ncol=n, nrow = n)
 
 
 
