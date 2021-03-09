@@ -542,7 +542,7 @@ all_re_wide <- all_re %>%
   select(-date)
 
 westernstates <- all_re_wide %>% select(c("Washington","Oregon","California"))
-westernstates <- all_re_wide %>% select(c("Washington","Oregon","California"))
+CA_FL <- all_re_wide %>% select(c("California","Florida"))
 
 
 ccfmatrix <- function(x){
@@ -555,7 +555,13 @@ ccfmatrix <- function(x){
       ccf <- ccf(x = x[,i], y= x[,j], na.action = na.pass, plot = FALSE)
       g <- ggplot2::autoplot(ccf) + theme_minimal() +
         ylim(-1,1) + 
-        labs(title=paste0(names(x)[i]," ", names(x)[j]), x = "", y="")
+        labs(title=paste0(names(x)[i]," ", names(x)[j]), x = "", y="") +
+        theme(
+          axis.text.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank(),
+          plot.margin = unit(c(0,0,0,0), "cm")
+          )
       mlist[i,j] <- list(ccf)
       glist[j,i] <- list(g)
     }
@@ -572,14 +578,15 @@ re_ccf_matrix <- ccfmatrix(all_re_wide[,1:n])
 
 # grobs <- list(g1,g1,g1,g1)
 
-grobs <- re_ccf_matrix$plots
-gridExtra::grid.arrange(grobs=grobs, ncol=n, nrow = n)
-
-gridExtra::grid.arrange(
-  grobs=ccfmatrix(westernstates)$plots,
-  nrow=ncol(westernstates),
-  ncol(ncol=ncol(westernstates))
-  )
+plot_ccf_matrix <- function(x) {
+  gridExtra::grid.arrange(
+    grobs=x$plots,
+    nrow=ncol(x$data),
+    ncol=ncol(ncol(x$data))
+    )
+}
+  
+ccfmatrix(all_re_wide[,c("Delaware","Georgia")]) %>% plot_ccf_matrix()
 
 ```
 
