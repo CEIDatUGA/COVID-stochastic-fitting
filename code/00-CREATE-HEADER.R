@@ -114,7 +114,7 @@ statedf <- state_pops %>%
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
     state_full %in% c("Ohio") ~ 8,
-    state_full %in% c("Washington") ~ 5,
+    state_full %in% c("Washington") ~ 4,
     TRUE ~ 6 # default initial R0
   )) %>% 
   
