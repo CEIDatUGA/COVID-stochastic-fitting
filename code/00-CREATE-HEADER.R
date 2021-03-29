@@ -41,7 +41,7 @@ source(here::here("code/data-processing/loadcleanucmobility.R")) #function that 
 # --------------------------------------------------
 # Set data source 
 # --------------------------------------------------
-datasource = c("COV") #one of CovidTracker (COV), NYT (NYT), JHU (JHU), USAFacts (USF)
+datasource = c("JHU") #one of CovidTracker (COV), NYT (NYT), JHU (JHU), USAFacts (USF)
 
 # --------------------------------------------------
 # Define parameter and variable names that are being estimated
