@@ -1,0 +1,57 @@
+---
+title: "Plots"
+author: "Andrew Tredennick, Eric Marty"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(tidyverse)
+library(here)
+library(fs)
+library(ggpubr) # for multi plot figures
+source(here::here("code/result-exploration/getReff.R"))
+
+path <- here::here("output/current/")
+
+allfiles <- list.files(path, ".csv")
+allparfiles <- list.files(path, "params-natural.rds")
+```
+
+
+
+
+
+```{r maketable, echo=FALSE, warning=FALSE, message = FALSE}
+
+statepars_table = NULL
+
+for(i in 1:length(allfiles)) {
+  f <- allfiles[i]
+  parf <- allparfiles[i]
+  fname <- paste0(path,f)
+  parfname <- file.path(path,parf)
+  statename <- gsub("\\.csv","",f)
+  #statepop <- statedf %>% dplyr::filter(state_full == statename) %>% pull(total_pop)
+
+  # state parameters
+  statepars <- readRDS(parfname)
+
+ statepars_fitted <- statepars %>%
+    rownames_to_column(var = "param") %>%
+    dplyr::filter(is_fitted == "yes") %>%
+    select(param,X1) %>%
+    pivot_wider(values_from = X1, names_from = param)
+
+  statepars_table <- bind_rows(statepars_table,bind_cols(statename,statepars_fitted))
+}
+print(statepars_table)
+``` 
+
+
+
+
+
+
