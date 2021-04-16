@@ -98,10 +98,15 @@ statedf <- state_pops %>%
     # state_full == "Indiana" ~ "2020-09-14", # example: use date of last good fit for warm start
     # state_full == "Indiana" ~ "fresh", # example: fit from scratch
     # state_full == "Indiana" ~ "last", # example: use last date for warm start
-    state_full == "Arizona" ~ "2021-03-25",
-    state_full == "California" ~ "2021-03-25",
-    state_full == "Illinois" ~ "2021-03-25",
-    state_full == "Massachusetts" ~ "2021-03-25",
+    # state_full == "Arizona" ~ "2021-03-25",
+    # state_full == "California" ~ "2021-03-25",
+    # state_full == "Illinois" ~ "2021-03-25",
+    # state_full == "Massachusetts" ~ "2021-03-25",
+    state_full == "Arizona" ~ "fresh",
+    state_full == "California" ~ "fresh",
+    state_full == "Illinois" ~ "fresh",
+    state_full == "Massachusetts" ~ "fresh",
+    state_full == "South Dakota" ~ "fresh",
     TRUE ~ "last" # default warm start 
   )) %>% 
   
@@ -137,7 +142,7 @@ statedf <- state_pops %>%
     state_full %in% c("New York") ~ list(c(500,150)), 
     state_full %in% c("Ohio") ~ list(c(350,150)),
     state_full %in% c("Washington") ~ list(c(900,450)),
-    TRUE ~ list(c(150,150)) # default mif runs vector
+    TRUE ~ list(c(300,150)) # default mif runs vector
   ))
 
 # Run data cleaning script.
