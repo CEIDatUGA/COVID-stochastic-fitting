@@ -542,7 +542,8 @@ loglik_naive <- function(y){
 }
 
 all_maes <- tibble()
-all_mases <- tibble()
+all_mases_lag7 <- tibble()
+all_mases_lag1 <- tibble()
 logliks <- tibble()
 
 for(do_state in unique(state_summaries$location)) {
@@ -589,7 +590,7 @@ for(do_state in unique(state_summaries$location)) {
   all_maes <- bind_rows(all_maes, mae_total)
 
   # MASEs
-  mase_total <- tmp_summary %>%
+  mase_total_lag7 <- tmp_summary %>%
     filter(variable %in% c("daily_cases", 
                            "daily_deaths")) %>%
     filter(sim_type %in% c(NA,"status_quo")) %>%
@@ -597,16 +598,31 @@ for(do_state in unique(state_summaries$location)) {
     mutate(variable = as.character(variable)) %>%
     dplyr::select(date, variable, mean_value) %>%
     rename("value" = mean_value) %>%
-    left_join(dat_obs, by = c("date", "variable")) %>% # use with mase(m=7L)
-    # left_join(dat_ma, by = c("date", "variable")) %>% # use with mase(m=1L)
+    left_join(dat_obs, by = c("date", "variable")) %>% # raw observations
     group_by(variable) %>%
-    yardstick::mase(truth=observation,estimate=value,m=7L) %>% # use with raw observed data
-    # yardstick::mase(truth=observation,estimate=value,m=1L) %>% # use with ma of data
+    yardstick::mase(truth=observation,estimate=value,m=7L) %>% # assumes weekly seasonality
+    ungroup() %>%
+    select(variable, mase = .estimate) %>% 
+    mutate(location = do_state)
+  
+  all_mases_lag7 <- bind_rows(all_mases_lag7, mase_total_lag7)
+  
+  mase_total_lag1 <- tmp_summary %>%
+    filter(variable %in% c("daily_cases", 
+                           "daily_deaths")) %>%
+    filter(sim_type %in% c(NA,"status_quo")) %>%
+    filter(period == "Past") %>%
+    mutate(variable = as.character(variable)) %>%
+    dplyr::select(date, variable, mean_value) %>%
+    rename("value" = mean_value) %>%
+    left_join(dat_obs, by = c("date", "variable")) %>% # raw observations
+    group_by(variable) %>%
+    yardstick::mase(truth=observation,estimate=value,m=1L) %>% # assumes no seasonality
     ungroup() %>%
     select(variable, mase = .estimate) %>% 
     mutate(location = do_state)
 
-  all_mases <- bind_rows(all_mases, mase_total)
+  all_mases_lag1 <- bind_rows(all_mases_lag1, mase_total_lag1)
   
   # Log likelihoods
   tmp_loglik <- state_logliks %>%
@@ -686,12 +702,12 @@ ggplot(all_maes %>%
 all_maes %>% saveRDS(paste0(here::here("output/"),"us_all_maes.rds"))
 ```
 
-## Mean absolute scaled errors (MASE)
+## Mean absolute scaled errors (MASE), seasonal naive model
 
-Here we show the MASEs for each state for daily case reports and daily death reports.
+Here we show the Mean absolute scaled error (MASE) for each state for daily case reports and daily death reports. The MASE is a ratio of MAE in the model to MAE of an in-sample naïve model (a random walk forecast from the last observation, adjusted for weekly seasonality). 
 
-```{r mases}
-ggplot(all_mases %>%
+```{r mases_lag7}
+ggplot(all_mases_lag7 %>%
          # left_join(pops, by  = "location") %>%
          # mutate(mae = mae/(total_pop/100000)) %>%
          # mutate(mae = ifelse(mae > 350, 350, mae)) %>%
@@ -711,5 +727,33 @@ ggplot(all_mases %>%
   ylab("Mean absolute scaled error (MASE)") 
 
 # save MASEs as file
-all_mases %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds"))
+# all_mases %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds"))
+```
+
+## Mean absolute scaled errors (MASE), non-seasonal naive model
+
+Here we show the Mean absolute scaled error (MASE) for each state for daily case reports and daily death reports. The MASE is a ratio of MAE in the model to MAE of an in-sample naïve model (a random walk forecast from the last observation). 
+
+```{r mases_lag1}
+ggplot(all_mases_lag1 %>%
+         # left_join(pops, by  = "location") %>%
+         # mutate(mae = mae/(total_pop/100000)) %>%
+         # mutate(mae = ifelse(mae > 350, 350, mae)) %>%
+         mutate(variable = ifelse(variable == "daily_cases", 
+                                  "Daily reported cases", 
+                                  "Daily reported deaths")), 
+       aes(x = reorder(location, mase), y = mase)) +
+  geom_col(aes(fill = variable)) +
+  facet_wrap(~variable, scales = "free_x") +
+  geom_hline(yintercept=1,linetype = "dashed",color = "black") +
+  annotate(geom = "text", x = 0, y = 1, label = "MASE = 1", color = "black", angle = 90, hjust = 0, vjust=1.5) +
+  theme_minimal() +
+  coord_flip() +
+  scale_fill_manual(values = c("dodgerblue", "salmon")) +
+  guides(fill = FALSE) +
+  xlab("") +
+  ylab("Mean absolute scaled error (MASE)") 
+
+# save MASEs as file
+# all_mases %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds"))
 ```
