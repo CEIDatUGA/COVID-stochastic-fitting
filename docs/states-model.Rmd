@@ -597,11 +597,11 @@ for(do_state in unique(state_summaries$location)) {
     mutate(variable = as.character(variable)) %>%
     dplyr::select(date, variable, mean_value) %>%
     rename("value" = mean_value) %>%
-    # left_join(dat_obs, by = c("date", "variable")) %>%
-    left_join(dat_ma, by = c("date", "variable")) %>%
+    left_join(dat_obs, by = c("date", "variable")) %>% # use with mase(m=7L)
+    # left_join(dat_ma, by = c("date", "variable")) %>% # use with mase(m=1L)
     group_by(variable) %>%
-    # yardstick::mase(truth=observation,estimate=value,m=7L) %>% # use with raw observed data
-    yardstick::mase(truth=observation,estimate=value,m=1L) %>% # use with ma of data
+    yardstick::mase(truth=observation,estimate=value,m=7L) %>% # use with raw observed data
+    # yardstick::mase(truth=observation,estimate=value,m=1L) %>% # use with ma of data
     ungroup() %>%
     select(variable, mase = .estimate) %>% 
     mutate(location = do_state)
@@ -701,6 +701,8 @@ ggplot(all_mases %>%
        aes(x = reorder(location, mase), y = mase)) +
   geom_col(aes(fill = variable)) +
   facet_wrap(~variable, scales = "free_x") +
+  geom_hline(yintercept=1,linetype = "dashed",color = "black") +
+  annotate(geom = "text", x = 0, y = 1, label = "MASE = 1", color = "black", angle = 90, hjust = 0, vjust=1.5) +
   theme_minimal() +
   coord_flip() +
   scale_fill_manual(values = c("dodgerblue", "salmon")) +
