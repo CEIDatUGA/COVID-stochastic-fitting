@@ -655,6 +655,13 @@ if(length(states_with_better_nll) > 2) {
 } else {
   stsprint <- paste(states_with_better_nll, collapse = " and ")
 }
+
+# save MAEs as file
+all_maes %>% saveRDS(paste0(here::here("output/"),"us_all_maes.rds"))
+# save MASEs as file
+all_mases_lag1 %>% saveRDS(paste0(here::here("output/"),"us_all_mases_nonseasonal_naive.rds"))
+all_mases_lag7 %>% saveRDS(paste0(here::here("output/"),"us_all_mases_seasonal_naive.rds"))
+
 ```
 
 Here we compare the log likelihood of each state's model at the MLEs to a random walk model.
@@ -697,9 +704,6 @@ ggplot(all_maes %>%
   guides(fill = FALSE) +
   xlab("") +
   ylab("Mean absolute error (MAE)") 
-
-# save MAEs as file
-all_maes %>% saveRDS(paste0(here::here("output/"),"us_all_maes.rds"))
 ```
 
 ## Mean absolute scaled errors (MASE), seasonal naive model
@@ -725,9 +729,6 @@ ggplot(all_mases_lag7 %>%
   guides(fill = FALSE) +
   xlab("") +
   ylab("Mean absolute scaled error (MASE)") 
-
-# save MASEs as file
-# all_mases %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds"))
 ```
 
 ## Mean absolute scaled errors (MASE), non-seasonal naive model
@@ -753,7 +754,4 @@ ggplot(all_mases_lag1 %>%
   guides(fill = FALSE) +
   xlab("") +
   ylab("Mean absolute scaled error (MASE)") 
-
-# save MASEs as file
-# all_mases %>% saveRDS(paste0(here::here("output/"),"us_all_mases.rds"))
 ```
