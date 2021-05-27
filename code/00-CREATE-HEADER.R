@@ -118,6 +118,7 @@ statedf <- state_pops %>%
     state_full %in% c("Indiana") ~ 8, 
     state_full %in% c("Maryland") ~ 8,
     state_full %in% c("Massachusetts") ~ 6,
+    state_full %in% c("Michigan") ~ 8,
     state_full %in% c("New Jersey") ~ 8,
     state_full %in% c("New York") ~ 10, 
     state_full %in% c("Ohio") ~ 8,
@@ -127,22 +128,22 @@ statedf <- state_pops %>%
   
   # Mif runs for each state
   dplyr::mutate(mifruns = dplyr::case_when(
-    state_full %in% c("Arizona") ~ list(c(700,350)), 
+    state_full %in% c("Arizona") ~ list(c(900,450)), 
     state_full %in% c("California") ~ list(c(900,450)), 
-    state_full %in% c("Florida") ~ list(c(350,150)), 
-    state_full %in% c("Georgia") ~ list(c(350,150)), 
-    state_full %in% c("Kansas") ~ list(c(350,150)), 
+    # state_full %in% c("Florida") ~ list(c(350,150)), 
+    # state_full %in% c("Georgia") ~ list(c(350,150)), 
+    # state_full %in% c("Kansas") ~ list(c(350,150)), 
     state_full %in% c("Illinois") ~ list(c(900,450)), 
-    state_full %in% c("Indiana") ~ list(c(350,150)), 
-    state_full %in% c("Iowa") ~ list(c(350,150)), 
-    state_full %in% c("Maryland") ~ list(c(350,150)),
+    # state_full %in% c("Indiana") ~ list(c(350,150)), 
+    # state_full %in% c("Iowa") ~ list(c(350,150)), 
+    # state_full %in% c("Maryland") ~ list(c(350,150)),
     state_full %in% c("Massachusetts") ~ list(c(900,450)),
-    state_full %in% c("Michigan") ~ list(c(350,150)),
-    state_full %in% c("New Jersey") ~ list(c(350,150)),
+    # state_full %in% c("Michigan") ~ list(c(350,150)),
+    # state_full %in% c("New Jersey") ~ list(c(350,150)),
     state_full %in% c("New York") ~ list(c(500,150)), 
-    state_full %in% c("Ohio") ~ list(c(350,150)),
+    # state_full %in% c("Ohio") ~ list(c(350,150)),
     state_full %in% c("Washington") ~ list(c(900,450)),
-    TRUE ~ list(c(400,200)) # default mif runs vector
+    TRUE ~ list(c(350,175)) # default mif runs vector
   ))
 
 # Run data cleaning script.
