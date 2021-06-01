@@ -103,9 +103,14 @@ statedf <- state_pops %>%
     # state_full == "Illinois" ~ "2021-03-25",
     # state_full == "Massachusetts" ~ "2021-03-25",
     state_full == "Arizona" ~ "fresh",
+    state_full == "Connecticut" ~ "fresh"
     state_full == "California" ~ "fresh",
+    state_full == "Delaware" ~ "fresh",
     state_full == "Illinois" ~ "fresh",
+    state_full == "Louisiana" ~ "fresh",
     state_full == "Massachusetts" ~ "fresh",
+    state_full == "Ohio" ~ "fresh",
+    state_full == "Rhode Island" ~ "fresh",
     # state_full == "South Dakota" ~ "fresh",
     TRUE ~ "last" # default warm start 
   )) %>% 
@@ -128,22 +133,16 @@ statedf <- state_pops %>%
   
   # Mif runs for each state
   dplyr::mutate(mifruns = dplyr::case_when(
-    state_full %in% c("Arizona") ~ list(c(900,450)), 
-    state_full %in% c("California") ~ list(c(900,450)), 
-    # state_full %in% c("Florida") ~ list(c(350,150)), 
-    # state_full %in% c("Georgia") ~ list(c(350,150)), 
-    # state_full %in% c("Kansas") ~ list(c(350,150)), 
-    state_full %in% c("Illinois") ~ list(c(900,450)), 
-    # state_full %in% c("Indiana") ~ list(c(350,150)), 
-    # state_full %in% c("Iowa") ~ list(c(350,150)), 
-    # state_full %in% c("Maryland") ~ list(c(350,150)),
-    state_full %in% c("Massachusetts") ~ list(c(900,450)),
-    # state_full %in% c("Michigan") ~ list(c(350,150)),
-    # state_full %in% c("New Jersey") ~ list(c(350,150)),
-    state_full %in% c("New York") ~ list(c(500,150)), 
-    # state_full %in% c("Ohio") ~ list(c(350,150)),
-    state_full %in% c("Washington") ~ list(c(900,450)),
-    TRUE ~ list(c(350,175)) # default mif runs vector
+    state_full == "Arizona" ~ list(c(900,450)), 
+    state_full == "Connecticut" ~ list(c(500,250)),
+    state_full == "California" ~ list(c(900,450)), 
+    state_full == "Illinois" ~ list(c(900,450)), 
+    state_full == "Louisiana" ~ list(c(500,250)),
+    state_full == "Massachusetts" ~ list(c(900,450)),
+    state_full == "New York" ~ list(c(500,250)), 
+    state_full == "Ohio" ~ list(c(500,250)),
+    state_full == "Washington" ~ list(c(900,450)),
+    TRUE ~ list(c(400,200)) # default mif runs vector
   ))
 
 # Run data cleaning script.
