@@ -103,7 +103,7 @@ statedf <- state_pops %>%
     # state_full == "Illinois" ~ "2021-03-25",
     # state_full == "Massachusetts" ~ "2021-03-25",
     state_full == "Arizona" ~ "fresh",
-    state_full == "Connecticut" ~ "fresh"
+    state_full == "Connecticut" ~ "fresh",
     state_full == "California" ~ "fresh",
     state_full == "Delaware" ~ "fresh",
     state_full == "Illinois" ~ "fresh",
