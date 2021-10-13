@@ -1,7 +1,9 @@
 ---
 title: "Figures"
-output: html_notebook
-author: Eric Marty
+author: "Eric Marty"
+output:
+  html_document:
+    df_print: paged
 ---
 
 
