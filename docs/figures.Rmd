@@ -16,7 +16,7 @@ library(yardstick)
 # library(ggpubr)
 library(ggstatsplot)
 source(here::here("code/result-exploration/getReff.R"))
-
+library(processx) # for orca
 ```
 
 ```{r data}
@@ -173,18 +173,24 @@ sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
 
 ```
 
-# Mobility, Latent Trend and Omega for all states
+# Mobility, Latent Trend, Omega and R_e for all states
 
-a) Mobility trend for all states ($\phi$). Covariate that describes human mobility. These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>. We smooth the raw data from Unacast using a spline fit, resulting in the trajectories of human movement shown below. This covariate is used to reduce baseline transmission. Here we show the mobility trends from all 50 states. b) latent trend for all states ($\psi$). c) Relativie transmissibility ($\omega$) for all states. In each subplot, the read line is a non-weighted mean of all states.
+a) Mobility trend for all states ($\phi$). Covariate that describes human mobility. These data come from <a href="https://www.unacast.com/" target="_blank">Unacast</a>. We smooth the raw data from Unacast using a spline fit, resulting in the trajectories of human movement shown below. This covariate is used to reduce baseline transmission. Here we show the mobility trends from all 50 states. b) latent trend for all states ($\psi$). c) Relativie transmissibility ($\omega$) for all states. d) R effective for all states. In each subplot, the read line is a non-weighted mean of all states. 
 
 ```{r covariate, fig.height=3, fig.width=7, eval = TRUE}
 all_phi <- state_summaries %>%
   filter(variable == "mobility_trend") %>%
   dplyr::select(location, date, mean_value) %>%
   rename(phi = mean_value) %>% 
-  filter(date <= Sys.Date())
+  filter(date <= Sys.Date()) %>% 
+  left_join(statedf, by=c("location" = "state_full")) %>% 
+  mutate(relative_pop = total_pop / allstates_pop)
 
 mean_phi <- all_phi %>% group_by(date) %>% summarise(phi = mean(phi))
+
+weighted_mean_phi <- all_phi %>% group_by(date) %>% summarise(phi = sum(phi*relative_pop))
+
+weighted_mean_phi[weighted_mean_phi$date < "2020-03-13",]$phi <- NA
 
 g_phi <- ggplot(all_phi, aes(x = date, y = phi, color = location)) +
   geom_line(size = 0.5) +
@@ -192,7 +198,7 @@ g_phi <- ggplot(all_phi, aes(x = date, y = phi, color = location)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_phi, alpha = .6, size = 2, color = 'red') +
+  geom_line(data = weighted_mean_phi, alpha = .6, size = 2, color = 'red') +
   # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
@@ -204,7 +210,7 @@ p_phi <- g_phi %>% plotly::ggplotly() %>%
                  yaxis = list(title = "Phi")
                  )
 
-p_phi$x$data[[51]]$text <- gsub('red','Mean of all states', p_phi$x$data[[51]]$text)
+p_re$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_re$x$data[[51]]$text)
 
 # p_phi
 ```
@@ -215,9 +221,15 @@ all_psi <- state_summaries %>%
   filter(variable == "latent_trend") %>%
   dplyr::select(location, date, mean_value) %>%
   rename(psi = mean_value) %>% 
-  filter(date <= Sys.Date())
+  filter(date <= Sys.Date()) %>% 
+  left_join(statedf, by=c("location" = "state_full")) %>% 
+  mutate(relative_pop = total_pop / allstates_pop)
 
 mean_psi <- all_psi %>% group_by(date) %>% summarise(psi = mean(psi))
+
+weighted_mean_psi <- all_psi %>% group_by(date) %>% summarise(psi = sum(psi*relative_pop))
+
+weighted_mean_psi[weighted_mean_psi$date < "2020-03-13",]$psi <- NA
 
 g_psi <- ggplot(all_psi, aes(x = date, y = psi, color = location)) +
   geom_line(size = 0.5) +
@@ -225,7 +237,7 @@ g_psi <- ggplot(all_psi, aes(x = date, y = psi, color = location)) +
   scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_psi, alpha = .6, size = 2, color = 'red') +
+  geom_line(data = weighted_mean_psi, alpha = .6, size = 2, color = 'red') +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 1, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
@@ -236,7 +248,7 @@ p_psi <- g_psi %>% plotly::ggplotly() %>%
                  yaxis = list(title = "Psi")
                  )
 
-p_psi$x$data[[51]]$text <- gsub('red','Mean of all states', p_psi$x$data[[51]]$text)
+p_psi$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_psi$x$data[[51]]$text)
 
 # p_psi
 ```
@@ -247,9 +259,15 @@ all_omega <- state_summaries %>%
   filter(variable == "omega") %>%
   dplyr::select(location, date, mean_value) %>%
   rename(omega = mean_value) %>% 
-  filter(date <= Sys.Date())
+  filter(date <= Sys.Date()) %>% 
+  left_join(statedf, by=c("location" = "state_full")) %>% 
+  mutate(relative_pop = total_pop / allstates_pop)
 
 mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = mean(omega))
+
+weighted_mean_omega <- all_omega %>% group_by(date) %>% summarise(omega = sum(omega*relative_pop))
+
+weighted_mean_omega[weighted_mean_omega$date < "2020-03-13",]$omega <- NA
 
 max_omega <- max(all_omega$omega)
 
@@ -259,7 +277,7 @@ g_omega <- ggplot(all_omega, aes(x = date, y = omega, color = location)) +
   # scale_y_continuous(limits = c(0,1), labels = scales::percent) +
   scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
   # theme_dark(base_line_size = 0.5) +
-  geom_line(data = mean_omega, alpha = .6, size = 2, color = 'red') +
+  geom_line(data = weighted_mean_omega, alpha = .6, size = 2, color = 'red') +
   annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = all_omega$omega, alpha = .2) +
   theme_minimal() +
   guides(color = FALSE)
@@ -270,15 +288,58 @@ p_omega <- g_omega %>% plotly::ggplotly() %>%
                  yaxis = list(title = "Omega")
                  )
 
-p_omega$x$data[[51]]$text <- gsub('red','Mean of all states', p_omega$x$data[[51]]$text)
+p_omega$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_omega$x$data[[51]]$text)
 
 # p_omega
 ```
 
-```{r}
-plotly::subplot(p_phi, p_psi, p_omega, nrows = 3, shareX = TRUE, titleY = TRUE)
+
+```{r R_effective, fig.height=3, fig.width=7, eval = TRUE}
+all_re <- state_summaries %>%
+  filter(variable == "R_e") %>%
+  dplyr::select(location, date, mean_value) %>%
+  rename(R_e = mean_value) %>% 
+  filter(date <= Sys.Date()) %>% 
+  left_join(statedf, by=c("location" = "state_full")) %>% 
+  mutate(relative_pop = total_pop / allstates_pop)
+
+mean_re <- all_re %>% group_by(date) %>% summarise(R_e = mean(R_e))
+
+weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relative_pop))
+
+weighted_mean_re[weighted_mean_re$date < "2020-03-13",]$R_e <- NA
+
+g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
+  geom_line(size = 0.5) +
+  scale_y_continuous(limits = c(0,5)) +
+  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
+  # theme_dark(base_line_size = 0.5) +
+  geom_line(data = weighted_mean_re, alpha = .6, size = 2, color = 'red') +
+  # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
+  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 5, alpha = .2) +
+  geom_hline(yintercept = 1) +
+  theme_minimal() +
+  guides(color = FALSE)
+
+p_re <- g_re %>% plotly::ggplotly() %>% 
+  plotly::layout(showlegend = TRUE,
+                 # margin = list(l = 150),
+                 yaxis = list(title = "R_e")
+                 )
+
+p_re$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_re$x$data[[51]]$text)
+
+plotly::orca(p_re, "R_e.svg")
+
 ```
 
+```{r}
+p_trends <- plotly::subplot(p_phi, p_psi, p_omega, p_re, nrows = 4, shareX = TRUE, titleY = TRUE) %>% 
+  layout(showlegend = FALSE)
+
+orca(p_trends, "trends.svg")
+
+```
 # Correlation between Omega and Prevalence
 
 Sample period = March 1, 2020 through December 31, 2021
@@ -404,7 +465,7 @@ state_summaries_wide %>% filter(period == 'Past') %>%
 
 ---
 
-c) predictor = AUC of omega; response = cumulative all infections
+c) predictor = AUC of omega; response = cumulative all infections [WRONG]
 
 ```{r}
 # state_summaries_wide %>% 
@@ -420,18 +481,51 @@ c) predictor = AUC of omega; response = cumulative all infections
 #                               '</br> State: ', location)) %>% 
 #     plotly::layout(title = "Correlation of cumulative infection with Area under omega", xaxis=list(title="Area under omega"), yaxis=list(title="Cumulative infections"))
 
-state_summaries_wide %>% 
+corrdf <- state_summaries_wide %>% 
   filter(period == 'Past') %>%
 #  filter(date > burnin[2]) %>%
   filter(date >= sample_period[1] & date <= sample_period[2]) %>% 
-  group_by(location) %>% 
+  group_by(location) 
+
+corrdf %>%
   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
   ggstatsplot::ggscatterstats(x = "AU_omega", y = "cumulative_all_infections", type = "spearman", 
                               title = "Correlation of cumulative infections with Area under omega")
 
+# orca(p_corr, "corr_cumI_AUomega.svg")
+```
+c.2) predictor = AUC of omega; response = cumulative all infections (fraction)
+
+```{r corr_allinfections_auomega}
+# state_summaries_wide %>% 
+#   filter(period == 'Past') %>%
+#   filter(date > burnin[2]) %>%
+#   group_by(location) %>% 
+#   summarise(AU_omega = max(AU_omega), cumulative_all_infections = max(cumulative_all_infections)) %>% 
+#   plotly::plot_ly(type = 'scatter', mode = 'markers',
+#                 x = ~AU_omega, y = ~cumulative_all_infections,
+#                 hoverinfo = 'text', 
+#                 text = ~paste('</br> Area under Omega: ', AU_omega, 
+#                               '</br> Cumulative infections: ', cumulative_all_infections, 
+#                               '</br> State: ', location)) %>% 
+#     plotly::layout(title = "Correlation of cumulative infection with Area under omega", xaxis=list(title="Area under omega"), yaxis=list(title="Cumulative infections"))
+
+corrdf <- state_summaries_wide %>% 
+  filter(period == 'Past') %>%
+#  filter(date > burnin[2]) %>%
+  filter(date >= sample_period[1] & date <= sample_period[2]) %>% 
+  group_by(location) 
+
+corrdf %>%
+  mutate(cumulative_all_infections_fraction = 1 - susceptible_fraction) %>% 
+  summarise(AU_omega = max(AU_omega), cumulative_all_infections_fraction = max(cumulative_all_infections_fraction)) %>% 
+  ggstatsplot::ggscatterstats(x = "AU_omega", y = "cumulative_all_infections_fraction", type = "spearman", 
+                              title = "Correlation of cumulative infections with Area under omega")
+
+# orca(p_corr, "corr_cumI_AUomega.svg")
 ```
 
----
+
 
 e) map of same (correlation, by state)
 
@@ -439,7 +533,7 @@ To be made
 
 # Correlation between Mobility and Omega
 
-```{r}
+```{r corr_mobility_omega}
 
 CA %>% 
   plotly::plot_ly(type = 'scatter', mode = 'markers',
@@ -496,43 +590,6 @@ means %>% filter(date < future[1]) %>%
 
 ```
 
-# R effective for all states
-
-```{r R_effective, fig.height=3, fig.width=7, eval = TRUE}
-all_re <- state_summaries %>%
-  filter(variable == "R_e") %>%
-  dplyr::select(location, date, mean_value) %>%
-  rename(R_e = mean_value) %>% 
-  filter(date <= Sys.Date()) %>% 
-  left_join(statedf, by=c("location" = "state_full")) %>% 
-  mutate(relative_pop = total_pop / allstates_pop)
-
-mean_re <- all_re %>% group_by(date) %>% summarise(R_e = mean(R_e))
-
-weighted_mean_re <- all_re %>% group_by(date) %>% summarise(R_e = sum(R_e*relative_pop))
-
-g_re <- ggplot(all_re, aes(x = date, y = R_e, color = location)) +
-  geom_line(size = 0.5) +
-  scale_y_continuous(limits = c(0,5)) +
-  scale_color_viridis_d(option = "D", direction = -1, alpha = .6, end = .75) +
-  # theme_dark(base_line_size = 0.5) +
-  geom_line(data = weighted_mean_re, alpha = .6, size = 2, color = 'red') +
-  # geom_rect(aes(xmin=future[1], xmax=future[2], ymin=0, ymax=1)) +
-  annotate("rect", xmin = future[1], xmax = future[2], ymin = 0, ymax = 5, alpha = .2) +
-  geom_hline(yintercept = 1) +
-  theme_minimal() +
-  guides(color = FALSE)
-
-p_re <- g_re %>% plotly::ggplotly() %>% 
-  plotly::layout(showlegend = TRUE,
-                 # margin = list(l = 150),
-                 yaxis = list(title = "R_e")
-                 )
-
-p_re$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_re$x$data[[51]]$text)
-
-p_re
-```
 
 
 # Cross Correlation among times series of R Effective
