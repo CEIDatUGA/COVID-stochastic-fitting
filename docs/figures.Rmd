@@ -2,6 +2,7 @@
 title: "Figures"
 author: "Eric Marty"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 ---
@@ -210,7 +211,7 @@ p_phi <- g_phi %>% plotly::ggplotly() %>%
                  yaxis = list(title = "Phi")
                  )
 
-p_re$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_re$x$data[[51]]$text)
+p_phi$x$data[[51]]$text <- gsub('red','Weighted mean of all states', p_phi$x$data[[51]]$text)
 
 # p_phi
 ```
@@ -335,10 +336,11 @@ plotly::orca(p_re, "R_e.svg")
 
 ```{r}
 p_trends <- plotly::subplot(p_phi, p_psi, p_omega, p_re, nrows = 4, shareX = TRUE, titleY = TRUE) %>% 
-  layout(showlegend = FALSE)
+  plotly::layout(showlegend = FALSE)
 
-orca(p_trends, "trends.svg")
+plotly::orca(p_trends, "trends.svg")
 
+p_trends
 ```
 # Correlation between Omega and Prevalence
 
@@ -595,6 +597,7 @@ means %>% filter(date < future[1]) %>%
 # Cross Correlation among times series of R Effective
 
 ```{r}
+library(forecast) # needed for ggplot2 to be able to plot acf objects
 all_re_wide <- all_re %>% 
   select(date, location, R_e) %>% 
   pivot_wider(names_from = location, values_from = R_e) %>% 
@@ -652,41 +655,86 @@ ccfmatrix(all_re_wide[,c("Delaware","Georgia")]) %>% plot_ccf_matrix()
 # Correlation among times series of R Effective
 
 ```{r}
+# FUNCTIONS
+
+# reorder matrix
+reorder_cormat <- function(cormat){
+# Use correlation between variables as distance
+dd <- as.dist((1-cormat)/2)
+hc <- hclust(dd)
+cormat <- cormat[hc$order, hc$order]
+return(cormat)
+}
+
+# Get lower triangle of the correlation matrix
+  get_lower_tri<-function(cormat){
+    cormat[upper.tri(cormat)] <- NA
+    return(cormat)
+  }
+
+# Get upper triangle of the correlation matrix
+get_upper_tri <- function(cormat){
+  cormat[lower.tri(cormat)]<- NA
+  return(cormat)
+}
+
+# heatmap function
+make_heatmap <- function(cm){
+  ggheatmap <- cm %>% 
+  ggplot(aes(Var2, Var1, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(low = "red", high = "blue", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Pearson\nCorrelation") +
+  scale_y_discrete(position = "right") +
+  theme_minimal() + # minimal theme
+  coord_fixed() +
+  theme(axis.text.x = element_text(angle = 90, vjust = .5, size = 5, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = .5, size = 5, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        legend.justification = c(1, 0),
+        legend.position = c(0.6, 0.7),
+        legend.direction = "horizontal") +
+  guides(fill = guide_colorbar(
+    barwidth = 7, barheight = 1,title.position = "top", title.hjust = 0.5))
+  # geom_text(aes(Var2, Var1, label = value), color = "black", size = 4)
+  return(ggheatmap)
+}
+
+# START HERE
+
 all_re_wide <- all_re %>% 
   select(date, location, R_e) %>% 
   pivot_wider(names_from = location, values_from = R_e) %>% 
   select(-date)
 
+# get correlation matrix
 corrmatrix <- cor(all_re_wide, use = "complete.obs")
 
-heatmap(corrmatrix, scale = "none")
+# default heatmap of coor matrix
+# heatmap(corrmatrix, scale = "none")
 
-# Reorder the correlation matrix
-cormat <- reorder_cormat(cormat)
+# Reorder correlation matrix
+corrmatrix.reordered <- reorder_cormat(corrmatrix)
 
+# get triangles
+corrmatrix.lower <- get_lower_tri(corrmatrix)
+corrmatrix.upper <- get_upper_tri(corrmatrix)
+corrmatrix.reordered.lower <- get_lower_tri(corrmatrix.reordered)
+corrmatrix.reordered.upper <- get_upper_tri(corrmatrix.reordered)
 
-# reorder_cormat <- function(cormat){
-# # Use correlation between variables as distance
-# dd <- as.dist((1-cormat)/2)
-# hc <- hclust(dd)
-# cormat <-cormat[hc$order, hc$order]
-# }
-# 
-# upper_tri <- get_upper_tri(cormat)
-# # Melt the correlation matrix
-# melted_cormat <- melt(upper_tri, na.rm = TRUE)
-# # Create a ggheatmap
-# ggheatmap <- ggplot(melted_cormat, aes(Var2, Var1, fill = value))+
-#  geom_tile(color = "white")+
-#  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
-#    midpoint = 0, limit = c(-1,1), space = "Lab", 
-#     name="Pearson\nCorrelation") +
-#   theme_minimal()+ # minimal theme
-#  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-#     size = 12, hjust = 1))+
-#  coord_fixed()
-# # Print the heatmap
-# print(ggheatmap)
+# melt
+library(reshape2)
+corrmatrix.upper.melt <- reshape2::melt(corrmatrix.upper, na.rm = TRUE)
+corrmatrix.reordered.upper.melt <- reshape2::melt(corrmatrix.reordered.upper, na.rm = TRUE)
+
+make_heatmap(corrmatrix.upper.melt)
+make_heatmap(corrmatrix.reordered.upper.melt)
 
 ```
 
