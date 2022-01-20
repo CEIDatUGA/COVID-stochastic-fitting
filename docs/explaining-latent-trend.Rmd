@@ -1,0 +1,194 @@
+---
+title: "Explaining the latent trend of tranmission"
+author: "Andrew Tredennick"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE, out.width = "100%")
+library(here)
+library(tidyverse)
+library(cowplot)
+library(lubridate)
+source(here::here("code/result-exploration/getReff.R"))
+```
+
+```{r data}
+all_files <- list.files(path = here::here("output/current/"), pattern = ".csv")
+param_files <- list.files(path = here::here("output/current/"), pattern = "params-natural.rds")
+state_summaries <- tibble()
+state_parameters <- tibble()
+state_logliks <- tibble()
+statedf <-readRDS(here::here("output/current", "statedf.rds"))
+statevec <- gsub(".csv","",all_files)
+allstates_pop <- statedf %>% filter(state_full %in% statevec) %>% pull(total_pop) %>% sum()
+
+for(i in 1:length(all_files)) {
+  do_file <- all_files[i]
+  location <- sub(".csv", "", do_file)
+  state_metadata <- statedf %>% filter(state_full == sub(".csv", "", do_file))
+  state_pop <- state_metadata %>% pull(total_pop)
+  state_initR0 <- state_metadata %>% pull(initR0)
+  state_beta_s <- (state_initR0*.1)
+  
+  tmpparamfile <- here::here("output/current", param_files[i])
+  # tmp state params
+  statepars <- readRDS(tmpparamfile) 
+
+  statepars_fixed <- statepars %>% 
+    rownames_to_column(var = "param") %>% 
+    dplyr::filter(is_fitted == "no") %>% 
+    select(param,X1) %>% 
+    pivot_wider(values_from = X1, names_from = param) %>% 
+    select(-c(MIF_ID, LogLik, LogLik_SE))
+
+  statepars_fitted <- statepars %>% 
+    rownames_to_column(var = "param") %>% 
+    dplyr::filter(is_fitted == "yes") %>% 
+    select(param,X1) %>% 
+    pivot_wider(values_from = X1, names_from = param)
+  
+  statepars_allmle <- bind_cols(statepars_fixed,statepars_fitted)
+  
+  # results
+
+  tmpfile <- here::here("output/current", do_file)
+  tmp <- read.csv(tmpfile) %>% mutate(date = as.Date(date))
+  firstcasedate <- tmp$date %>% min()
+  tmp <- tmp %>%
+    filter(sim_type == "status_quo" | is.na(sim_type),
+           variable %in% c("daily_cases", "daily_deaths", "daily_all_infections", 
+                           "actual_daily_cases", "actual_daily_deaths",
+                           "mobility_trend", "latent_trend", "combined_trend",
+                           "cumulative_all_infections", "cumulative_deaths")) %>%
+    dplyr::select(location, sim_type, period, date, variable, mean_value) %>% 
+    pivot_wider(names_from = variable, values_from = mean_value) %>%
+    # calculate prevalence
+    mutate(prevalence = daily_all_infections / (state_pop-cumulative_deaths)) %>% 
+    # calculate omega
+    mutate(omega = combined_trend * statepars_allmle$beta_s) %>% 
+    # calculate mean S
+    mutate(S = state_pop - cumulative_all_infections) %>% 
+    mutate(susceptible_fraction = S / (state_pop - cumulative_deaths)) %>% 
+    # calculate q
+    mutate(q = get_q(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate s
+    mutate(s = get_s(t = as.numeric(date-firstcasedate), params = statepars_allmle)) %>%
+    # calculate mean R_e
+    mutate(R_e = getReff(S = S, 
+                         omega = omega,
+                         q = q,
+                         s = s,
+                         params = statepars_allmle)) %>%
+    pivot_longer(cols = !c(location, sim_type, period, date), 
+                 names_to = "variable", 
+                 values_to = "mean_value",
+                 values_drop_na = TRUE)
+
+  state_summaries <- bind_rows(state_summaries, tmp)
+}
+
+# Key Dates
+future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
+burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-03-01"))
+sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
+```
+
+
+```{r get-time-series}
+myvars <- c("mobility_trend", "latent_trend", "R_e")
+all_trends <- state_summaries %>%
+  filter(variable %in% myvars) %>%
+  dplyr::select(location, date, variable, mean_value) %>%
+  filter(date <= as_date("2020-12-31"))
+
+all_trends %>% 
+  filter(location == "Alabama") %>%
+  ggplot(aes(x = date, y = mean_value, color = variable)) +
+  geom_line()
+
+```
+
+
+First, we want to know how much of the variation in Reff over time is due to the mobility covariate versus the latent trend.
+
+```{r cortrend}
+cordf <- tibble()
+for(doloc in unique(all_trends$location)) {
+  df <- all_trends %>%
+    filter(location == doloc) %>%
+    pivot_wider(names_from = variable, values_from = mean_value)
+  tmp <- tibble(
+    location = doloc,
+    latent_corr = cor(df$latent_trend, df$R_e),
+    mobility_corr = cor(df$mobility_trend, df$R_e)
+  )
+  cordf <- bind_rows(cordf, tmp)
+}
+
+cordf <- cordf %>%
+  mutate(state = factor(location, levels = rev(sort(unique(cordf$location))))) %>%
+  pivot_longer(cols = 2:3, names_to = "param", values_to = "pearsons") 
+
+ggplot(cordf, aes(x = state, y = pearsons, fill = param)) +
+  geom_col(position = position_dodge()) +
+  coord_flip()
+```
+
+Looks like latent correlation is highest for almost all states, so, we verify that it is important.
+
+Now, is that latent trend correlated with mandates?
+
+```{r mandatecor}
+mandates <- read_csv("../data/ihme-mandates-data.csv") %>%
+  # why oh why IHME...get your dates right
+  separate(Date, into = c("month", "day", "year")) %>%
+  mutate(month = str_pad(month, 2, side = "left", pad = "0"),
+         day = str_pad(day, 2, side = "left", pad = "0")) %>%
+  mutate(Date = paste(year, month, day, sep = "-")) %>%
+  mutate(Date = as_date(Date)) %>%
+  dplyr::select(Date, Number_of_Mandates_On, State_Name) %>%
+  # well, actually "State_Name" is state abbreviation %>%
+  rename("State_Abbv" = State_Name) %>%
+  # now add in State_Name
+  left_join(tibble(
+    State_Name = state.name,
+    State_Abbv = state.abb,
+  ), by = "State_Abbv")
+
+# fill in dates
+mandates <- mandates %>%
+  group_by(State_Abbv, State_Name) %>%
+  arrange(Date) %>%
+  complete(Date = seq.Date(min(Date), max(Date), by="day")) %>%
+  ungroup()
+
+# pivot for merge in with the other trends
+mandates <- mandates %>%
+  dplyr::select(State_Name, Date, Number_of_Mandates_On) %>%
+  rename("location" = State_Name,
+         "date" = Date,
+         "num_mandates" = Number_of_Mandates_On)
+
+# will pivot out the trends df so we can merge by date
+trends_wide <- all_trends %>%
+  pivot_wider(names_from = variable, values_from = mean_value)
+
+trends_with_mandates <- trends_wide %>%
+  left_join(mandates, by = c("location", "date"))
+
+# pivot back out
+trends_with_mandates <- trends_with_mandates %>%
+  pivot_longer(cols = 3:6, names_to = "variable", values_to = "value")
+
+trends_with_mandates %>% 
+  filter(location == "Texas") %>%
+  ggplot(aes(x = date, y = value, color = variable)) +
+  geom_line() +
+  geom_vline(aes(xintercept = as_date("2020-11-26"))) +
+  facet_wrap(~location)
+  
+```
+
