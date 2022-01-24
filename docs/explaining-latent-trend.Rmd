@@ -5,6 +5,19 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: html_document
 ---
 
+## Goal of manuscript
+*Goal*
+Demonstrate why a semi-parametric model is necessary to model ongoing pandemics where transmission rates can change rapidly in response to human actions that difficult or impossible to measure.
+
+*How?*
+Show that the non-parametric portion of the model "takes over" as the driver of temporal variation after the first few weeks of the pandemic.
+This can be done by a segmented analysis of variance, with the segment defined by the date at which most mandates began to expire in each state; I used May 01, 2020 here for demonstration.
+
+## Initial analyses
+
+NOTE: We need to use the 2020-12-31 model fit. This will require a little bit of post-processing to get those archived results in shape (to have the same structure as the "current" directory files).
+
+Here I am using the most recent fit.
 
 ```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(include=TRUE, echo=FALSE, warning=FALSE, message=FALSE, out.width = "100%")
@@ -104,15 +117,17 @@ all_trends <- state_summaries %>%
   dplyr::select(location, date, variable, mean_value) %>%
   filter(date <= as_date("2020-12-31"))
 
-all_trends %>% 
-  filter(location == "Alabama") %>%
-  ggplot(aes(x = date, y = mean_value, color = variable)) +
-  geom_line()
+# all_trends %>% 
+#   filter(location == "Alabama") %>%
+#   ggplot(aes(x = date, y = mean_value, color = variable)) +
+#   geom_line()
 
 ```
 
 
 First, we want to know how much of the variation in Reff over time is due to the mobility covariate versus the latent trend.
+This is over all time.
+The eventual goal is to show over moving window or in segmented times (see below).
 
 ```{r cortrend}
 cordf <- tibble()
@@ -139,7 +154,7 @@ ggplot(cordf, aes(x = state, y = pearsons, fill = param)) +
 
 Looks like latent correlation is highest for almost all states, so, we verify that it is important.
 
-Now, is that latent trend correlated with mandates?
+Let's look at all the time series, including the mandates.
 
 ```{r mandatecor}
 mandates <- read_csv("../data/ihme-mandates-data.csv") %>%
@@ -184,11 +199,65 @@ trends_with_mandates <- trends_with_mandates %>%
   pivot_longer(cols = 3:6, names_to = "variable", values_to = "value")
 
 trends_with_mandates %>% 
-  filter(location == "Texas") %>%
+  # filter(location == "Texas") %>%
   ggplot(aes(x = date, y = value, color = variable)) +
   geom_line() +
-  geom_vline(aes(xintercept = as_date("2020-11-26"))) +
-  facet_wrap(~location)
-  
+  facet_wrap(~location) +
+  theme(axis.text = element_blank())
+```
+
+## Analysis of Variance
+
+Here we show that easy-to-measure metrics such as human mobility are useful predictors early in the pandemic when mandates were in place.
+After about May 01, 2020, many mandates expired and human mobility became less useful as a predictor.
+The latent trend capture nearly all the variance in R_e after mandates expired, except in some interesting cases like California.
+NOTE: THIS IS FROM A POTENTIALLY BAD FIT FOR CALIFORNIA AND ILLINOIS. WE NEED TO FIND THE BEST FIT CLOSEST TO DEC 31, 2020.
+
+```{r movwin}
+trends <- trends_with_mandates %>%
+  pivot_wider(names_from = variable, values_from = value) %>%
+  mutate(TimePeriod = case_when(
+    date < "2020-05-01" ~ "a",
+    TRUE ~ "b"))
+
+
+results <- tibble()
+for (state in unique(trends$location)) {
+  tmp <- trends %>%
+    filter(location == state)
+  for (tp in unique(tmp$TimePeriod)) {
+    df <- tmp %>%
+      filter(TimePeriod == tp)
+    m1 <- broom::tidy(anova(lm(R_e ~ 1, data = df))) %>%
+      mutate(term = "null")
+    m2 <- broom::tidy(anova(lm(R_e ~ mobility_trend, data = df)))
+    m3 <- broom::tidy(anova(lm(R_e ~ mobility_trend + latent_trend, data = df)))
+    res <- bind_rows(m1, m2, m3) %>%
+      filter(term != "Residuals") %>%
+      mutate(TimePeriod = tp) %>%
+      mutate(location = state)
+    results <- bind_rows(results, res)
+  }
+}
+
+
+output <- results %>%
+  group_by(location, TimePeriod) %>%
+  mutate(PropVar = sumsq/max(sumsq)) %>%
+  dplyr::select(location, TimePeriod, term, PropVar) %>% 
+  distinct() %>%
+  filter(term != "null") %>%
+  mutate(Label = case_when(
+    TimePeriod == "a" ~ "Before May 1, 2020",
+    TRUE ~ "After May 1, 2020"
+  )) %>%
+  mutate(Label = factor(Label, levels = c("Before May 1, 2020", "After May 1, 2020")))
+
+ggplot(output, aes(x = Label, y = PropVar)) +
+  geom_col(aes(fill = term), position = position_dodge(), width = 0.5) +
+  facet_wrap(~location) +
+  labs(x = NULL, y = "Proportion of variance of Re explained") +
+  scale_fill_discrete(name = NULL) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
