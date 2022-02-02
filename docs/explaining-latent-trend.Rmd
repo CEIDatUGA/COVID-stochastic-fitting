@@ -206,6 +206,59 @@ trends_with_mandates %>%
   theme(axis.text = element_blank())
 ```
 
+
+## Key dates for retrospective analysis
+
+```{r retro}
+
+key_dates <- tibble(
+  date = c("2020-03-13", 
+           "2020-03-28",
+           "2020-04-03",
+           "2020-04-24",
+           "2020-05-28",
+           "2020-09-22",
+           "2020-10-31",
+           "2020-11-26",
+           "2020-12-25"),
+  event = c("US President declares nationwide emergency.",
+            "White House extende social distancing measures.",
+            "CDC announces mask wearing guidelines outside of the home.",
+            "Some states begin to reopen.",
+            "US death toll surpasses 100,000.",
+            "US death toll surpasses 200,000.",
+            "Halloween.",
+            "Thanksgiving.",
+            "Christmas.")
+) %>%
+  mutate(date = as_date(date))
+
+median_trends <- trends_with_mandates %>%
+  filter(variable != "num_mandates") %>%
+  group_by(date, variable) %>%
+  summarise(median_value = median(value))
+
+median_diffs <- median_trends %>%
+  pivot_wider(names_from = variable, values_from = median_value) %>%
+  mutate(difference = latent_trend - mobility_trend) %>%
+  left_join(key_dates)
+
+ggplot(median_diffs, aes(x = date, y = difference)) +
+  geom_hline(aes(yintercept = 0)) +
+  geom_point(aes(color = mobility_trend), size = 3) +
+  geom_text(aes(label = event), angle = 90) +
+  scale_color_viridis_c()
+
+# trends_with_mandates %>%
+#   filter(variable != "num_mandates") %>%
+#   ggplot(aes(x = date, y = value)) +
+#   geom_line(alpha = 0.1, aes(group = location)) +
+#   geom_line(data = median_trends, aes(y = median_value), color = "blue", size = 2) +
+#   geom_text(data = key_dates, aes(x = date, y = 1, label = event), angle = 90) +
+#   facet_wrap(~variable, scales = "free")
+```
+
+
 ## Analysis of Variance
 
 Here we show that easy-to-measure metrics such as human mobility are useful predictors early in the pandemic when mandates were in place.
