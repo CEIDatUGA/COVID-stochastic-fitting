@@ -204,6 +204,31 @@ trends_with_mandates %>%
   geom_line() +
   facet_wrap(~location) +
   theme(axis.text = element_blank())
+
+
+# figure with cumulative mandates and relative mobility trend
+all_mandates_mobility <- trends_with_mandates %>% 
+  filter(variable %in% c("num_mandates", "mobility_trend")) %>%
+  pivot_wider(names_from = variable, values_from = value) %>%
+  group_by(date) %>%
+  summarise(total_mandates = sum(num_mandates),
+            mean_mobility = mean(mobility_trend),
+            .groups = "drop") %>%
+  mutate(relative_mandates = total_mandates / max(total_mandates, na.rm = TRUE)) %>%
+  dplyr::select(-total_mandates) %>%
+  pivot_longer(cols = mean_mobility:relative_mandates)
+
+# max mobility after april
+changepoint <- all_mandates_mobility %>%
+  filter(date > "2020-04-30") %>%
+  filter(name == "mean_mobility") %>%
+  filter(value == max(value))
+
+ggplot(all_mandates_mobility, aes(x = date, y = value)) +
+  geom_line(aes(color = name)) +
+  geom_vline(aes(xintercept = as.Date("2020-04-24")), linetype = 2) +
+  theme_classic() +
+  labs(x = "Date", y = "Relative mobility or number of mandates")
 ```
 
 
