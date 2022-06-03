@@ -177,13 +177,13 @@ pomp_res$partable_natural = mif_explore$partable_natural
 pomp_res$mif_res <- NULL #to save space, one can delete the full mif results before saving
 
 # Simulate from the model at best MLE
-params <- pomp_res$all_partable %>%
+params <- mif_explore$all_partable %>%
   arrange(-LogLik) %>%
-  slice(1) %>%
+  slice(2) %>%
   dplyr::select(-MIF_ID, -LogLik, -LogLik_SE) %>%
   gather() %>%
   tibble::deframe()
-sim <- pomp::simulate(pomp_res$pomp_model, params = params, 
+sim <- pomp::simulate(pomp_model, params = params, 
                       nsim = 100, format = "data.frame")
 pomp_res$sims <- sim 
 
