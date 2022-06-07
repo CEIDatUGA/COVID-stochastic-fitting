@@ -107,6 +107,23 @@ for(i in 1:length(all_files)) {
 future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% range()
 burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-03-01"))
 sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
+
+# Connecticut
+tmp <- state_summaries %>%
+  filter(location == "Connecticut") %>%
+  filter(variable %in% c("actual_daily_cases", "daily_cases")) %>%
+  filter(period == "Past")
+
+fit <- tmp %>%
+  filter(sim_type == "status_quo")
+dat <- tmp %>%
+  filter(variable == "actual_daily_cases")
+
+ggplot(dat, aes(x = date, y = mean_value)) +
+  geom_point() +
+  geom_line(data=fit)
+  
+
 ```
 
 
@@ -225,10 +242,20 @@ changepoint <- all_mandates_mobility %>%
   filter(value == max(value))
 
 ggplot(all_mandates_mobility, aes(x = date, y = value)) +
-  geom_line(aes(color = name)) +
-  geom_vline(aes(xintercept = as.Date("2020-04-24")), linetype = 2) +
-  theme_classic() +
-  labs(x = "Date", y = "Relative mobility or number of mandates")
+  geom_line(aes(color = name), size = 2) +
+  geom_vline(aes(xintercept = as.Date("2020-04-24")), linetype = 2, color = "grey35") +
+  annotate(geom = "text",
+           x = as.Date("2020-05-24"), 
+           y = 0.25, 
+           label = "2020-04-24",
+           color = "grey35") +
+  scale_color_brewer(type = "qual", 
+                     name = NULL, 
+                     labels = c("mobility", "mandates")) +
+  theme_classic(base_size = 16) +
+  labs(x = "Date", y = "Relative value") +
+  theme(legend.position = "top")
+ggsave("relative_mobility_mandates.png", width = 8, height = 4, units = "in", dpi = 360)
 ```
 
 
@@ -329,13 +356,24 @@ output <- results %>%
     TimePeriod == "a" ~ "Before May 1, 2020",
     TRUE ~ "After May 1, 2020"
   )) %>%
-  mutate(Label = factor(Label, levels = c("Before May 1, 2020", "After May 1, 2020")))
+  mutate(Label = factor(Label, levels = c("Before May 1, 2020", "After May 1, 2020"), labels = c("Ph. 1", "Ph. 2"))) 
+
+library(geofacet)
+
+output <- output %>%
+  left_join(data.frame(
+    location = state.name,
+    state = state.abb
+  ))
 
 ggplot(output, aes(x = Label, y = PropVar)) +
   geom_col(aes(fill = term), position = position_dodge(), width = 0.5) +
-  facet_wrap(~location) +
-  labs(x = NULL, y = "Proportion of variance of Re explained") +
-  scale_fill_discrete(name = NULL) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  facet_geo(~ state, grid = "us_state_grid2") +
+  labs(x = NULL, y = NULL) +
+  scale_fill_brewer(type = "qual", name = NULL, labels = c("latent", "mobility"))  +
+  scale_y_continuous(breaks = c(0, 1)) +
+  ggthemes::theme_few() +
+  theme(legend.position = "top")
+ggsave("anova_re_states.png", width = 10, height = 7, units = "in", dpi = 360)
 ```
 
