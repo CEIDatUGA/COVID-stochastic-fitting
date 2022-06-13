@@ -108,22 +108,45 @@ future <- state_summaries %>% filter(period == "Future") %>% pull(date) %>% rang
 burnin <- c(state_summaries %>% pull(date) %>% min(), as.Date("2020-03-01"))
 sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
 
-# Connecticut
+# Georiga
 tmp <- state_summaries %>%
-  filter(location == "Connecticut") %>%
+  filter(location == "Georgia") %>%
   filter(variable %in% c("actual_daily_cases", "daily_cases")) %>%
   filter(period == "Past")
 
 fit <- tmp %>%
   filter(sim_type == "status_quo")
 dat <- tmp %>%
-  filter(variable == "actual_daily_cases")
+  filter(variable == "actual_daily_cases") %>%
+  filter(mean_value < 20000)
 
 ggplot(dat, aes(x = date, y = mean_value)) +
   geom_point() +
-  geom_line(data=fit)
+  geom_line(data=fit, color = "orange", size = 1) +
+  theme_minimal(base_size = 14) +
+  labs(x = NULL, y = "Reported\ndaily cases") -> p1
   
+all_trends %>%
+  filter(location == "Georgia") %>%
+  filter(variable == "R_e") %>%
+  ggplot(aes(x = date, y = mean_value)) +
+  geom_hline(aes(yintercept = 1), linetype = 2) +
+  geom_line(size = 1) +
+  theme_minimal(base_size = 14) +
+  labs(x = NULL, y = expression(R[e])) -> p2
 
+all_trends %>%
+  filter(location == "Georgia") %>%
+  filter(variable != "R_e") %>%
+  ggplot(aes(x = date, y = mean_value, color = variable)) +
+  geom_line(size = 1) +
+  theme_minimal(base_size = 14) +
+  scale_color_brewer(type = "qual", name = NULL, labels = c("latent", "mobility")) +
+  labs(x = "Date", y = "Relative effect\non tranmission") +
+  theme(legend.position = "bottom") -> p3
+
+cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1, 1, 1.2))
+ggsave("ga_example.png", height = 6, width = 10, units = "in", dpi = 360)
 ```
 
 
