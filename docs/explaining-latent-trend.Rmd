@@ -112,7 +112,8 @@ sample_period <- c(as.Date("2020-03-01"),as.Date("2020-12-31"))
 tmp <- state_summaries %>%
   filter(location == "Georgia") %>%
   filter(variable %in% c("actual_daily_cases", "daily_cases")) %>%
-  filter(period == "Past")
+  filter(period == "Past") %>%
+  filter(date <= "2020-12-31")
 
 fit <- tmp %>%
   filter(sim_type == "status_quo")
@@ -145,7 +146,7 @@ all_trends %>%
   labs(x = "Date", y = "Relative effect\non tranmission") +
   theme(legend.position = "bottom") -> p3
 
-cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1, 1, 1.2))
+cowplot::plot_grid(p1, p2, p3, ncol = 1, rel_heights = c(1, 1, 1.2), align = "v")
 ggsave("ga_example.png", height = 6, width = 10, units = "in", dpi = 360)
 ```
 
